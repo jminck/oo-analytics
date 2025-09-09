@@ -134,6 +134,24 @@ Legs, Reason For Close, Margin Req., Opening Price, Closing Price
 Format: {quantity} {month} {day} {year} {strike} {C/P} {STO/BTO} {price}
 ```
 
+### Platform Compatibility
+
+#### OptionOmega.com Integration
+This application is fully compatible with CSV exports from **OptionOmega.com** backtesting and trading platform:
+
+- **Live Trading Data**: Direct import of OptionOmega live trading CSV exports
+- **Backtest Results**: Import OptionOmega backtest CSV files with strategy performance data
+- **Automatic Detection**: Recognizes OptionOmega format based on `Initial Premium` column presence
+- **Multi-leg Support**: Parses OptionOmega's legs notation for complex option strategies
+- **Commission Analysis**: Calculates accurate commission costs for OptionOmega strategies
+
+**OptionOmega CSV Features Supported:**
+- Strategy classification and performance tracking
+- Multi-leg options positions (butterflies, iron condors, strangles, etc.)
+- Exercise cost calculation for expired ITM options
+- Opening/closing price tracking for ITM analysis
+- Margin requirement analysis
+
 ## Installation and Setup
 
 ### Prerequisites
