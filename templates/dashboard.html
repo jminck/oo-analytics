@@ -4923,8 +4923,8 @@
                                     <tr>
                                         <td>Actual Closing</td>
                                         <td>$${data.breakdown.actual_closing.toLocaleString()}</td>
-                                        <td>${data.breakdown.actual_contracts.toLocaleString()}</td>
-                                        <td>Closing commissions from backtest data</td>
+                                        <td>${data.breakdown.actual_closing_contracts.toLocaleString()}</td>
+                                        <td>Closing commissions from backtest data (excludes expired)</td>
                                     </tr>
                                     <tr>
                                         <td>Estimated Opening</td>
@@ -4935,8 +4935,8 @@
                                     <tr>
                                         <td>Estimated Closing</td>
                                         <td>$${data.breakdown.estimated_closing.toLocaleString()}</td>
-                                        <td>${data.breakdown.estimated_contracts.toLocaleString()}</td>
-                                        <td>Estimated closing commissions for live data</td>
+                                        <td>${data.breakdown.estimated_closing_contracts.toLocaleString()}</td>
+                                        <td>Estimated closing commissions for live data (excludes expired)</td>
                                     </tr>
                                     <tr>
                                         <td>Exercise Costs</td>
@@ -4959,10 +4959,10 @@
             
             // By strategy breakdown
             let strategyRows = '';
-            let totalTrades = 0, totalContracts = 0, totalActual = 0, totalEstimated = 0, totalExercise = 0;
+            let totalTrades = 0, totalContracts = 0, totalActual = 0, totalEstimated = 0, totalExercise = 0, totalExerciseContracts = 0;
             
             for (const [strategy, info] of Object.entries(data.by_strategy)) {
-                const totalCommissions = info.actual_commissions + info.estimated_commissions;
+                const totalCommissions = info.actual_commissions + info.estimated_commissions + info.exercise_costs;
                 const avgPerTrade = info.count > 0 ? (totalCommissions / info.count) : 0;
                 
                 // Add to totals
@@ -4971,12 +4971,14 @@
                 totalActual += info.actual_commissions;
                 totalEstimated += info.estimated_commissions;
                 totalExercise += info.exercise_costs;
+                totalExerciseContracts += info.exercise_contracts || 0;
                 
                 strategyRows += `
                     <tr>
                         <td>${strategy}</td>
                         <td>${info.count}</td>
                         <td>${(info.contracts || 0).toLocaleString()}</td>
+                        <td>${(info.exercise_contracts || 0).toLocaleString()}</td>
                         <td>$${info.actual_commissions.toLocaleString()}</td>
                         <td>$${info.estimated_commissions.toLocaleString()}</td>
                         <td>$${info.exercise_costs.toLocaleString()}</td>
@@ -4988,17 +4990,18 @@
             
             // Add totals row
             const grandTotal = totalActual + totalEstimated + totalExercise;
-            const avgPerTradeTotal = totalTrades > 0 ? (grandTotal / totalTrades) : 0;
+            const avgCommissionsPerTrade = totalTrades > 0 ? (grandTotal / totalTrades) : 0;
             strategyRows += `
                 <tr style="font-weight: bold; border-top: 2px solid #dee2e6;">
                     <td>TOTAL</td>
                     <td>${totalTrades.toLocaleString()}</td>
                     <td>${totalContracts.toLocaleString()}</td>
+                    <td>${totalExerciseContracts.toLocaleString()}</td>
                     <td>$${totalActual.toLocaleString()}</td>
                     <td>$${totalEstimated.toLocaleString()}</td>
                     <td>$${totalExercise.toLocaleString()}</td>
                     <td>$${grandTotal.toLocaleString()}</td>
-                    <td>$${avgPerTradeTotal.toFixed(2)}</td>
+                    <td>$${avgCommissionsPerTrade.toFixed(2)}</td>
                 </tr>
             `;
             
@@ -5015,11 +5018,12 @@
                                         <th>Strategy</th>
                                         <th>Trades</th>
                                         <th>Contracts</th>
+                                        <th>Contracts Exercised</th>
                                         <th>Actual Commissions</th>
                                         <th>Estimated Commissions</th>
                                         <th>Exercise Costs</th>
-                                        <th>Total Commissions</th>
-                                        <th>Avg per Trade</th>
+                                        <th>Total Commissions (incl. Exercise)</th>
+                                        <th>Avg Commissions per Trade</th>
                                     </tr>
                                 </thead>
                                 <tbody>

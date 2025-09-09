@@ -435,7 +435,7 @@ class Portfolio:
         for strategy_name, strategy in self.strategies.items():
             for trade in strategy.trades:
                 all_trades.append({
-                    'date': pd.to_datetime(trade.date_closed).to_pydatetime(),
+                    'date': np.array(pd.to_datetime(trade.date_closed).to_pydatetime()).item(),
                     'strategy': strategy_name,
                     'pnl': trade.pnl
                 })

@@ -39,7 +39,7 @@ class ChartGenerator:
         for strategy_name, strategy in self.portfolio.strategies.items():
             for trade in strategy.trades:
                 all_trades.append({
-                    'date': pd.to_datetime(trade.date_closed).to_pydatetime(),
+                    'date': np.array(pd.to_datetime(trade.date_closed).to_pydatetime()).item(),
                     'pnl': trade.pnl,
                     'strategy': strategy_name,
                     'cumulative': 0  # Will calculate below
@@ -998,7 +998,7 @@ class ChartGenerator:
                     if trade.date_closed and trade.funds_at_close is not None:
                         # Pre-parse dates to avoid repeated parsing
                         trade.close_date = pd.to_datetime(trade.date_closed).date()
-                        trade.close_datetime = pd.to_datetime(trade.date_closed).to_pydatetime()
+                        trade.close_datetime = np.array(pd.to_datetime(trade.date_closed).to_pydatetime()).item()
                         all_trades.append(trade)
             
             if not all_trades:
