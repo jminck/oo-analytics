@@ -1163,6 +1163,17 @@ def dashboard():
     """Main dashboard with strategy analytics."""
     return render_template('dashboard.html')
 
+@app.route('/debug_charts.html')
+def debug_charts():
+    """Debug page for chart buttons."""
+    import os
+    debug_file = os.path.join(os.getcwd(), 'debug_charts.html')
+    if os.path.exists(debug_file):
+        with open(debug_file, 'r') as f:
+            return f.read()
+    else:
+        return "Debug file not found"
+
 @app.route('/api/portfolio/overview')
 def portfolio_overview():
     """Get portfolio overview metrics."""
@@ -2568,6 +2579,177 @@ def get_pnl_by_month():
             'monthly_totals': monthly_totals
         })
     except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/conflicting-legs')
+@guest_mode_required
+def conflicting_legs_analysis():
+    """Analyze trades for conflicting legs (opposing positions on same contract)."""
+    try:
+        if not portfolio.strategies:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'conflicts': [],
+                    'summary': {
+                        'total_conflicts': 0,
+                        'affected_trades': 0,
+                        'affected_strategies': 0
+                    }
+                }
+            })
+        
+        # Collect all trades with their legs information
+        all_trades_with_legs = []
+        for strategy_name, strategy in portfolio.strategies.items():
+            for trade in strategy.trades:
+                legs_str = getattr(trade, 'legs', '')
+                if legs_str and legs_str.strip():
+                    # Parse legs for this trade
+                    legs = parse_legs_string(legs_str)
+                    if legs:
+                        all_trades_with_legs.append({
+                            'strategy': strategy_name,
+                            'trade': trade,
+                            'legs': legs,
+                            'date_opened': trade.date_opened,
+                            'date_closed': trade.date_closed
+                        })
+        
+        if not all_trades_with_legs:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'conflicts': [],
+                    'summary': {
+                        'total_conflicts': 0,
+                        'affected_trades': 0,
+                        'affected_strategies': 0
+                    }
+                }
+            })
+        
+        # Sort trades by date opened for chronological analysis
+        all_trades_with_legs.sort(key=lambda x: x['date_opened'] if x['date_opened'] else pd.Timestamp('1900-01-01'))
+        
+        conflicts = []
+        affected_trades = set()
+        affected_strategies = set()
+        
+        # Compare each trade with all subsequent trades to find conflicts
+        for i, trade1 in enumerate(all_trades_with_legs):
+            for j, trade2 in enumerate(all_trades_with_legs[i+1:], i+1):
+                # Skip if same trade
+                if trade1['trade'] == trade2['trade']:
+                    continue
+                
+                # Check if trades overlap in time
+                trade1_start = trade1['date_opened']
+                trade1_end = trade1['date_closed']
+                trade2_start = trade2['date_opened']
+                trade2_end = trade2['date_closed']
+                
+                # Skip if we can't determine dates
+                if not all([trade1_start, trade1_end, trade2_start, trade2_end]):
+                    continue
+                
+                # Check for time overlap (trade2 opens before trade1 closes)
+                if trade2_start <= trade1_end:
+                    # Check for conflicting legs
+                    for leg1 in trade1['legs']:
+                        for leg2 in trade2['legs']:
+                            # Check if same contract (expiration, strike, type)
+                            if (leg1['expiration'] == leg2['expiration'] and
+                                leg1['strike'] == leg2['strike'] and
+                                leg1['type'] == leg2['type']):
+                                
+                                # Check if opposing actions (STO vs BTO)
+                                if ((leg1['action'] == 'STO' and leg2['action'] == 'BTO') or
+                                    (leg1['action'] == 'BTO' and leg2['action'] == 'STO')):
+                                    
+                                    conflict = {
+                                        'conflict_id': len(conflicts) + 1,
+                                        'trade1': {
+                                            'strategy': trade1['strategy'],
+                                            'date_opened': trade1['date_opened'].strftime('%Y-%m-%d') if trade1['date_opened'] else 'N/A',
+                                            'date_closed': trade1['date_closed'].strftime('%Y-%m-%d') if trade1['date_closed'] else 'N/A',
+                                            'pnl': trade1['trade'].pnl,
+                                            'leg': {
+                                                'quantity': leg1['quantity'],
+                                                'expiration': leg1['expiration'],
+                                                'strike': leg1['strike'],
+                                                'type': leg1['type'],
+                                                'action': leg1['action'],
+                                                'premium': leg1['premium']
+                                            }
+                                        },
+                                        'trade2': {
+                                            'strategy': trade2['strategy'],
+                                            'date_opened': trade2['date_opened'].strftime('%Y-%m-%d') if trade2['date_opened'] else 'N/A',
+                                            'date_closed': trade2['date_closed'].strftime('%Y-%m-%d') if trade2['date_closed'] else 'N/A',
+                                            'pnl': trade2['trade'].pnl,
+                                            'leg': {
+                                                'quantity': leg2['quantity'],
+                                                'expiration': leg2['expiration'],
+                                                'strike': leg2['strike'],
+                                                'type': leg2['type'],
+                                                'action': leg2['action'],
+                                                'premium': leg2['premium']
+                                            }
+                                        },
+                                        'contract_details': {
+                                            'expiration': leg1['expiration'],
+                                            'strike': leg1['strike'],
+                                            'type': leg1['type'],
+                                            'description': f"{leg1['expiration']} {leg1['strike']} {leg1['type']}"
+                                        },
+                                        'conflict_type': 'opposing_positions',
+                                        'overlap_days': (min(trade1_end, trade2_end) - max(trade1_start, trade2_start)).days,
+                                        'severity': 'high' if leg1['quantity'] == leg2['quantity'] else 'medium',
+                                        'potential_impact': 'Position cancellation' if leg1['quantity'] == leg2['quantity'] else 'Partial position reduction'
+                                    }
+                                    
+                                    conflicts.append(conflict)
+                                    affected_trades.add(f"{trade1['strategy']}-{trade1['date_opened']}")
+                                    affected_trades.add(f"{trade2['strategy']}-{trade2['date_opened']}")
+                                    affected_strategies.add(trade1['strategy'])
+                                    affected_strategies.add(trade2['strategy'])
+        
+        # Sort conflicts by date
+        conflicts.sort(key=lambda x: x['trade1']['date_opened'])
+        
+        # Create summary statistics
+        summary = {
+            'total_conflicts': len(conflicts),
+            'affected_trades': len(affected_trades),
+            'affected_strategies': len(affected_strategies),
+            'high_severity_conflicts': len([c for c in conflicts if c['severity'] == 'high']),
+            'medium_severity_conflicts': len([c for c in conflicts if c['severity'] == 'medium']),
+            'strategy_breakdown': {}
+        }
+        
+        # Strategy-level breakdown
+        for strategy in affected_strategies:
+            strategy_conflicts = [c for c in conflicts if 
+                                c['trade1']['strategy'] == strategy or 
+                                c['trade2']['strategy'] == strategy]
+            summary['strategy_breakdown'][strategy] = len(strategy_conflicts)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'conflicts': conflicts,
+                'summary': summary
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error in conflicting_legs_analysis: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)

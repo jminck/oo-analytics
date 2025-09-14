@@ -360,7 +360,7 @@ class ChartGenerator:
             if risk_data:
                 scatter_data.append({
                     'strategy': strategy_name,
-                    'return': strategy_data['total_pnl'],
+                    'return': strategy_data.get('expectancy_per_lot', 0),
                     'risk': risk_data['volatility'],
                     'sharpe': risk_data['sharpe_ratio'],
                     'trades': strategy_data['trade_count']
@@ -382,17 +382,17 @@ class ChartGenerator:
                 color=df_scatter['sharpe'],
                 colorscale='Viridis',
                 showscale=True,
-                colorbar=dict(title='Sharpe Ratio'),
+                colorbar=dict(title='Sharpe Ratio (Annualized)'),
                 line=dict(width=1, color='white')  # Add white border for better visibility
             ),
-            hovertemplate='<b>%{customdata[0]}</b><br>Risk (P&L Std Dev): $%{x:,.2f}<br>Return: $%{y:,.2f}<br>Trades: %{customdata[1]}<br>Sharpe Ratio: %{customdata[2]:.3f}<extra></extra>',
+            hovertemplate='<b>%{customdata[0]}</b><br>Risk (P&L Std Dev per Lot): $%{x:,.2f}<br>Return (Expectancy per Lot): $%{y:,.2f}<br>Trades: %{customdata[1]}<br>Sharpe Ratio (Annualized): %{customdata[2]:.3f}<extra></extra>',
             customdata=list(zip(df_scatter['strategy'], df_scatter['trades'], df_scatter['sharpe']))
         ))
         
         fig.update_layout(
-            title='Risk-Return Analysis by Strategy',
-            xaxis_title='Risk (P&L Standard Deviation)',
-            yaxis_title='Total Return ($)',
+            title='Risk-Return Analysis by Strategy (Per-Lot Basis)',
+            xaxis_title='Risk (P&L Standard Deviation per Lot)',
+            yaxis_title='Return (Expectancy per Lot)',
             template='plotly_white',
             height=750,
             hovermode='closest',
@@ -1303,8 +1303,9 @@ class ChartGenerator:
                     # Calculate expectancy using the strategy's property
                     expectancy = strategy.expectancy_per_lot
                     
-                    # Calculate efficiency (expectancy / avg margin)
-                    efficiency = expectancy / average_margin if average_margin > 0 else 0
+                    # Calculate efficiency (expectancy / avg margin) * win rate using 90-day average margin
+                    margin_for_efficiency = avg_90_days if avg_90_days > 0 else average_margin
+                    efficiency = (expectancy / margin_for_efficiency) * (strategy.win_rate / 100) if margin_for_efficiency > 0 else 0
                     
                     strategy_data.append({
                         'strategy': strategy_name,
@@ -1357,6 +1358,7 @@ class ChartGenerator:
                     font=dict(color='white', size=14),
                     align='center'
                 ),
+                columnwidth=[1, 1, 1.2, 1.5, 1.5, 1.5, 1, 1.2, 1.2, 1.2, 1.2, 1.2, 1],
                 cells=dict(
                     values=[
                         strategies,
@@ -1401,6 +1403,9 @@ class ChartGenerator:
                 height=min(600, 150 + len(strategy_data) * 45),
                 margin=dict(l=20, r=20, t=60, b=20)
             )
+            
+            # Update hover label font size for tooltips
+            fig.update_traces(hoverlabel=dict(font=dict(size=18, family="Arial")))
             
             return {
                 'chart': fig.to_json(),
@@ -1545,6 +1550,7 @@ class ChartFactory:
             'pnl_by_day_of_week': 'P&L by day of week table',
             'pnl_by_month': 'P&L by month table',
             'commission_analysis': 'Commission analysis',
+            'conflicting_legs': 'Conflicting leg analysis',
             'drawdown': 'Portfolio drawdown analysis',
             'portfolio_balance': 'Portfolio allocation by strategy',
             'strategy_detail': 'Detailed trade analysis by strategy',
@@ -1579,7 +1585,8 @@ class ChartFactory:
             'strategy_correlation': self.generator.create_strategy_correlation_heatmap,
             'margin_analysis': self.generator.create_margin_analysis_chart,
             'daily_margin_analysis': self.generator.create_daily_margin_analysis_chart,
-            'pnl_by_day_of_week': self.generator.create_pnl_by_day_of_week_chart
+            'pnl_by_day_of_week': self.generator.create_pnl_by_day_of_week_chart,
+            'conflicting_legs': self.generator._empty_chart  # Will be handled specially in loadChart
         }
         
         if chart_type in chart_methods:

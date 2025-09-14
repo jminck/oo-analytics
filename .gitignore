@@ -38,6 +38,7 @@ ENV/
 # Logs
 *.log
 logs/
+scripts/logs/
 
 # IDE
 .vscode/

@@ -130,7 +130,7 @@ class StrategyAnalyzer:
             if not strategy.trades:
                 continue
             
-            # Calculate drawdown for this strategy
+            # Calculate drawdown for this strategy using absolute P&L
             pnl_series = pd.Series([trade.pnl for trade in strategy.trades])
             cumulative_pnl = pnl_series.cumsum()
             
@@ -139,20 +139,76 @@ class StrategyAnalyzer:
             drawdown = cumulative_pnl - running_max
             max_drawdown = drawdown.min()
             
-            # Calculate volatility (standard deviation of returns)
-            volatility = pnl_series.std()
+            # Calculate volatility using per-lot P&L for fair comparison
+            pnl_per_lot_series = pd.Series([trade.pnl_per_lot for trade in strategy.trades])
+            volatility_per_lot = pnl_per_lot_series.std()
             
-            # Sharpe-like ratio (mean return / volatility)
-            sharpe_ratio = pnl_series.mean() / volatility if volatility != 0 else 0
+            # Trade-based efficiency ratio (simple ratio without time normalization)
+            trade_efficiency_ratio = pnl_per_lot_series.mean() / volatility_per_lot if volatility_per_lot != 0 else 0
+            
+            # Calculate proper Sharpe ratio with time normalization
+            sharpe_ratio = self._calculate_proper_sharpe_ratio(strategy.trades)
             
             risk_metrics[strategy_name] = {
                 'max_drawdown': round(max_drawdown, 2),
-                'volatility': round(volatility, 2),
+                'volatility': round(volatility_per_lot, 2),
                 'sharpe_ratio': round(sharpe_ratio, 3),
-                'risk_level': self._classify_risk_level(volatility, max_drawdown)
+                'trade_efficiency_ratio': round(trade_efficiency_ratio, 3),
+                'risk_level': self._classify_risk_level(volatility_per_lot, max_drawdown)
             }
         
         return risk_metrics
+    
+    def _calculate_proper_sharpe_ratio(self, trades: List) -> float:
+        """Calculate proper Sharpe ratio with time normalization and risk-free rate."""
+        if len(trades) < 2:
+            return 0.0
+        
+        # Calculate time span and trade frequency
+        start_date = pd.to_datetime(trades[0].date_closed)
+        end_date = pd.to_datetime(trades[-1].date_closed)
+        days_elapsed = (end_date - start_date).days
+        
+        if days_elapsed <= 0:
+            return 0.0
+        
+        # Calculate trades per year
+        trades_per_year = len(trades) * 365.25 / days_elapsed
+        
+        # Calculate returns as percentage (using per-lot P&L relative to a standard margin base)
+        # Use a standard margin base of $1000 for normalization
+        standard_margin_base = 1000.0
+        returns = []
+        
+        for trade in trades:
+            # Calculate return as percentage of standard margin base
+            return_pct = trade.pnl_per_lot / standard_margin_base
+            returns.append(return_pct)
+        
+        if not returns:
+            return 0.0
+        
+        # Calculate mean and standard deviation of returns
+        mean_return = np.mean(returns)
+        std_return = np.std(returns)
+        
+        if std_return == 0:
+            return 0.0
+        
+        # Annualize the metrics
+        annual_return = mean_return * trades_per_year
+        annual_volatility = std_return * np.sqrt(trades_per_year)
+        
+        # Risk-free rate (assume 2% annual)
+        risk_free_rate = 0.02
+        
+        # Calculate Sharpe ratio
+        if annual_volatility > 0:
+            sharpe_ratio = (annual_return - risk_free_rate) / annual_volatility
+        else:
+            sharpe_ratio = 0.0
+        
+        return sharpe_ratio
     
     def suggest_position_sizing(self) -> Dict:
         """Suggest position sizing based on strategy performance and risk."""
@@ -194,7 +250,7 @@ class StrategyAnalyzer:
                         daily_data.append({
                             'date': date,
                             'strategy': strategy_name,
-                            'pnl': trade.pnl
+                            'pnl': trade.pnl_per_lot
                         })
                     except (ValueError, TypeError):
                         # Skip trades with invalid dates
@@ -318,9 +374,11 @@ class PortfolioMetrics:
         else:
             cagr = 0
         
-        # Calculate Sharpe-like ratio
+        # Calculate proper Sharpe ratio using time normalization
+        sharpe_ratio = self._calculate_portfolio_sharpe_ratio(all_trades)
+        
+        # Calculate average trade P&L (for portfolio metrics)
         returns = [trade.pnl for trade in all_trades]
-        sharpe_ratio = np.mean(returns) / np.std(returns) if np.std(returns) != 0 else 0
         
         # Calculate average and longest days to new P&L high
         # Create a daily account value series to properly calculate calendar days
@@ -393,7 +451,9 @@ class PortfolioMetrics:
             'avg_trade_pnl': round(np.mean(returns), 2),
             'cumulative_pnl_series': cumulative_pnl.tolist(),
             'avg_days_to_new_high': avg_days_to_new_high,
-            'longest_days_since_to_new_high': longest_days_since_to_new_high
+            'longest_days_since_to_new_high': longest_days_since_to_new_high,
+            'start_date': start_date.strftime('%Y-%m-%d'),
+            'end_date': end_date.strftime('%Y-%m-%d')
         }
     
     def _get_all_trades_chronologically(self) -> List[Trade]:
@@ -407,6 +467,63 @@ class PortfolioMetrics:
         all_trades.sort(key=lambda t: pd.to_datetime(t.date_closed))
         
         return all_trades
+    
+    def _calculate_portfolio_sharpe_ratio(self, all_trades: List) -> float:
+        """Calculate proper portfolio-level Sharpe ratio with time normalization."""
+        if len(all_trades) < 2:
+            return 0.0
+        
+        # Calculate time span
+        start_date = pd.to_datetime(all_trades[0].date_closed)
+        end_date = pd.to_datetime(all_trades[-1].date_closed)
+        days_elapsed = (end_date - start_date).days
+        
+        if days_elapsed <= 0:
+            return 0.0
+        
+        # Calculate trades per year for the portfolio
+        trades_per_year = len(all_trades) * 365.25 / days_elapsed
+        
+        # Calculate returns as percentage of a standard base
+        # Use average margin per lot across all trades as base
+        total_margin = sum(getattr(trade, 'margin_req', 0) for trade in all_trades)
+        total_contracts = sum(getattr(trade, 'contracts', 1) for trade in all_trades)
+        avg_margin_per_lot = total_margin / total_contracts if total_contracts > 0 else 1000.0
+        
+        # Use standard base if no margin data
+        if avg_margin_per_lot == 0:
+            avg_margin_per_lot = 1000.0
+        
+        returns = []
+        for trade in all_trades:
+            # Calculate return as percentage of margin base
+            return_pct = trade.pnl_per_lot / avg_margin_per_lot
+            returns.append(return_pct)
+        
+        if not returns:
+            return 0.0
+        
+        # Calculate mean and standard deviation
+        mean_return = np.mean(returns)
+        std_return = np.std(returns)
+        
+        if std_return == 0:
+            return 0.0
+        
+        # Annualize the metrics
+        annual_return = mean_return * trades_per_year
+        annual_volatility = std_return * np.sqrt(trades_per_year)
+        
+        # Risk-free rate (2% annual)
+        risk_free_rate = 0.02
+        
+        # Calculate Sharpe ratio
+        if annual_volatility > 0:
+            sharpe_ratio = (annual_return - risk_free_rate) / annual_volatility
+        else:
+            sharpe_ratio = 0.0
+        
+        return sharpe_ratio
     
     def _calculate_max_drawdown(self, account_values: np.ndarray) -> float:
         """Calculate maximum drawdown from account values."""

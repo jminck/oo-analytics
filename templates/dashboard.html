@@ -933,6 +933,22 @@
             color: var(--danger-color) !important;
         }
 
+        /* Custom tooltip styles */
+        .custom-tooltip {
+            position: relative;
+            cursor: help !important;
+        }
+
+        .custom-tooltip::after {
+            display: none !important;
+        }
+
+        .custom-tooltip::before {
+            display: none !important;
+        }
+
+        /* All CSS-based tooltips disabled - using JavaScript only */
+
         /* Portfolio Balance Analysis & Position Sizing text visibility */
         .card h6,
         .card h5,
@@ -1531,6 +1547,7 @@
                     <div class="card-body text-center">
                         <div class="metric-title">Starting Capital</div>
                         <div class="metric-value" id="startingCapital">$0</div>
+                        <div class="metric-subtitle" id="startDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
                     </div>
                 </div>
             </div>
@@ -1539,6 +1556,7 @@
                     <div class="card-body text-center">
                         <div class="metric-title">Ending Capital</div>
                         <div class="metric-value" id="endingCapital">$0</div>
+                        <div class="metric-subtitle" id="endDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
                     </div>
                 </div>
             </div>
@@ -1651,28 +1669,31 @@
                                         <table class="table table-hover" id="strategyTable">
                                             <thead class="table-dark">
                                                 <tr>
-                                                    <th style="min-width: 200px; cursor:pointer;" data-key="strategy" onclick="sortStrategyTable('strategy')">Strategy <span id="sort-indicator-strategy"></span></th>
-                                                    <th style="cursor:pointer;" data-key="total_pnl" onclick="sortStrategyTable('total_pnl')">Total P&L <span id="sort-indicator-total_pnl"></span></th>
-                                                    <th style="cursor:pointer;" data-key="trades" onclick="sortStrategyTable('trades')">Trades <span id="sort-indicator-trades"></span></th>
-                                                    <th style="cursor:pointer;" data-key="wins" onclick="sortStrategyTable('wins')">Wins <span id="sort-indicator-wins"></span></th>
-                                                    <th style="cursor:pointer;" data-key="losses" onclick="sortStrategyTable('losses')">Losses <span id="sort-indicator-losses"></span></th>
-                                                    <th style="cursor:pointer;" data-key="commissions" onclick="sortStrategyTable('commissions')">Commissions <span id="sort-indicator-commissions"></span></th>
-                                                    <th style="cursor:pointer;" data-key="win_rate" onclick="sortStrategyTable('win_rate')">Win Rate <span id="sort-indicator-win_rate"></span></th>
-                                                    <th style="cursor:pointer;" data-key="max_loss_streak" onclick="sortStrategyTable('max_loss_streak')">Max Loss Streak <span id="sort-indicator-max_loss_streak"></span></th>
-                                                    <th style="cursor:pointer;" data-key="avg_win" onclick="sortStrategyTable('avg_win')">Avg Win <span id="sort-indicator-avg_win"></span></th>
-                                                    <th style="cursor:pointer;" data-key="avg_loss" onclick="sortStrategyTable('avg_loss')">Avg Loss <span id="sort-indicator-avg_loss"></span></th>
-                                                    <th style="cursor:pointer;" data-key="avg_win_per_lot" onclick="sortStrategyTable('avg_win_per_lot')">Avg Win/Lot <span id="sort-indicator-avg_win_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="avg_loss_per_lot" onclick="sortStrategyTable('avg_loss_per_lot')">Avg Loss/Lot <span id="sort-indicator-avg_loss_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="max_win_per_lot" onclick="sortStrategyTable('max_win_per_lot')">Max Win/Lot <span id="sort-indicator-max_win_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="max_loss_per_lot" onclick="sortStrategyTable('max_loss_per_lot')">Max Loss/Lot <span id="sort-indicator-max_loss_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="comm_per_lot" onclick="sortStrategyTable('comm_per_lot')">Comm/Lot <span id="sort-indicator-comm_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="expectancy_per_lot" onclick="sortStrategyTable('expectancy_per_lot')">Expectancy/Lot <span id="sort-indicator-expectancy_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="profit_factor" onclick="sortStrategyTable('profit_factor')">Profit Factor <span id="sort-indicator-profit_factor"></span></th>
+                                                    <th style="min-width: 200px; cursor:pointer;" data-key="strategy" onclick="sortStrategyTable('strategy')" class="custom-tooltip" data-tooltip="Name of the trading strategy">Strategy <span id="sort-indicator-strategy"></span></th>
+                                                    <th style="cursor:pointer;" data-key="total_pnl" onclick="sortStrategyTable('total_pnl')" class="custom-tooltip" data-tooltip="Total profit/loss for all trades in this strategy">Total P&L <span id="sort-indicator-total_pnl"></span></th>
+                                                    <th style="cursor:pointer;" data-key="trades" onclick="sortStrategyTable('trades')" class="custom-tooltip" data-tooltip="Total number of completed trades">Trades <span id="sort-indicator-trades"></span></th>
+                                                    <th style="cursor:pointer;" data-key="wins" onclick="sortStrategyTable('wins')" class="custom-tooltip" data-tooltip="Number of profitable trades">Wins <span id="sort-indicator-wins"></span></th>
+                                                    <th style="cursor:pointer;" data-key="losses" onclick="sortStrategyTable('losses')" class="custom-tooltip" data-tooltip="Number of losing trades">Losses <span id="sort-indicator-losses"></span></th>
+                                                    <th style="cursor:pointer;" data-key="commissions" onclick="sortStrategyTable('commissions')" class="custom-tooltip" data-tooltip="Total commission costs for all trades">Commissions <span id="sort-indicator-commissions"></span></th>
+                                                    <th style="cursor:pointer;" data-key="win_rate" onclick="sortStrategyTable('win_rate')" class="custom-tooltip" data-tooltip="Percentage of trades that were profitable">Win Rate <span id="sort-indicator-win_rate"></span></th>
+                                                    <th style="cursor:pointer;" data-key="max_loss_streak" onclick="sortStrategyTable('max_loss_streak')" class="custom-tooltip" data-tooltip="Maximum consecutive losing trades">Max Loss Streak <span id="sort-indicator-max_loss_streak"></span></th>
+                                                    <th style="cursor:pointer;" data-key="avg_win" onclick="sortStrategyTable('avg_win')" class="custom-tooltip" data-tooltip="Average profit amount for winning trades">Avg Winner <span id="sort-indicator-avg_win"></span></th>
+                                                    <th style="cursor:pointer;" data-key="avg_loss" onclick="sortStrategyTable('avg_loss')" class="custom-tooltip" data-tooltip="Average loss amount for losing trades">Avg Loser <span id="sort-indicator-avg_loss"></span></th>
+                                                    <th style="cursor:pointer;" data-key="max_win" onclick="sortStrategyTable('max_win')" class="custom-tooltip" data-tooltip="Largest profit from a single winning trade">Max Winner <span id="sort-indicator-max_win"></span></th>
+                                                    <th style="cursor:pointer;" data-key="max_loss" onclick="sortStrategyTable('max_loss')" class="custom-tooltip" data-tooltip="Largest loss from a single losing trade">Max Loser <span id="sort-indicator-max_loss"></span></th>
+                                                    <th style="cursor:pointer;" data-key="avg_win_per_lot" onclick="sortStrategyTable('avg_win_per_lot')" class="custom-tooltip" data-tooltip="Average profit per contract for winning trades">Avg Win/Lot <span id="sort-indicator-avg_win_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="avg_loss_per_lot" onclick="sortStrategyTable('avg_loss_per_lot')" class="custom-tooltip" data-tooltip="Average loss per contract for losing trades">Avg Loss/Lot <span id="sort-indicator-avg_loss_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="max_win_per_lot" onclick="sortStrategyTable('max_win_per_lot')" class="custom-tooltip" data-tooltip="Largest profit per contract from a single trade">Max Win/Lot <span id="sort-indicator-max_win_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="max_loss_per_lot" onclick="sortStrategyTable('max_loss_per_lot')" class="custom-tooltip" data-tooltip="Largest loss per contract from a single trade">Max Loss/Lot <span id="sort-indicator-max_loss_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="comm_per_lot" onclick="sortStrategyTable('comm_per_lot')" class="custom-tooltip" data-tooltip="Average commission cost per contract">Comm/Lot <span id="sort-indicator-comm_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="expectancy_per_lot" onclick="sortStrategyTable('expectancy_per_lot')" class="custom-tooltip" data-tooltip="Expected profit/loss per contract: (win_rate × avg_win) - (loss_rate × avg_loss)">Expectancy/Lot <span id="sort-indicator-expectancy_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="profit_factor" onclick="sortStrategyTable('profit_factor')" class="custom-tooltip" data-tooltip="Ratio of total profits to total losses (higher is better)">Profit Factor <span id="sort-indicator-profit_factor"></span></th>
+                                                    <th style="cursor:pointer;" data-key="margin_percentage" onclick="sortStrategyTable('margin_percentage')" class="custom-tooltip" data-tooltip="Margin requirement as percentage of account balance">Margin % <span id="sort-indicator-margin_percentage"></span></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td colspan="15" class="text-center text-muted">No strategy data available</td>
+                                                    <td colspan="20" class="text-center text-muted">No strategy data available</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1681,6 +1702,7 @@
                             </div>
                         </div>
                     </div>
+
 
                     <!-- Portfolio Balance Analysis and Position Sizing -->
                     <div class="row mb-4">
@@ -1788,9 +1810,13 @@
     </div>
 
     <script>
+        // Cache busting version - v20241213_1
+        console.log('🔧 JavaScript loaded - v20241213_3_no_severity');
+        
         // Global state
         let currentChart = null;
         let availableCharts = {};
+        let chartsLoadedSuccessfully = false;
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -1825,13 +1851,18 @@
             
             // Ensure chart buttons are loaded
             setTimeout(() => {
-                if (!availableCharts || Object.keys(availableCharts).length === 0) {
+                console.log('🔧 TIMEOUT CHECK v2 - availableCharts:', availableCharts ? Object.keys(availableCharts).length : 'null/undefined');
+                console.log('🔧 TIMEOUT CHECK v2 - chartsLoadedSuccessfully:', chartsLoadedSuccessfully);
+                if ((!availableCharts || Object.keys(availableCharts).length === 0) && !chartsLoadedSuccessfully) {
                     console.log('No charts available, using fallback...');
                     forceRenderChartButtons();
+                } else {
+                    console.log('✅ Charts already loaded, skipping fallback');
                 }
                 // Load overview by default
                 loadChart('overview');
             }, 1000);
+            
         });
 
         // File upload functionality
@@ -2496,9 +2527,10 @@
             })
             .then(data => {
                 console.log('📊 Charts API data received:', data);
-                if (data.success) {
-                    availableCharts = data.data;
-                    console.log('✅ Available charts loaded:', Object.keys(availableCharts));
+                try {
+                    if (data.success) {
+                        availableCharts = data.data;
+                        console.log('✅ Available charts loaded:', Object.keys(availableCharts));
                     
                     // Ensure pnl_by_month is included (fallback for server restart issues)
                     if (!availableCharts['pnl_by_month']) {
@@ -2511,19 +2543,35 @@
                         availableCharts['commission_analysis'] = 'Commission analysis';
                     }
                     
-                    console.log('🎯 Final available charts:', Object.keys(availableCharts));
-                    renderChartButtons();
-                    console.log('✅ Chart buttons rendered successfully');
-                } else {
-                    console.error('Failed to load charts:', data.error);
-                    const container = document.getElementById('chartButtons');
-                    container.innerHTML = `<p class="text-danger">Error loading charts: ${data.error}</p>`;
+                    // Ensure conflicting_legs is available 
+                    if (!availableCharts.conflicting_legs) {
+                        availableCharts['conflicting_legs'] = 'Conflicting leg analysis';
+                    }
+                    
+                        console.log('🎯 Final available charts:', Object.keys(availableCharts));
+                        renderChartButtons();
+                        console.log('✅ Chart buttons rendered successfully v2');
+                        chartsLoadedSuccessfully = true;
+                        console.log('🔧 FLAG SET v2 - chartsLoadedSuccessfully now:', chartsLoadedSuccessfully);
+                    } else {
+                        console.error('Failed to load charts:', data.error);
+                        const container = document.getElementById('chartButtons');
+                        container.innerHTML = `<p class="text-danger">Error loading charts: ${data.error}</p>`;
+                    }
+                } catch (error) {
+                    console.error('❌ Error in loadAvailableCharts data processing:', error);
+                    console.error('Error stack:', error.stack);
+                    throw error; // Re-throw to trigger .catch()
                 }
             })
             .catch(error => {
                 console.error('❌ Error loading charts:', error);
-                console.log('🔄 Falling back to forceRenderChartButtons');
-                forceRenderChartButtons();
+                if (!chartsLoadedSuccessfully) {
+                    console.log('🔄 CATCH FALLBACK v2 - Falling back to forceRenderChartButtons');
+                    forceRenderChartButtons();
+                } else {
+                    console.log('✅ CATCH FALLBACK v2 - Charts already loaded successfully, skipping fallback');
+                }
             });
         }
 
@@ -2539,6 +2587,7 @@
                 'pnl_by_day_of_week': 'P&L by day of week table',
                 'pnl_by_month': 'P&L by month table',
                 'commission_analysis': 'Commission analysis',
+                'conflicting_legs': 'Conflicting leg analysis',
                 'drawdown': 'Portfolio drawdown analysis',
                 'portfolio_balance': 'Portfolio allocation by strategy',
                 'strategy_detail': 'Detailed trade analysis by strategy',
@@ -2553,10 +2602,16 @@
         }
 
         function renderChartButtons() {
-            const container = document.getElementById('chartButtons');
-            container.innerHTML = '';
+            console.log('🔧 renderChartButtons() starting...');
+            try {
+                const container = document.getElementById('chartButtons');
+                if (!container) {
+                    console.error('❌ chartButtons container not found!');
+                    return;
+                }
+                container.innerHTML = '';
 
-            if (!availableCharts || Object.keys(availableCharts).length === 0) {
+                if (!availableCharts || Object.keys(availableCharts).length === 0) {
                 // Fallback chart list - using array to preserve order
                 const fallbackChartsArray = [
                     ['overview', 'Strategy performance overview and portfolio analysis'],
@@ -2566,6 +2621,7 @@
                     ['pnl_by_day_of_week', 'P&L by day of week table'],
                     ['pnl_by_month', 'P&L by month table'],
                     ['commission_analysis', 'Commission analysis'],
+                    ['conflicting_legs', 'Conflicting leg analysis'],
                     ['drawdown', 'Portfolio drawdown analysis'],
                     ['portfolio_balance', 'Portfolio allocation by strategy'],
                     ['strategy_detail', 'Detailed trade analysis by strategy'],
@@ -2590,6 +2646,7 @@
                 'pnl_by_day_of_week',
                 'pnl_by_month',
                 'commission_analysis',
+                'conflicting_legs',
                 'drawdown',
                 'portfolio_balance',
                 'strategy_detail',
@@ -2601,16 +2658,29 @@
                 'monte_carlo'
             ];
 
-            // Render buttons in the specified order
-            for (const chartType of chartOrder) {
-                if (availableCharts[chartType]) {
-                    const button = document.createElement('button');
-                    button.className = 'btn btn-outline-primary btn-chart';
-                    button.textContent = formatChartName(chartType);
-                    button.title = availableCharts[chartType];
-                    button.onclick = () => loadChart(chartType);
-                    container.appendChild(button);
+                // Debug: Check if conflicting_legs is in chartOrder
+                console.log('🔧 conflicting_legs in chartOrder:', chartOrder.includes('conflicting_legs'));
+                console.log('🔧 conflicting_legs in availableCharts:', !!availableCharts['conflicting_legs']);
+                console.log('🔧 formatChartName test for conflicting_legs:', formatChartName('conflicting_legs'));
+
+                // Render buttons in the specified order
+                for (const chartType of chartOrder) {
+                    if (availableCharts[chartType]) {
+                        const button = document.createElement('button');
+                        button.className = 'btn btn-outline-primary btn-chart';
+                        button.textContent = formatChartName(chartType);
+                        button.title = availableCharts[chartType];
+                        button.onclick = () => loadChart(chartType);
+                        container.appendChild(button);
+                    }
                 }
+            
+                // Debug: Log what buttons were actually created
+                console.log(`✅ Rendered ${container.children.length} chart buttons:`, 
+                    Array.from(container.children).map(btn => btn.textContent));
+            } catch (error) {
+                console.error('❌ Error in renderChartButtons():', error);
+                console.error('Error stack:', error.stack);
             }
         }
 
@@ -2634,7 +2704,8 @@
                 'daily_margin_analysis': '📊 Daily Margin Analysis',
                 'pnl_by_day_of_week': '📅 P&L by Day of Week',
                 'pnl_by_month': '📅 P&L by Month',
-                'commission_analysis': '💳 Commission Analysis'
+                'commission_analysis': '💳 Commission Analysis',
+                'conflicting_legs': '⚠️ Conflicting Legs'
             };
             return chartNames[chartType] || chartType;
         }
@@ -2857,6 +2928,11 @@
                 loadCommissionAnalysis();
                 return;
             }
+            
+            if (chartType === 'conflicting_legs') {
+                loadConflictingLegsChart();
+                return;
+            }
 
             if (chartType === 'margin_analysis') {
                 // Margin analysis table - handled specially with sorting and colors
@@ -2994,6 +3070,13 @@
                 data.starting_capital !== undefined ? `$${Number(data.starting_capital).toLocaleString()}` : '$0';
             document.getElementById('endingCapital').textContent =
                 data.ending_capital !== undefined ? `$${Number(data.ending_capital).toLocaleString()}` : '$0';
+            
+            // Update dates
+            document.getElementById('startDate').textContent =
+                data.start_date !== undefined ? data.start_date : '';
+            document.getElementById('endDate').textContent =
+                data.end_date !== undefined ? data.end_date : '';
+            
             document.getElementById('totalPnL').textContent =
                 data.total_pnl !== undefined ? `$${Number(data.total_pnl).toLocaleString()}` : '$0';
             document.getElementById('totalTrades').textContent =
@@ -3051,7 +3134,7 @@
             tbody.innerHTML = '';
             if (!strategyTableData || strategyTableData.length === 0) {
                 console.log('No strategy data, showing empty message');
-                tbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted">No strategy data available</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="16" class="text-center text-muted">No strategy data available</td></tr>';
                 return;
             }
             console.log('Rendering', strategyTableData.length, 'strategies');
@@ -3112,6 +3195,8 @@
                     <td>${safeNumber(row.max_loss_streak)}</td>
                     <td class="${pnlClass(row.avg_win)}">${safeCurrency(row.avg_win)}</td>
                     <td class="${lossClass(row.avg_loss)}">${safeCurrency(row.avg_loss)}</td>
+                    <td class="${pnlClass(row.max_win)}">${safeCurrency(row.max_win)}</td>
+                    <td class="${lossClass(row.max_loss)}">${safeCurrency(row.max_loss)}</td>
                     <td class="${pnlClass(row.avg_win_per_lot)}">${safeCurrency(row.avg_win_per_lot)}</td>
                     <td class="${lossClass(row.avg_loss_per_lot)}">${safeCurrency(row.avg_loss_per_lot)}</td>
                     <td class="${pnlClass(row.max_win_per_lot)}">${safeCurrency(row.max_win_per_lot)}</td>
@@ -3119,11 +3204,12 @@
                     <td>${safeCurrency(row.avg_commissions_per_lot)}</td>
                     <td class="${pnlClass(row.expectancy_per_lot)}">${safeCurrency(row.expectancy_per_lot)}</td>
                     <td>${safeNumber(row.profit_factor, 2)}</td>
+                    <td>${safeNumber(row.margin_percentage, 1)}%</td>
                 </tr>
                 `;
             }
             // Update sort indicators
-            const keys = ['strategy','total_pnl','trades','wins','losses','commissions','win_rate','max_loss_streak','avg_win','avg_loss','avg_win_per_lot','avg_loss_per_lot','max_win_per_lot','max_loss_per_lot','comm_per_lot','expectancy_per_lot','profit_factor'];
+            const keys = ['strategy','total_pnl','trades','wins','losses','commissions','win_rate','max_loss_streak','avg_win','avg_loss','max_win','max_loss','avg_win_per_lot','avg_loss_per_lot','max_win_per_lot','max_loss_per_lot','comm_per_lot','expectancy_per_lot','profit_factor','margin_percentage'];
             for (const key of keys) {
                 const indicator = document.getElementById('sort-indicator-' + key);
                 if (key === strategySortKey) {
@@ -3132,6 +3218,11 @@
                     indicator.textContent = '';
                 }
             }
+            
+            // Initialize tooltips for overview table
+            setTimeout(() => {
+                initializeCustomTooltips();
+            }, 100);
         }
 
         function sortStrategyTable(key) {
@@ -4141,9 +4232,28 @@
                             <tr>
             `;
             
-            // Add headers with sort functionality
+            // Define tooltip descriptions for Win Rates Table columns
+            const winRatesDescriptions = [
+                "Trading strategy name",
+                "Total profit/loss for all trades in this strategy",
+                "Total number of completed trades",
+                "Number of profitable trades",
+                "Number of losing trades",
+                "Maximum consecutive winning trades",
+                "Maximum consecutive losing trades",
+                "Percentage of trades that were profitable",
+                "Average profit amount for winning trades",
+                "Average loss amount for losing trades",
+                "Largest profit from a single winning trade",
+                "Largest loss from a single losing trade",
+                "Expected profit/loss per contract per trade"
+            ];
+
+            // Add headers with sort functionality and tooltips
             headers.forEach((header, index) => {
-                html += `<th onclick="sortWinRatesTable(${index})" style="cursor: pointer;">
+                const tooltipText = winRatesDescriptions[index] || "Performance metric";
+                html += `<th onclick="sortWinRatesTable(${index})" style="cursor: pointer;" 
+                    class="custom-tooltip" data-tooltip="${tooltipText}">
                     ${header} <span id="sort-${index}" class="sort-indicator">↕</span>
                 </th>`;
             });
@@ -4213,6 +4323,11 @@
             `;
             
             container.innerHTML = html;
+            
+            // Initialize tooltips for win rates table
+            setTimeout(() => {
+                initializeCustomTooltips();
+            }, 100);
         }
 
         function loadMarginAnalysisTable() {
@@ -4270,10 +4385,30 @@
                             <tr>
             `;
             
-            // Add headers with sort functionality
+            // Define tooltip descriptions for each column
+            const tooltipDescriptions = [
+                "Trading strategy name",
+                "Total completed trades",
+                "Average margin per contract",
+                "Average margin per contract (last 90 days)",
+                "Lowest margin per contract and date",
+                "Highest margin per contract and date", 
+                "Percentage of profitable trades",
+                "Average profit per winning contract",
+                "Average loss per losing contract",
+                "Largest profit per contract",
+                "Largest loss per contract",
+                "Expected profit/loss per contract",
+                "Risk-adjusted performance: (Expectancy ÷ Margin) × Win Rate"
+            ];
+
+            // Add headers with sort functionality and custom tooltips
             headers.forEach((header, index) => {
-                html += `<th onclick="sortMarginAnalysisTable(${index})" style="cursor: pointer;">
-                    ${header} <span id="sort-margin-${index}" class="sort-indicator">↕</span>
+                // Extract plain text from HTML header
+                const headerText = header.replace(/<[^>]*>/g, '');
+                html += `<th onclick="sortMarginAnalysisTable(${index})" style="cursor: pointer;" 
+                    class="custom-tooltip" data-tooltip="${tooltipDescriptions[index]}">
+                    ${headerText} <span id="sort-margin-${index}" class="sort-indicator">↕</span>
                 </th>`;
             });
             
@@ -4344,6 +4479,121 @@
             `;
             
             container.innerHTML = html;
+            
+            // Add event listeners for custom tooltips
+            setTimeout(() => {
+                // Remove any existing tooltips first
+                document.querySelectorAll('.js-tooltip').forEach(tip => tip.remove());
+                
+                // Remove all title attributes to prevent browser tooltips
+                document.querySelectorAll('[title]').forEach(el => {
+                    el.removeAttribute('title');
+                });
+                
+                const tooltipElements = document.querySelectorAll('.custom-tooltip');
+                tooltipElements.forEach(element => {
+                    // Remove existing event listeners by cloning the element
+                    const newElement = element.cloneNode(true);
+                    element.parentNode.replaceChild(newElement, element);
+                    
+                    let tooltip = null;
+                    
+                    newElement.addEventListener('mouseenter', (e) => {
+                        // Remove any existing tooltips first
+                        document.querySelectorAll('.js-tooltip').forEach(tip => tip.remove());
+                        
+                        const tooltipText = newElement.getAttribute('data-tooltip');
+                        if (tooltipText && !tooltip) {
+                            tooltip = document.createElement('div');
+                            tooltip.className = 'js-tooltip';
+                            tooltip.textContent = tooltipText;
+                            tooltip.style.cssText = `
+                                position: fixed;
+                                background: #000;
+                                color: #fff;
+                                padding: 12px 16px;
+                                border-radius: 8px;
+                                font-size: 16px;
+                                font-weight: bold;
+                                z-index: 99999;
+                                max-width: 280px;
+                                text-align: center;
+                                box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+                                border: 2px solid #fff;
+                                pointer-events: none;
+                            `;
+                            
+                            document.body.appendChild(tooltip);
+                            
+                            const rect = newElement.getBoundingClientRect();
+                            tooltip.style.left = (rect.left + rect.width/2 - tooltip.offsetWidth/2) + 'px';
+                            tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+                        }
+                    });
+                    
+                    newElement.addEventListener('mouseleave', () => {
+                        if (tooltip) {
+                            tooltip.remove();
+                            tooltip = null;
+                        }
+                    });
+                });
+            }, 100);
+        }
+
+        // Shared function to initialize custom tooltips for all tables
+        function initializeCustomTooltips() {
+            // Remove any existing tooltips first
+            document.querySelectorAll('.js-tooltip').forEach(tip => tip.remove());
+            
+            const tooltipElements = document.querySelectorAll('.custom-tooltip');
+            tooltipElements.forEach(element => {
+                // Remove existing event listeners by cloning the element
+                const newElement = element.cloneNode(true);
+                element.parentNode.replaceChild(newElement, element);
+                
+                let tooltip = null;
+                
+                newElement.addEventListener('mouseenter', (e) => {
+                    // Remove any existing tooltips first
+                    document.querySelectorAll('.js-tooltip').forEach(tip => tip.remove());
+                    
+                    const tooltipText = newElement.getAttribute('data-tooltip');
+                    if (tooltipText && !tooltip) {
+                        tooltip = document.createElement('div');
+                        tooltip.className = 'js-tooltip';
+                        tooltip.textContent = tooltipText;
+                        tooltip.style.cssText = `
+                            position: fixed;
+                            background: #000;
+                            color: #fff;
+                            padding: 12px 16px;
+                            border-radius: 8px;
+                            font-size: 16px;
+                            font-weight: bold;
+                            z-index: 99999;
+                            max-width: 280px;
+                            text-align: center;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+                            border: 2px solid #fff;
+                            pointer-events: none;
+                        `;
+                        
+                        document.body.appendChild(tooltip);
+                        
+                        const rect = newElement.getBoundingClientRect();
+                        tooltip.style.left = (rect.left + rect.width/2 - tooltip.offsetWidth/2) + 'px';
+                        tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+                    }
+                });
+                
+                newElement.addEventListener('mouseleave', () => {
+                    if (tooltip) {
+                        tooltip.remove();
+                        tooltip = null;
+                    }
+                });
+            });
         }
 
         function sortMarginAnalysisTable(columnIndex) {
@@ -4773,6 +5023,369 @@
             `;
             
             container.innerHTML = html;
+        }
+
+
+        function loadConflictingLegsChart() {
+            console.log('Loading conflicting legs chart...');
+            const loading = document.getElementById('chartLoading');
+            const container = document.getElementById('chartContainer');
+            
+            loading.style.display = 'block';
+            container.innerHTML = '';
+            
+            fetch('/api/conflicting-legs')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('🔧 Conflicting legs API response:', data);
+                    if (data.success) {
+                        console.log('🔧 Conflicts data:', data.data.conflicts.length, 'conflicts found');
+                        renderConflictingLegsChart(data.data);
+                    } else {
+                        container.innerHTML = `
+                            <div class="alert alert-danger">
+                                <h4>Error Loading Conflicting Leg Analysis</h4>
+                                <p>${data.error}</p>
+                            </div>
+                        `;
+                    }
+                    loading.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error loading conflicting legs analysis:', error);
+                    container.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h4>Error Loading Conflicting Leg Analysis</h4>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                    loading.style.display = 'none';
+                });
+        }
+
+        function renderConflictingLegsChart(data) {
+            console.log('🔧 renderConflictingLegsChart called with data:', data);
+            const container = document.getElementById('chartContainer');
+            const { conflicts, summary } = data;
+            console.log('🔧 Conflicts array:', conflicts.length, conflicts);
+            
+            let html = '';
+            
+            // Summary section
+            html += `
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="metric-card text-center">
+                            <h4 class="metric-value text-danger">${summary.total_conflicts}</h4>
+                            <p class="metric-title">Total Conflicts</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card text-center">
+                            <h4 class="metric-value text-warning">${summary.affected_trades}</h4>
+                            <p class="metric-title">Affected Trades</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card text-center">
+                            <h4 class="metric-value text-info">${summary.affected_strategies}</h4>
+                            <p class="metric-title">Affected Strategies</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card text-center">
+                            <h4 class="metric-value text-danger">${summary.high_severity_conflicts || 0}</h4>
+                            <p class="metric-title">High Severity</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (conflicts.length === 0) {
+                html += `
+                    <div class="alert alert-success">
+                        <h4><i class="fas fa-check-circle"></i> No Conflicting Legs Detected</h4>
+                        <p>Great! No trades were found with opposing positions on the same contract during overlapping time periods.</p>
+                    </div>
+                `;
+            } else {
+                // Histogram section
+                html += `
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Conflict Distribution</h5>
+                            <div id="conflictsHistogram" style="height: 400px;"></div>
+                        </div>
+                    </div>
+                `;
+                
+                // Strategy breakdown (moved above table) - show both strategies in each conflict
+                if (conflicts.length > 0) {
+                    // Count strategy pairs (both strategies involved in conflicts)
+                    const strategyPairCounts = {};
+                    const individualStrategyCounts = {};
+                    
+                    conflicts.forEach(conflict => {
+                        const strategy1 = conflict.trade1.strategy;
+                        const strategy2 = conflict.trade2.strategy;
+                        
+                        // Count individual strategies
+                        individualStrategyCounts[strategy1] = (individualStrategyCounts[strategy1] || 0) + 1;
+                        individualStrategyCounts[strategy2] = (individualStrategyCounts[strategy2] || 0) + 1;
+                        
+                        // Count strategy pairs (ordered alphabetically for consistency)
+                        const pair = strategy1 < strategy2 ? `${strategy1} ⚡ ${strategy2}` : `${strategy2} ⚡ ${strategy1}`;
+                        strategyPairCounts[pair] = (strategyPairCounts[pair] || 0) + 1;
+                    });
+                    
+                    // Sort by frequency (descending)
+                    const sortedPairs = Object.entries(strategyPairCounts).sort((a, b) => b[1] - a[1]);
+                    const sortedIndividual = Object.entries(individualStrategyCounts).sort((a, b) => b[1] - a[1]);
+                    
+                    console.log('🔧 Strategy pairs:', sortedPairs);
+                    console.log('🔧 Individual strategies:', sortedIndividual);
+                    
+                    html += `
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title">Conflicts by Strategy</h5>
+                                
+                                <h6 class="mt-3 mb-2 text-primary">Strategy Pairs in Conflicts (ordered by frequency)</h6>
+                                <div class="row">
+                    `;
+                    
+                    sortedPairs.forEach(([pair, count]) => {
+                        html += `
+                            <div class="col-md-6 mb-2">
+                                <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                                    <span class="small">${pair}</span>
+                                    <span class="badge badge-danger">${count}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                                </div>
+                                
+                                <h6 class="mt-4 mb-2 text-info">Individual Strategy Involvement (ordered by frequency)</h6>
+                                <div class="row">
+                    `;
+                    
+                    sortedIndividual.forEach(([strategy, count]) => {
+                        html += `
+                            <div class="col-md-6 mb-2">
+                                <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                                    <span class="small">${strategy}</span>
+                                    <span class="badge badge-warning">${count}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Conflicts table (removed Severity and Impact columns)
+                html += `
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Detailed Conflicts</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Conflict #</th>
+                                            <th>Date</th>
+                                            <th>Contract</th>
+                                            <th>Trade 1</th>
+                                            <th>Trade 2</th>
+                                            <th>Overlap Days</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                `;
+                
+                conflicts.forEach((conflict, index) => {
+                    console.log(`🔧 Conflict ${index + 1} data:`, conflict);
+                    const trade1Pnl = conflict.trade1.pnl >= 0 ? 'text-success' : 'text-danger';
+                    const trade2Pnl = conflict.trade2.pnl >= 0 ? 'text-success' : 'text-danger';
+                    
+                    html += `
+                        <tr>
+                            <td>${conflict.conflict_id}</td>
+                            <td>
+                                <strong>${conflict.trade1.date_opened}</strong>
+                            </td>
+                            <td>
+                                <strong>${conflict.contract_details.description}</strong>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <strong>${conflict.trade1.strategy}</strong><br>
+                                    ${conflict.trade1.date_opened} to ${conflict.trade1.date_closed}<br>
+                                    ${conflict.trade1.leg.quantity} ${conflict.trade1.leg.action} @ ${conflict.trade1.leg.premium}<br>
+                                    P&L: <span class="${trade1Pnl}">$${conflict.trade1.pnl.toFixed(2)}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <strong>${conflict.trade2.strategy}</strong><br>
+                                    ${conflict.trade2.date_opened} to ${conflict.trade2.date_closed}<br>
+                                    ${conflict.trade2.leg.quantity} ${conflict.trade2.leg.action} @ ${conflict.trade2.leg.premium}<br>
+                                    P&L: <span class="${trade2Pnl}">$${conflict.trade2.pnl.toFixed(2)}</span>
+                                </div>
+                            </td>
+                            <td>${conflict.overlap_days} days</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+            
+            // Create histogram if there are conflicts
+            if (conflicts.length > 0) {
+                const chartData = createConflictsHistogram(conflicts);
+                const config = {
+                    responsive: true,
+                    displayModeBar: true,
+                    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+                };
+                Plotly.newPlot('conflictsHistogram', chartData.traces, chartData.layout, config);
+            }
+        }
+
+        function createConflictsHistogram(conflicts) {
+            console.log('🔧 createConflictsHistogram called - v20241213_3_no_severity', conflicts.length, 'conflicts');
+            
+            // Group conflicts by date (no severity grouping)
+            const conflictsByDate = {};
+            const allDates = new Set();
+            
+            conflicts.forEach(conflict => {
+                const date = conflict.trade1.date_opened;
+                allDates.add(date);
+                if (!conflictsByDate[date]) {
+                    conflictsByDate[date] = [];
+                }
+                conflictsByDate[date].push(conflict);
+            });
+            
+            // Get all weekdays in the date range (to show days with 0 conflicts)
+            const sortedDates = Array.from(allDates).sort();
+            if (sortedDates.length > 0) {
+                const startDate = new Date(sortedDates[0]);
+                const endDate = new Date(sortedDates[sortedDates.length - 1]);
+                
+                // Generate all weekdays between start and end dates
+                const allWeekdays = [];
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                    const dayOfWeek = d.getDay();
+                    if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Monday to Friday
+                        const dateStr = d.toISOString().split('T')[0];
+                        allWeekdays.push(dateStr);
+                        if (!conflictsByDate[dateStr]) {
+                            conflictsByDate[dateStr] = [];
+                        }
+                    }
+                }
+                
+                // Use all weekdays instead of just conflict dates
+                const dates = allWeekdays.sort();
+                
+                // Prepare simple bar data (total count per date)
+                const conflictCounts = dates.map(date => conflictsByDate[date].length);
+                
+                // Prepare tooltip data
+                const tooltipData = dates.map(date => {
+                    const dateConflicts = conflictsByDate[date];
+                    
+                    if (dateConflicts.length === 0) {
+                        return `<b>Date: ${date}</b><br><b>No conflicts</b>`;
+                    }
+                    
+                    let tooltip = `<b>Date: ${date}</b><br>`;
+                    tooltip += `<b>Total Conflicts: ${dateConflicts.length}</b><br><br>`;
+                    
+                    dateConflicts.forEach((conflict, index) => {
+                        if (index < 10) { // Show max 10 conflicts per date in tooltip
+                            tooltip += `<b>Conflict ${index + 1}:</b><br>`;
+                            tooltip += `<b>Contract:</b> ${conflict.contract_details.description}<br>`;
+                            tooltip += `<b>Trade 1:</b> ${conflict.trade1.strategy} (${conflict.trade1.leg.action} ${conflict.trade1.leg.quantity}, P&L: $${conflict.trade1.pnl.toFixed(2)})<br>`;
+                            tooltip += `<b>Trade 2:</b> ${conflict.trade2.strategy} (${conflict.trade2.leg.action} ${conflict.trade2.leg.quantity}, P&L: $${conflict.trade2.pnl.toFixed(2)})<br>`;
+                            tooltip += `<b>Overlap:</b> ${conflict.overlap_days} days<br><br>`;
+                        }
+                    });
+                    
+                    if (dateConflicts.length > 10) {
+                        tooltip += `... and ${dateConflicts.length - 10} more conflicts`;
+                    }
+                    
+                    return tooltip;
+                });
+                
+                // Create single bar trace
+                const traces = [
+                    {
+                        x: dates,
+                        y: conflictCounts,
+                        type: 'bar',
+                        name: 'Conflicts',
+                        marker: { color: 'rgba(54, 162, 235, 0.8)' }, // Blue
+                        hovertemplate: '%{customdata}<extra></extra>',
+                        customdata: tooltipData
+                    }
+                ];
+                
+                const layout = {
+                    title: 'Conflicts by Date (All Weekdays)',
+                    xaxis: {
+                        title: 'Date',
+                        type: 'category'
+                    },
+                    yaxis: {
+                        title: 'Number of Conflicts'
+                    },
+                    showlegend: false,
+                    height: 400,
+                    margin: { t: 50, r: 50, b: 100, l: 80 }
+                };
+                
+                return { traces, layout };
+            } else {
+                // No conflicts found
+                const traces = [{
+                    x: [],
+                    y: [],
+                    type: 'bar',
+                    name: 'No Conflicts'
+                }];
+                
+                const layout = {
+                    title: 'Conflicts by Date (No Data)',
+                    xaxis: { title: 'Date' },
+                    yaxis: { title: 'Number of Conflicts' },
+                    showlegend: false,
+                    height: 400,
+                    margin: { t: 50, r: 50, b: 100, l: 80 }
+                };
+                
+                return { traces, layout };
+            }
+            
         }
 
         function loadCommissionAnalysis() {

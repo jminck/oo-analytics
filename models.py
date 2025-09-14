@@ -346,6 +346,16 @@ class Strategy:
         # Calculate expectancy per lot
         expectancy_per_lot = (avg_win_per_lot * (wins_count / len(self.trades))) - (avg_loss_per_lot * (losses_count / len(self.trades))) if self.trades else 0
         
+        # Calculate margin percentage from first trade
+        margin_percentage = 0.0
+        if self.trades:
+            first_trade = self.trades[0]  # Get first trade
+            margin_req = getattr(first_trade, 'margin_req', 0)
+            funds_at_close = getattr(first_trade, 'funds_at_close', 0)
+            
+            if funds_at_close > 0 and margin_req > 0:
+                margin_percentage = (margin_req / funds_at_close) * 100
+
         return {
             'name': self.name,
             'strategy_type': self.strategy_type,
@@ -368,7 +378,8 @@ class Strategy:
             'expectancy_per_lot': round(expectancy_per_lot, 2),
             'profit_factor': round(profit_factor, 2),
             'max_loss_streak': self.max_loss_streak,
-            'max_win_streak': self.max_win_streak
+            'max_win_streak': self.max_win_streak,
+            'margin_percentage': round(margin_percentage, 1)
         }
 
 class Portfolio:
