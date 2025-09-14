@@ -18,7 +18,7 @@ A Flask-based web application for analyzing options trading strategies with comp
   - Exercise fees for expired ITM options
   - Contract count validation from legs data
 - **Margin Analysis**: Position sizing and margin requirement tracking
-- **Risk Metrics**: Win rates, drawdowns, and performance consistency
+- **Risk Metrics**: Win rates, drawdowns, Sharpe ratios (annualized), efficiency calculations, and performance consistency
 
 ### Interactive Charts
 - **Cumulative P&L**: Portfolio performance over time
@@ -55,12 +55,14 @@ A Flask-based web application for analyzing options trading strategies with comp
 ```python
 - date_opened, date_closed: Trade execution dates
 - strategy: Strategy classification
-- pnl: Profit/loss amount
+- pnl: Profit/loss amount (absolute)
+- pnl_per_lot: Per-contract profit/loss
 - contracts: Number of contracts (calculated from legs)
 - opening_commissions, closing_commissions: Trading costs
 - legs: Options leg details for multi-leg strategies
-- reason_for_close: Trade exit reason (expired, closed, etc.)
+- reason_for_close: Trade exit reason (expired, closed, stop loss, etc.)
 - margin_req: Margin requirements
+- funds_at_close: Account balance at trade close
 ```
 
 #### Strategy Object
@@ -68,7 +70,13 @@ A Flask-based web application for analyzing options trading strategies with comp
 - name: Strategy identifier
 - trade_type: BULLISH, BEARISH, or NEUTRAL
 - trades: Collection of Trade objects
-- performance_metrics: Calculated statistics
+- performance_metrics: Calculated statistics including:
+  - win_rate: Percentage of winning trades
+  - avg_win, avg_loss: Average winning/losing trade amounts
+  - max_win, max_loss: Maximum winning/losing trade amounts
+  - expectancy: Expected value per trade
+  - sharpe_ratio: Annualized risk-adjusted return
+  - efficiency: (Expectancy / Margin) * Win Rate
 ```
 
 ## API Endpoints
@@ -221,12 +229,52 @@ oo-analytics/
 
 ## Development Notes
 - **Modular Design**: ChartFactory pattern for extensible visualizations
+- **Interactive Features**: Custom tooltips with detailed metric explanations
+- **Advanced Analytics**: Annualized Sharpe ratios, efficiency calculations, correlation analysis
 - **Error Handling**: Comprehensive error logging and user feedback
 - **Data Validation**: CSV format validation with helpful error messages
 - **Responsive UI**: Bootstrap-based interface with mobile support
+- **Performance Optimization**: Efficient data processing for 25,000+ trades
+- **Real-time Updates**: Dynamic chart rendering and data refresh capabilities
+
+## Standalone Analysis Scripts
+
+### Trading Analytics Heatmap Generator (`scripts/heatmap.py`)
+A comprehensive standalone script for analyzing options trading data:
+
+**Features:**
+- **Automated Data Processing**: Finds and combines multiple CSV files matching `*mei*.csv` pattern
+- **Time-based Analysis**: Heatmaps showing P&L by time interval and day of week
+- **Stop Loss Analysis**: Detailed analysis of stop loss patterns by time, day, and option side
+- **Performance Visualizations**: 10+ charts including trade counts, P&L distributions, and reason-for-close analysis
+- **Output Management**: Creates timestamped folders in `scripts/logs/` with all charts and data
+- **Reproducibility**: Copies original data and script to output folder
+
+**Generated Charts:**
+- Average P&L heatmap by time and day of week
+- Day summary with trade counts
+- Trade count analysis by time interval
+- Total P&L by time interval
+- Stop loss frequency heatmaps
+- Put vs Call stop loss distribution
+- Reason for close distribution
+- Stop loss frequency reports with detailed statistics
+
+**Usage:**
+```bash
+cd scripts/
+python heatmap.py
+# Results saved to: scripts/logs/[filename]_[timestamp]/
+```
+
+**Requirements:**
+- pandas, matplotlib, seaborn, numpy
+- CSV files with columns: Date Opened, Time Opened, P/L, Reason For Close, Legs
 
 ## Production Deployment
-- **Gunicorn**: WSGI server configuration included
-- **Azure Deployment**: Configuration documentation provided
+- **Gunicorn**: WSGI server configuration included (`gunicorn.conf.py`)
+- **Azure Deployment**: Configuration documentation provided (`AZURE_DEPLOYMENT.md`)
+- **Startup Script**: Automated deployment script (`startup.sh`)
 - **File Limits**: 50MB maximum upload size
 - **Security**: CSRF protection and secure session management
+- **Health Monitoring**: Built-in health check endpoint (`/health`)
