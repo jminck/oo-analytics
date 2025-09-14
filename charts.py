@@ -1559,7 +1559,10 @@ class ChartFactory:
             'strategy_correlation': 'Strategy correlation heatmap',
             'margin_analysis': 'Margin requirements analysis',
             'daily_margin_analysis': 'Daily margin usage analysis',
-            'monte_carlo': 'Monte Carlo simulation analysis'
+            'monte_carlo': 'Monte Carlo simulation analysis',
+            'separator': '--- Cross-File Analysis ---',
+            'cross_file_correlation': 'Cross-file strategy correlation analysis',
+            'files_overview': 'Uploaded files overview and management'
         }
     
     def get_monte_carlo_charts() -> Dict[str, str]:
@@ -1586,7 +1589,8 @@ class ChartFactory:
             'margin_analysis': self.generator.create_margin_analysis_chart,
             'daily_margin_analysis': self.generator.create_daily_margin_analysis_chart,
             'pnl_by_day_of_week': self.generator.create_pnl_by_day_of_week_chart,
-            'conflicting_legs': self.generator._empty_chart  # Will be handled specially in loadChart
+            'conflicting_legs': self.generator._empty_chart,  # Will be handled specially in loadChart
+            'cross_file_correlation': self.generator._empty_chart  # Will be handled specially in loadChart
         }
         
         if chart_type in chart_methods:

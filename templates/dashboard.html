@@ -1488,51 +1488,6 @@
             </div>
         </div>
 
-        <!-- Files Overview Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <h2 class="section-title d-flex justify-content-between align-items-center">
-                    <span>
-                        <i class="fas fa-folder-open"></i>
-                        Uploaded Files Overview
-                    </span>
-                    <button class="btn btn-outline-secondary btn-sm" id="toggleFilesOverview" onclick="toggleFilesOverview()">
-                        <i class="fas fa-chevron-up" id="filesOverviewIcon"></i>
-                    </button>
-                </h2>
-                <div class="card" id="filesOverviewCard">
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover" id="filesOverviewTable">
-                                <thead>
-                                    <tr>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('friendly_name')">File Name <span id="sort-indicator-friendly_name"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('data_type')">Data Type <span id="sort-indicator-data_type"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('start_date')">Date Range <span id="sort-indicator-start_date"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('total_pnl')">Total P&L <span id="sort-indicator-total_pnl"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('total_trades')">Total Trades <span id="sort-indicator-total_trades"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('strategy_count')">Strategies <span id="sort-indicator-strategy_count"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('initial_capital')">Starting Capital <span id="sort-indicator-initial_capital"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('ending_capital')">Ending Capital <span id="sort-indicator-ending_capital"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('cagr')">CAGR <span id="sort-indicator-cagr"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('max_drawdown')">Max Drawdown <span id="sort-indicator-max_drawdown"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('upload_date')">Upload Date <span id="sort-indicator-upload_date"></span></th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="filesOverviewTableBody">
-                                    <tr>
-                                        <td colspan="12" class="text-center text-muted">
-                                            <i class="fas fa-spinner fa-spin"></i> Loading files...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Portfolio Overview Metrics -->
         <div class="row mb-4">
@@ -1647,10 +1602,6 @@
                     <h5>Select Chart Type:</h5>
                     <div id="chartButtons">
                         <!-- Chart buttons will be populated by JavaScript -->
-                    </div>
-                    <div class="mt-2">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="forceRenderChartButtons()">Force Load Chart Buttons</button>
-                        <small class="text-muted ms-2">Click if buttons don't appear</small>
                     </div>
                 </div>
                 
@@ -2277,23 +2228,146 @@
         let filesOverviewData = [];
 
         function loadFilesOverview() {
+            const container = document.getElementById('chartContainer');
+            container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading files overview...</div>';
+            
             fetch('/api/files/overview')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     filesOverviewData = data.data;
-                    renderFilesOverviewTable(filesOverviewData);
+                    renderFilesOverviewInContainer(filesOverviewData);
                 } else {
                     console.error('Failed to load files overview:', data.error);
-                    document.getElementById('filesOverviewTableBody').innerHTML = 
-                        '<tr><td colspan="12" class="text-center text-danger">Error loading files overview</td></tr>';
+                    container.innerHTML = '<div class="text-center text-danger">Error loading files overview: ' + data.error + '</div>';
                 }
             })
             .catch(error => {
                 console.error('Error loading files overview:', error);
-                document.getElementById('filesOverviewTableBody').innerHTML = 
-                    '<tr><td colspan="12" class="text-center text-danger">Error loading files overview</td></tr>';
+                container.innerHTML = '<div class="text-center text-danger">Error loading files overview</div>';
             });
+        }
+
+        function renderFilesOverviewInContainer(files) {
+            const container = document.getElementById('chartContainer');
+            
+            if (!files || files.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted"><h4>📁 No uploaded files found</h4><p>Upload some CSV files to see them here.</p></div>';
+                return;
+            }
+
+            // Sort files based on current sort settings
+            const sortedFiles = [...files].sort((a, b) => {
+                let aVal = a[filesOverviewSortKey];
+                let bVal = b[filesOverviewSortKey];
+                
+                // Handle date sorting
+                if (filesOverviewSortKey === 'start_date' || filesOverviewSortKey === 'upload_date') {
+                    aVal = new Date(aVal);
+                    bVal = new Date(bVal);
+                }
+                
+                // Handle numeric sorting
+                if (filesOverviewSortKey === 'total_pnl' || filesOverviewSortKey === 'total_trades' || 
+                    filesOverviewSortKey === 'strategy_count' || filesOverviewSortKey === 'initial_capital' || 
+                    filesOverviewSortKey === 'ending_capital' || filesOverviewSortKey === 'cagr' || 
+                    filesOverviewSortKey === 'max_drawdown') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
+                }
+                
+                if (aVal < bVal) return filesOverviewSortAsc ? -1 : 1;
+                if (aVal > bVal) return filesOverviewSortAsc ? 1 : -1;
+                return 0;
+            });
+
+            let tableHTML = `
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-folder-open"></i>
+                            Uploaded Files Overview
+                        </h4>
+                        <div class="d-flex gap-2 align-items-center">
+                            <button class="btn btn-sm btn-outline-primary" onclick="selectAllFilesOverview()">
+                                <i class="fas fa-check-square"></i> Select All
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="deselectAllFilesOverview()">
+                                <i class="fas fa-square"></i> Deselect All
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteSelectedFiles()" id="bulkDeleteBtn" disabled>
+                                <i class="fas fa-trash"></i> Move to Recycle (<span id="selectedCount">0</span>)
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th width="50">
+                                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                                        </th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('friendly_name')">File Name <span id="sort-indicator-friendly_name"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('data_type')">Data Type <span id="sort-indicator-data_type"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('start_date')">Date Range <span id="sort-indicator-start_date"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('total_pnl')">Total P&L <span id="sort-indicator-total_pnl"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('total_trades')">Total Trades <span id="sort-indicator-total_trades"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('strategy_count')">Strategies <span id="sort-indicator-strategy_count"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('initial_capital')">Starting Capital <span id="sort-indicator-initial_capital"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('ending_capital')">Ending Capital <span id="sort-indicator-ending_capital"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('cagr')">CAGR <span id="sort-indicator-cagr"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('max_drawdown')">Max Drawdown <span id="sort-indicator-max_drawdown"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('upload_date')">Upload Date <span id="sort-indicator-upload_date"></span></th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+            `;
+
+            sortedFiles.forEach(file => {
+                const pnlClass = file.total_pnl >= 0 ? 'text-success' : 'text-danger';
+                const cagrClass = file.cagr >= 0 ? 'text-success' : 'text-danger';
+                const drawdownClass = file.max_drawdown <= 0 ? 'text-success' : 'text-danger';
+                
+                tableHTML += `
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="file-checkbox" value="${file.filename}" onchange="updateBulkDeleteButton()">
+                        </td>
+                        <td><strong>${file.friendly_name}</strong></td>
+                        <td><span class="badge bg-info">${file.data_type}</span></td>
+                        <td>${file.start_date} to ${file.end_date}</td>
+                        <td class="${pnlClass}">$${file.total_pnl.toLocaleString()}</td>
+                        <td>${file.total_trades.toLocaleString()}</td>
+                        <td>${file.strategy_count}</td>
+                        <td>$${file.initial_capital.toLocaleString()}</td>
+                        <td>$${file.ending_capital.toLocaleString()}</td>
+                        <td class="${cagrClass}">${file.cagr.toFixed(2)}%</td>
+                        <td class="${drawdownClass}">${file.max_drawdown.toFixed(2)}%</td>
+                        <td>${new Date(file.upload_date).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="loadFileFromTable('${file.filename}')" title="Load this file">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteFileFromTable('${file.filename}', '${file.friendly_name}')" title="Move to recycle">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = tableHTML;
+            updateFilesOverviewSortIndicators();
         }
 
         function renderFilesOverviewTable(files) {
@@ -2390,7 +2464,12 @@
                 filesOverviewSortKey = key;
                 filesOverviewSortAsc = key === 'friendly_name' || key === 'data_type' || key === 'start_date' || key === 'upload_date'; // default asc for text/dates, desc for numbers
             }
-            renderFilesOverviewTable(filesOverviewData);
+            // Check if we're in the chart container or the main page
+            if (document.getElementById('chartContainer').innerHTML.includes('Uploaded Files Overview')) {
+                renderFilesOverviewInContainer(filesOverviewData);
+            } else {
+                renderFilesOverviewTable(filesOverviewData);
+            }
         }
         
         function updateFilesOverviewSortIndicators() {
@@ -2404,6 +2483,147 @@
                         indicator.textContent = '';
                     }
                 }
+            }
+        }
+
+        // Multi-select functionality for file deletion
+        function selectAllFilesOverview() {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            selectAllCheckbox.checked = true;
+            updateBulkDeleteButton();
+        }
+
+        function deselectAllFilesOverview() {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            selectAllCheckbox.checked = false;
+            updateBulkDeleteButton();
+        }
+
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+            updateBulkDeleteButton();
+        }
+
+        function updateBulkDeleteButton() {
+            const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+            const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+            const selectedCount = document.getElementById('selectedCount');
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            
+            const count = checkboxes.length;
+            selectedCount.textContent = count;
+            
+            if (count > 0) {
+                bulkDeleteBtn.disabled = false;
+            } else {
+                bulkDeleteBtn.disabled = true;
+            }
+            
+            // Update select all checkbox state
+            const allCheckboxes = document.querySelectorAll('.file-checkbox');
+            if (allCheckboxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (count === allCheckboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else if (count > 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
+        }
+
+        function deleteSelectedFiles() {
+            const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+            const selectedFiles = Array.from(checkboxes).map(cb => {
+                const row = cb.closest('tr');
+                const filename = cb.value;
+                const friendlyName = row.querySelector('td:nth-child(2)').textContent.trim();
+                return { filename, friendlyName };
+            });
+            
+            if (selectedFiles.length === 0) {
+                alert('No files selected for deletion.');
+                return;
+            }
+            
+            const fileList = selectedFiles.map(f => `"${f.friendlyName}"`).join(', ');
+            const confirmMessage = `Are you sure you want to move ${selectedFiles.length} file(s) to recycle?\n\nFiles to move:\n${fileList}\n\nFiles will be zipped and moved to the recycle folder.`;
+            
+            if (confirm(confirmMessage)) {
+                const statusDiv = document.getElementById('savedFileStatus');
+                statusDiv.innerHTML = '<small class="text-info">Deleting files...</small>';
+                
+                // Delete files one by one
+                let completed = 0;
+                let errors = [];
+                
+                selectedFiles.forEach((file, index) => {
+                    fetch('/api/delete-file', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            filename: file.filename
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        completed++;
+                        if (!data.success) {
+                            errors.push(`${file.friendlyName}: ${data.error}`);
+                        }
+                        
+                        if (completed === selectedFiles.length) {
+                            if (errors.length === 0) {
+                                statusDiv.innerHTML = `<small class="text-success">✅ Successfully moved ${selectedFiles.length} file(s) to recycle</small>`;
+                                
+                                // Refresh the files overview
+                                loadFilesOverview();
+                                
+                                // Refresh other displays
+                                loadSavedFilesList();
+                                loadFilesOverview();
+                            } else {
+                                statusDiv.innerHTML = `<small class="text-warning">⚠️ Moved ${completed - errors.length} file(s) to recycle, ${errors.length} failed: ${errors.join(', ')}</small>`;
+                            }
+                            
+                            setTimeout(() => {
+                                statusDiv.innerHTML = '';
+                            }, 5000);
+                        }
+                    })
+                    .catch(error => {
+                        completed++;
+                        errors.push(`${file.friendlyName}: Network error`);
+                        
+                        if (completed === selectedFiles.length) {
+                            statusDiv.innerHTML = `<small class="text-danger">❌ Error moving files to recycle: ${errors.join(', ')}</small>`;
+                            setTimeout(() => {
+                                statusDiv.innerHTML = '';
+                            }, 5000);
+                        }
+                    });
+                });
             }
         }
 
@@ -2548,6 +2768,19 @@
                         availableCharts['conflicting_legs'] = 'Conflicting leg analysis';
                     }
                     
+                    // Ensure cross_file_correlation is available
+                    if (!availableCharts.cross_file_correlation) {
+                        availableCharts['cross_file_correlation'] = 'Cross-file strategy correlation analysis';
+                    }
+                    
+                    // Add separator to availableCharts for rendering (but it won't be clickable)
+                    availableCharts['separator'] = '--- Cross-File Analysis ---';
+                    
+                    // Ensure files_overview is available
+                    if (!availableCharts.files_overview) {
+                        availableCharts['files_overview'] = 'Uploaded files overview and management';
+                    }
+                    
                         console.log('🎯 Final available charts:', Object.keys(availableCharts));
                         renderChartButtons();
                         console.log('✅ Chart buttons rendered successfully v2');
@@ -2596,7 +2829,8 @@
                 'strategy_correlation': 'Strategy correlation heatmap',
                 'margin_analysis': 'Margin requirements analysis',
                 'daily_margin_analysis': 'Daily margin usage analysis',
-                'monte_carlo': 'Monte Carlo simulation analysis'
+                'monte_carlo': 'Monte Carlo simulation analysis',
+                'cross_file_correlation': 'Cross-file strategy correlation analysis'
             };
             renderChartButtons();
         }
@@ -2630,11 +2864,14 @@
                     ['strategy_correlation', 'Strategy correlation heatmap'],
                     ['margin_analysis', 'Margin requirements analysis'],
                     ['daily_margin_analysis', 'Daily margin usage analysis'],
-                    ['monte_carlo', 'Monte Carlo simulation analysis']
+                    ['monte_carlo', 'Monte Carlo simulation analysis'],
+                    ['separator', '--- Cross-File Analysis ---'],
+                    ['cross_file_correlation', 'Cross-file strategy correlation analysis'],
+                    ['files_overview', 'Uploaded files overview and management']
                 ];
                 
-                // Convert array to object for compatibility
-                availableCharts = Object.fromEntries(fallbackChartsArray);
+                // Convert array to object for compatibility, but exclude separator
+                availableCharts = Object.fromEntries(fallbackChartsArray.filter(([key, value]) => key !== 'separator'));
             }
 
             // Define the desired order for charts
@@ -2655,7 +2892,10 @@
                 'strategy_correlation',
                 'margin_analysis',
                 'daily_margin_analysis',
-                'monte_carlo'
+                'monte_carlo',
+                'separator',
+                'cross_file_correlation',
+                'files_overview'
             ];
 
                 // Debug: Check if conflicting_legs is in chartOrder
@@ -2666,12 +2906,32 @@
                 // Render buttons in the specified order
                 for (const chartType of chartOrder) {
                     if (availableCharts[chartType]) {
-                        const button = document.createElement('button');
-                        button.className = 'btn btn-outline-primary btn-chart';
-                        button.textContent = formatChartName(chartType);
-                        button.title = availableCharts[chartType];
-                        button.onclick = () => loadChart(chartType);
-                        container.appendChild(button);
+                        if (chartType === 'separator') {
+                            // Create a visual separator that breaks out of the grid
+                            const separator = document.createElement('div');
+                            separator.className = 'w-100';
+                            separator.innerHTML = `
+                                <div class="border-top pt-4 mt-4 mb-3">
+                                    <div class="text-center">
+                                        <span class="badge bg-secondary fs-6 px-3 py-2">Cross-File Analysis</span>
+                                    </div>
+                                    <div class="text-center text-muted small mt-2">Analyze strategies across multiple uploaded files</div>
+                                </div>
+                            `;
+                            container.appendChild(separator);
+                        } else {
+                            const button = document.createElement('button');
+                            button.className = 'btn btn-outline-primary btn-chart';
+                            button.textContent = formatChartName(chartType);
+                            button.title = availableCharts[chartType];
+                            // Fix closure issue by capturing chartType in a local variable
+                            const currentChartType = chartType;
+                            button.onclick = () => {
+                                console.log('Button clicked for chart type:', currentChartType);
+                                loadChart(currentChartType);
+                            };
+                            container.appendChild(button);
+                        }
                     }
                 }
             
@@ -2705,7 +2965,10 @@
                 'pnl_by_day_of_week': '📅 P&L by Day of Week',
                 'pnl_by_month': '📅 P&L by Month',
                 'commission_analysis': '💳 Commission Analysis',
-                'conflicting_legs': '⚠️ Conflicting Legs'
+                'conflicting_legs': '⚠️ Conflicting Legs',
+                'separator': '--- Cross-File Analysis ---',
+                'cross_file_correlation': '🔗 Cross-File Correlation',
+                'files_overview': '📁 Uploaded Files Overview'
             };
             return chartNames[chartType] || chartType;
         }
@@ -2933,6 +3196,22 @@
                 loadConflictingLegsChart();
                 return;
             }
+            
+            if (chartType === 'cross_file_correlation') {
+                loadCrossFileCorrelationChart();
+                return;
+            }
+            
+            if (chartType === 'files_overview') {
+                loadFilesOverview();
+                return;
+            }
+            
+            if (chartType === 'separator') {
+                // Separator should not be clickable - this shouldn't happen
+                console.warn('Separator chart type was clicked - this should not be possible');
+                return;
+            }
 
             if (chartType === 'margin_analysis') {
                 // Margin analysis table - handled specially with sorting and colors
@@ -3048,10 +3327,18 @@
                 }
             });
 
-            // Auto-load cumulative P&L chart
+            // Auto-load cumulative P&L chart only if no chart is currently loaded
             setTimeout(() => {
-                console.log('Loading cumulative P&L chart...');
-                loadChart('cumulative_pnl');
+                const container = document.getElementById('chartContainer');
+                // Only auto-load if the container is empty or showing the default message
+                if (!container.innerHTML || 
+                    container.innerHTML.includes('Select a chart to view analytics') ||
+                    container.innerHTML.includes('Upload or select a file to view analytics')) {
+                    console.log('Auto-loading cumulative P&L chart...');
+                    loadChart('cumulative_pnl');
+                } else {
+                    console.log('Skipping auto-load - chart already loaded');
+                }
             }, 500); // Small delay to ensure other data is loaded first
             
             // Ensure chart buttons are loaded
@@ -6548,6 +6835,296 @@
 
 
 
+
+        function loadCrossFileCorrelationChart() {
+            const container = document.getElementById('chartContainer');
+            const loading = document.getElementById('chartLoading');
+            
+            // Show file selection interface first
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h5>🔗 Cross-File Strategy Correlation Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-4">
+                            <h6><i class="fas fa-info-circle"></i> What is Cross-File Strategy Correlation Analysis?</h6>
+                            <p class="mb-2">This tool analyzes the correlation between trading strategies from different CSV files to help you identify diversification opportunities.</p>
+                            <p class="mb-2"><strong>Why is this useful?</strong></p>
+                            <ul class="mb-2">
+                                <li><strong>Portfolio Diversification:</strong> Find strategies that move independently to reduce overall risk</li>
+                                <li><strong>Strategy Selection:</strong> Identify which strategies from different files work well together</li>
+                                <li><strong>Risk Management:</strong> Avoid combining highly correlated strategies that amplify losses</li>
+                                <li><strong>Performance Optimization:</strong> Build portfolios with uncorrelated strategies for better risk-adjusted returns</li>
+                            </ul>
+                            <p class="mb-0"><strong>How it works:</strong> The analysis compares daily returns between strategies across your selected files during their overlapping time periods, then displays correlations in a heatmap matrix.</p>
+                        </div>
+                        
+                        <p>Select which CSV files you want to compare for correlation analysis:</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Select Files to Compare:</label>
+                            <div id="fileSelectionList" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                <div class="text-center">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">Loading files...</span>
+                                    </div>
+                                    <p class="mt-2">Loading available files...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-3 align-items-end">
+                            <div class="d-flex flex-column">
+                                <label for="maxPairsInput" class="form-label mb-1" style="font-size: 0.9em;">Max Strategies:</label>
+                                <input type="number" class="form-control form-control-sm" id="maxPairsInput" value="30" min="5" max="100" style="width: 80px;">
+                            </div>
+                            <div class="flex-grow-1">
+                                <button class="btn btn-primary" onclick="runCrossFileCorrelation()">
+                                    <i class="fas fa-chart-line"></i> Run Correlation Analysis
+                                </button>
+                                <button class="btn btn-outline-secondary ms-2" onclick="selectAllFiles()">
+                                    <i class="fas fa-check-square"></i> Select All
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="deselectAllFiles()">
+                                    <i class="fas fa-square"></i> Deselect All
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted">Maximum number of strategies to include in the correlation matrix</small>
+                        
+                        <div id="correlationResults" class="mt-4" style="display: none;">
+                            <!-- Results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Load available files
+            loadAvailableFilesForCorrelation();
+        }
+        
+        function loadAvailableFilesForCorrelation() {
+            fetch('/api/saved-files')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.length > 0) {
+                    const fileList = document.getElementById('fileSelectionList');
+                    fileList.innerHTML = '';
+                    
+                    data.data.forEach(file => {
+                        const fileItem = document.createElement('div');
+                        fileItem.className = 'form-check mb-2';
+                        fileItem.innerHTML = `
+                            <input class="form-check-input" type="checkbox" value="${file.filename}" id="file_${file.filename}">
+                            <label class="form-check-label" for="file_${file.filename}">
+                                <strong>${file.friendly_name}</strong>
+                                <small class="text-muted d-block">${file.filename}</small>
+                            </label>
+                        `;
+                        fileList.appendChild(fileItem);
+                    });
+                } else {
+                    document.getElementById('fileSelectionList').innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            No CSV files found. Please upload some files first.
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('fileSelectionList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Error loading files: ${error.message}
+                    </div>
+                `;
+            });
+        }
+        
+        function selectAllFiles() {
+            const checkboxes = document.querySelectorAll('#fileSelectionList input[type="checkbox"]');
+            checkboxes.forEach(checkbox => checkbox.checked = true);
+        }
+        
+        function deselectAllFiles() {
+            const checkboxes = document.querySelectorAll('#fileSelectionList input[type="checkbox"]');
+            checkboxes.forEach(checkbox => checkbox.checked = false);
+        }
+        
+        function runCrossFileCorrelation() {
+            const selectedCheckboxes = document.querySelectorAll('#fileSelectionList input[type="checkbox"]:checked');
+            const selectedFiles = Array.from(selectedCheckboxes).map(cb => cb.value);
+            const maxPairs = parseInt(document.getElementById('maxPairsInput').value) || 30;
+            
+            if (selectedFiles.length < 2) {
+                alert('Please select at least 2 files for correlation analysis.');
+                return;
+            }
+            
+            const loading = document.getElementById('chartLoading');
+            const resultsDiv = document.getElementById('correlationResults');
+            
+            loading.style.display = 'block';
+            resultsDiv.style.display = 'none';
+            
+            fetch('/api/cross-file-correlation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    selected_files: selectedFiles,
+                    max_pairs: maxPairs
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                
+                if (!data.success) {
+                    resultsDiv.innerHTML = `<div class="alert alert-warning"><h5>Cross-File Correlation Analysis Error</h5><p>${data.error}</p></div>`;
+                    resultsDiv.style.display = 'block';
+                    return;
+                }
+                
+                const analysisData = data.data;
+                
+                // Create correlation matrix heatmap
+                const correlationMatrix = analysisData.correlation_matrix;
+                const strategies = Object.keys(correlationMatrix);
+                
+                // Create Plotly heatmap
+                const heatmapData = {
+                    z: strategies.map(s1 => strategies.map(s2 => correlationMatrix[s1][s2])),
+                    x: strategies.map(s => s.split('::')[1]), // Strategy name only
+                    y: strategies.map(s => s.split('::')[1]), // Strategy name only
+                    type: 'heatmap',
+                    colorscale: [
+                        [0, '#d62728'], // Red for negative correlation
+                        [0.5, '#ffffff'], // White for zero correlation
+                        [1, '#2ca02c']  // Green for positive correlation
+                    ],
+                    zmid: 0,
+                    text: strategies.map(s1 => strategies.map(s2 => {
+                        const correlation = correlationMatrix[s1][s2];
+                        const file1 = s1.split('::')[0];
+                        const file2 = s2.split('::')[0];
+                        return `${s1.split('::')[1]}<br>${s2.split('::')[1]}<br>Correlation: ${correlation.toFixed(3)}<br>Files: ${file1} ↔ ${file2}`;
+                    })),
+                    texttemplate: '%{text}',
+                    textfont: {size: 10},
+                    hovertemplate: '<b>%{y}</b><br>vs<br><b>%{x}</b><br>Correlation: %{z:.3f}<br>%{customdata}<extra></extra>',
+                    customdata: strategies.map(s1 => strategies.map(s2 => {
+                        const file1 = s1.split('::')[0];
+                        const file2 = s2.split('::')[0];
+                        return `Files: ${file1} ↔ ${file2}`;
+                    }))
+                };
+                
+                const layout = {
+                    title: {
+                        text: 'Cross-File Strategy Correlation Matrix',
+                        font: {size: 16}
+                    },
+                    xaxis: {
+                        title: 'Strategy',
+                        tickangle: -45,
+                        tickfont: {size: 10},
+                        automargin: true
+                    },
+                    yaxis: {
+                        title: 'Strategy',
+                        tickfont: {size: 10},
+                        automargin: true
+                    },
+                    width: Math.max(800, strategies.length * 60),
+                    height: Math.max(600, strategies.length * 50),
+                    margin: {l: 200, r: 100, t: 100, b: 200},
+                    autosize: true
+                };
+                
+                const config = {
+                    responsive: true,
+                    displayModeBar: true,
+                    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+                };
+                
+                resultsDiv.innerHTML = `
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line"></i> Analysis Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-primary">${analysisData.files_analyzed.length}</h5>
+                                            <p class="card-text">Files Analyzed</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-info">${strategies.length}</h5>
+                                            <p class="card-text">Strategies</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-success">${analysisData.common_date_range.days}</h5>
+                                            <p class="card-text">Common Days</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-warning">${analysisData.summary_stats.avg_correlation}</h5>
+                                            <p class="card-text">Avg Correlation</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info mb-4">
+                                <h6><i class="fas fa-info-circle"></i> Analysis Period</h6>
+                                <p>Common date range: <strong>${analysisData.common_date_range.start}</strong> to <strong>${analysisData.common_date_range.end}</strong></p>
+                                <small>Only strategies with at least 5 trades in this period are included.</small>
+                            </div>
+                            
+                            <div id="correlationHeatmap" class="text-center"></div>
+                            
+                            
+                            <div class="alert alert-light mt-3">
+                                <h6><i class="fas fa-info-circle"></i> Interpretation Guide</h6>
+                                <ul class="mb-0">
+                                    <li><strong>Red cells:</strong> Negative correlation (strategies move in opposite directions)</li>
+                                    <li><strong>White cells:</strong> No correlation (strategies move independently)</li>
+                                    <li><strong>Green cells:</strong> Positive correlation (strategies move together)</li>
+                                    <li><strong>Darker colors:</strong> Stronger correlation (closer to ±1)</li>
+                                    <li><strong>Diagonal:</strong> Perfect correlation (strategy with itself = 1.0)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Render the heatmap
+                Plotly.newPlot('correlationHeatmap', [heatmapData], layout, config);
+                resultsDiv.style.display = 'block';
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                resultsDiv.style.display = 'block';
+            });
+        }
 
     </script>
 </body>

@@ -15,6 +15,8 @@ import re
 from collections import defaultdict
 import csv
 from scipy import stats
+import zipfile
+import shutil
 
 from models import Portfolio, DatabaseManager
 from analytics import StrategyAnalyzer, PortfolioMetrics, MonteCarloSimulator
@@ -1910,7 +1912,7 @@ def load_saved_file(filename):
 
 @app.route('/api/delete-file', methods=['POST'])
 def delete_file():
-    """Delete a specific saved file."""
+    """Move a file to recycle folder instead of permanently deleting it."""
     try:
         data = request.get_json()
         filename = data.get('filename')
@@ -1930,8 +1932,23 @@ def delete_file():
                 'error': 'File not found'
             }), 404
         
-        # Delete the file
+        # Create recycle folder if it doesn't exist
+        data_folder = get_current_data_folder()
+        recycle_folder = os.path.join(data_folder, 'recycle')
+        os.makedirs(recycle_folder, exist_ok=True)
+        
+        # Create zip filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        base_name = os.path.splitext(filename)[0]
+        zip_filename = f"{base_name}_{timestamp}.zip"
+        zip_path = os.path.join(recycle_folder, zip_filename)
+        
+        # Move file to recycle folder as zip
         try:
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                zipf.write(file_path, filename)
+            
+            # Remove the original file
             os.remove(file_path)
             
             # Remove from metadata
@@ -1944,19 +1961,19 @@ def delete_file():
             
             return jsonify({
                 'success': True,
-                'message': f'Successfully deleted "{friendly_name}"'
+                'message': f'Successfully moved "{friendly_name}" to recycle folder'
             })
             
         except Exception as e:
             return jsonify({
                 'success': False,
-                'error': f'Failed to delete file: {str(e)}'
+                'error': f'Failed to move file to recycle: {str(e)}'
             }), 500
         
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': f'Delete operation failed: {str(e)}'
+            'error': f'Recycle operation failed: {str(e)}'
         }), 500
 
 @app.route('/api/cleanup-files', methods=['POST'])
@@ -2889,6 +2906,49 @@ def health_check():
             'status': 'unhealthy',
             'error': str(e),
             'timestamp': datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/cross-file-correlation', methods=['GET', 'POST'])
+@guest_mode_required
+def get_cross_file_correlation():
+    """Get correlation analysis across selected uploaded files."""
+    try:
+        from analytics import CrossFileAnalyzer
+        
+        # Get parameters
+        if request.method == 'POST':
+            data = request.get_json()
+            selected_files = data.get('selected_files', [])
+            max_pairs = data.get('max_pairs', 30)
+        else:
+            # For GET requests, get all files (backward compatibility)
+            selected_files = []
+            max_pairs = request.args.get('max_pairs', 30, type=int)
+        
+        max_pairs = min(max_pairs, 100)  # Cap at 100 for performance
+        
+        # Initialize cross-file analyzer
+        cross_analyzer = CrossFileAnalyzer(file_manager)
+        
+        # Get correlation analysis
+        result = cross_analyzer.get_cross_file_correlations(max_pairs=max_pairs, selected_files=selected_files)
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result['data']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['error'],
+                'details': {key: value for key, value in result.items() if key not in ['success', 'error']}
+            }), 400
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Cross-file correlation analysis failed: {str(e)}'
         }), 500
 
 @app.route('/api/files/overview')

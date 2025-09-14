@@ -804,4 +804,281 @@ class MonteCarloSimulator:
             'probabilities': {},
             'simulation_results': [],
             'confidence_levels': []
-        } 
+        }
+
+
+class CrossFileAnalyzer:
+    """Analyzes correlations between strategies across multiple uploaded files."""
+    
+    def __init__(self, file_manager):
+        self.file_manager = file_manager
+    
+    def get_cross_file_correlations(self, max_pairs: int = 30, selected_files: List[str] = None) -> Dict:
+        """
+        Calculate correlations between strategies across selected uploaded files.
+        
+        Args:
+            max_pairs: Maximum number of uncorrelated pairs to return
+            selected_files: List of filenames to analyze (if None, analyzes all files)
+            
+        Returns:
+            Dictionary with correlation analysis results
+        """
+        try:
+            # Get uploaded files (filtered by selection if provided)
+            all_files = self.file_manager.get_file_list()
+            
+            if selected_files:
+                # Filter to only selected files
+                file_list = [f for f in all_files if f['filename'] in selected_files]
+                print(f"DEBUG: Filtering to {len(file_list)} selected files out of {len(all_files)} total files")
+            else:
+                # Use all files (backward compatibility)
+                file_list = all_files
+                print(f"DEBUG: Using all {len(file_list)} files for analysis")
+            
+            if len(file_list) < 2:
+                return {
+                    'success': False,
+                    'error': 'Need at least 2 files for cross-file correlation analysis',
+                    'file_count': len(file_list)
+                }
+            
+            # Load all portfolios and their strategies
+            portfolios_data = []
+            
+            print(f"DEBUG: Found {len(file_list)} files to analyze:")
+            for file_info in file_list:
+                print(f"  - {file_info['friendly_name']} ({file_info['filename']})")
+            
+            for file_info in file_list:
+                try:
+                    file_path = self.file_manager.get_file_path(file_info['filename'])
+                    print(f"DEBUG: Loading file {file_info['friendly_name']} from {file_path}")
+                    
+                    # Create temporary portfolio for this file
+                    from models import Portfolio
+                    temp_portfolio = Portfolio()
+                    temp_portfolio.load_from_csv(file_path)
+                    
+                    print(f"DEBUG: Loaded {len(temp_portfolio.strategies)} strategies from {file_info['friendly_name']}")
+                    
+                    # Get date range for this file
+                    all_trades = []
+                    for strategy in temp_portfolio.strategies.values():
+                        all_trades.extend(strategy.trades)
+                    
+                    print(f"DEBUG: Found {len(all_trades)} total trades in {file_info['friendly_name']}")
+                    
+                    if all_trades:
+                        # Debug: Show sample dates before parsing
+                        sample_dates = [trade.date_closed for trade in all_trades[:3]]
+                        print(f"DEBUG: Sample date_closed values from {file_info['friendly_name']}: {sample_dates}")
+                        
+                        dates = []
+                        for trade in all_trades:
+                            try:
+                                parsed_date = pd.to_datetime(trade.date_closed)
+                                dates.append(parsed_date)
+                            except Exception as e:
+                                print(f"DEBUG: Failed to parse date '{trade.date_closed}' from {file_info['friendly_name']}: {e}")
+                                continue
+                        
+                        if dates:
+                            start_date = min(dates)
+                            end_date = max(dates)
+                            
+                            print(f"DEBUG: Date range for {file_info['friendly_name']}: {start_date.date()} to {end_date.date()}")
+                            
+                            portfolios_data.append({
+                                'filename': file_info['filename'],
+                                'friendly_name': file_info['friendly_name'],
+                                'portfolio': temp_portfolio,
+                                'start_date': start_date,
+                                'end_date': end_date,
+                                'trade_count': len(all_trades)
+                            })
+                        else:
+                            print(f"DEBUG: No valid dates found in {file_info['friendly_name']}")
+                    else:
+                        print(f"DEBUG: No trades found in {file_info['friendly_name']}")
+                except Exception as e:
+                    print(f"Warning: Could not load file {file_info['filename']}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+            
+            if len(portfolios_data) < 2:
+                return {
+                    'success': False,
+                    'error': 'Could not load enough valid files for analysis',
+                    'loaded_files': len(portfolios_data)
+                }
+            
+            # Find common date range
+            common_start = max(p['start_date'] for p in portfolios_data)
+            common_end = min(p['end_date'] for p in portfolios_data)
+            
+            # Debug: Print date ranges for troubleshooting
+            print(f"DEBUG: Cross-file correlation date analysis:")
+            for p in portfolios_data:
+                print(f"  {p['friendly_name']}: {p['start_date'].date()} to {p['end_date'].date()}")
+                print(f"    Raw dates: {p['start_date']} to {p['end_date']}")
+                print(f"    Date types: {type(p['start_date'])} to {type(p['end_date'])}")
+            
+            print(f"  Common range: {common_start.date()} to {common_end.date()}")
+            print(f"  Raw common dates: {common_start} to {common_end}")
+            print(f"  Overlap check: {common_start.date()} > {common_end.date()} = {common_start > common_end}")
+            print(f"  Raw comparison: {common_start} > {common_end} = {common_start > common_end}")
+            
+            # Additional debugging: show the actual values being compared
+            print(f"  common_start value: {repr(common_start)}")
+            print(f"  common_end value: {repr(common_end)}")
+            print(f"  common_start > common_end: {common_start > common_end}")
+            print(f"  common_start >= common_end: {common_start >= common_end}")
+            print(f"  common_start == common_end: {common_start == common_end}")
+            
+            if common_start > common_end:
+                return {
+                    'success': False,
+                    'error': 'No overlapping date range found between files',
+                    'date_ranges': {p['friendly_name']: f"{p['start_date'].date()} to {p['end_date'].date()}" for p in portfolios_data},
+                    'common_start': common_start.strftime('%Y-%m-%d'),
+                    'common_end': common_end.strftime('%Y-%m-%d'),
+                    'debug_info': 'common_start > common_end means no overlap'
+                }
+            
+            # Calculate daily returns for each strategy within common date range
+            strategy_returns = {}
+            
+            for portfolio_data in portfolios_data:
+                portfolio = portfolio_data['portfolio']
+                file_prefix = portfolio_data['friendly_name']
+                
+                for strategy_name, strategy in portfolio.strategies.items():
+                    # Filter trades to common date range
+                    filtered_trades = []
+                    for trade in strategy.trades:
+                        trade_date = pd.to_datetime(trade.date_closed)
+                        if common_start <= trade_date <= common_end:
+                            filtered_trades.append(trade)
+                    
+                    if len(filtered_trades) < 5:  # Need minimum trades for correlation
+                        continue
+                    
+                    # Create unique strategy identifier
+                    unique_strategy_name = f"{file_prefix}::{strategy_name}"
+                    
+                    # Calculate daily returns using per-lot P&L
+                    daily_data = []
+                    for trade in filtered_trades:
+                        daily_data.append({
+                            'date': pd.to_datetime(trade.date_closed).date(),
+                            'pnl': trade.pnl_per_lot
+                        })
+                    
+                    if daily_data:
+                        df = pd.DataFrame(daily_data)
+                        # Group by date and sum P&L (in case multiple trades per day)
+                        daily_returns = df.groupby('date')['pnl'].sum()
+                        strategy_returns[unique_strategy_name] = daily_returns
+            
+            if len(strategy_returns) < 2:
+                return {
+                    'success': False,
+                    'error': 'Not enough strategies with sufficient data in common date range',
+                    'common_date_range': f"{common_start.date()} to {common_end.date()}",
+                    'strategies_found': len(strategy_returns)
+                }
+            
+            # Create correlation matrix
+            returns_df = pd.DataFrame(strategy_returns).fillna(0)
+            correlation_matrix = returns_df.corr()
+            
+            # Limit strategies if max_pairs is specified and we have more strategies than the limit
+            if max_pairs and len(correlation_matrix.columns) > max_pairs:
+                print(f"DEBUG: Limiting correlation matrix to top {max_pairs} most uncorrelated strategies (from {len(correlation_matrix.columns)} total)")
+                
+                # Find the most uncorrelated strategies by calculating average absolute correlation for each strategy
+                strategy_correlations = {}
+                for strategy in correlation_matrix.columns:
+                    # Get correlations with all other strategies (excluding self-correlation of 1.0)
+                    other_correlations = correlation_matrix[strategy].drop(strategy)
+                    # Calculate average absolute correlation (lower = more uncorrelated)
+                    avg_abs_correlation = other_correlations.abs().mean()
+                    strategy_correlations[strategy] = avg_abs_correlation
+                
+                # Select strategies with lowest average absolute correlation (most uncorrelated)
+                most_uncorrelated_strategies = sorted(strategy_correlations.items(), key=lambda x: x[1])[:max_pairs]
+                top_strategies = [strategy for strategy, _ in most_uncorrelated_strategies]
+                
+                print(f"DEBUG: Selected {len(top_strategies)} most uncorrelated strategies:")
+                for strategy, avg_corr in most_uncorrelated_strategies:
+                    print(f"  {strategy.split('::')[1]}: avg correlation = {avg_corr:.3f}")
+                
+                # Filter correlation matrix to only include most uncorrelated strategies
+                correlation_matrix = correlation_matrix.loc[top_strategies, top_strategies]
+            
+            # Find uncorrelated pairs (lowest correlations)
+            uncorrelated_pairs = []
+            
+            for i in range(len(correlation_matrix.columns)):
+                for j in range(i + 1, len(correlation_matrix.columns)):
+                    strategy1 = correlation_matrix.columns[i]
+                    strategy2 = correlation_matrix.columns[j]
+                    correlation = correlation_matrix.iloc[i, j]
+                    
+                    # Only include pairs from different files
+                    file1 = strategy1.split('::')[0]
+                    file2 = strategy2.split('::')[0]
+                    
+                    if file1 != file2:  # Different files
+                        uncorrelated_pairs.append({
+                            'strategy1': strategy1,
+                            'strategy2': strategy2,
+                            'strategy1_display': strategy1.split('::')[1],
+                            'strategy2_display': strategy2.split('::')[1],
+                            'file1': file1,
+                            'file2': file2,
+                            'correlation': round(correlation, 4),
+                            'abs_correlation': abs(correlation)
+                        })
+            
+            # Sort by absolute correlation (lowest first = most uncorrelated)
+            uncorrelated_pairs.sort(key=lambda x: x['abs_correlation'])
+            
+            # Limit results
+            top_uncorrelated = uncorrelated_pairs[:max_pairs]
+            
+            return {
+                'success': True,
+                'data': {
+                    'common_date_range': {
+                        'start': common_start.strftime('%Y-%m-%d'),
+                        'end': common_end.strftime('%Y-%m-%d'),
+                        'days': (common_end - common_start).days
+                    },
+                    'files_analyzed': [
+                        {
+                            'filename': p['friendly_name'],
+                            'strategies_count': len([s for s in strategy_returns.keys() if s.startswith(p['friendly_name'])]),
+                            'date_range': f"{p['start_date'].date()} to {p['end_date'].date()}",
+                            'trades_in_range': sum(1 for s in strategy_returns.keys() if s.startswith(p['friendly_name']))
+                        } for p in portfolios_data
+                    ],
+                    'total_strategy_pairs': len(uncorrelated_pairs),
+                    'uncorrelated_pairs': top_uncorrelated,
+                    'correlation_matrix': correlation_matrix.round(4).to_dict(),
+                    'summary_stats': {
+                        'avg_correlation': round(np.mean([pair['correlation'] for pair in uncorrelated_pairs]), 4),
+                        'min_correlation': round(min([pair['correlation'] for pair in uncorrelated_pairs]), 4),
+                        'max_correlation': round(max([pair['correlation'] for pair in uncorrelated_pairs]), 4)
+                    }
+                }
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Cross-file correlation analysis failed: {str(e)}'
+            } 
