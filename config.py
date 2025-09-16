@@ -40,6 +40,10 @@ class Config:
     GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI')
     DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI')
     
+    # Debug logging for environment variables
+    print(f"DEBUG CONFIG: GOOGLE_REDIRECT_URI = {GOOGLE_REDIRECT_URI}")
+    print(f"DEBUG CONFIG: DISCORD_REDIRECT_URI = {DISCORD_REDIRECT_URI}")
+    
     # File Storage
     DATA_BASE_DIR = os.path.join(BASE_DIR, 'data')
     GUEST_DATA_DIR = os.path.join(BASE_DIR, 'data', 'guest')

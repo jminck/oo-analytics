@@ -211,6 +211,10 @@ def discord_login():
     
     # No valid session found, proceed with OAuth flow
     # Use configured redirect URI if available, otherwise generate dynamically
+    print(f"DEBUG: Checking for DISCORD_REDIRECT_URI in config...")
+    print(f"DEBUG: Available config keys: {list(current_app.config.keys())}")
+    print(f"DEBUG: DISCORD_REDIRECT_URI value: {current_app.config.get('DISCORD_REDIRECT_URI')}")
+    
     if current_app.config.get('DISCORD_REDIRECT_URI'):
         redirect_uri = current_app.config['DISCORD_REDIRECT_URI']
         print(f"Using configured Discord redirect URI: {redirect_uri}")
@@ -219,6 +223,7 @@ def discord_login():
         # Force localhost usage for consistency with Discord app settings
         redirect_uri = redirect_uri.replace('127.0.0.1', 'localhost')
         print(f"Using dynamic Discord redirect URI: {redirect_uri}")
+        print(f"DEBUG: Generated redirect URI from url_for: {url_for('auth.discord_callback', _external=True)}")
     return oauth.discord.authorize_redirect(redirect_uri)
 
 @auth_bp.route('/check-discord-auth')
