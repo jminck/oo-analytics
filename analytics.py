@@ -199,7 +199,7 @@ class StrategyAnalyzer:
         annual_return = mean_return * trades_per_year
         annual_volatility = std_return * np.sqrt(trades_per_year)
         
-        # Risk-free rate (assume 2% annual)
+        # Risk-free rate (2% annual Treasury bill rate)
         risk_free_rate = 0.02
         
         # Calculate Sharpe ratio
@@ -514,7 +514,7 @@ class PortfolioMetrics:
         annual_return = mean_return * trades_per_year
         annual_volatility = std_return * np.sqrt(trades_per_year)
         
-        # Risk-free rate (2% annual)
+        # Risk-free rate (2% annual Treasury bill rate)
         risk_free_rate = 0.02
         
         # Calculate Sharpe ratio
@@ -573,6 +573,7 @@ class MonteCarloSimulator:
         self.portfolio = portfolio
     
     def run_simulation(self, num_simulations: int = 1000, num_trades: int = None, 
+                      trade_size_percent: float = 1.0,
                       confidence_levels: List[float] = [0.05, 0.25, 0.5, 0.75, 0.95]) -> Dict:
         """
         Run Monte Carlo simulation by randomly sampling from historical trade outcomes.
@@ -580,6 +581,7 @@ class MonteCarloSimulator:
         Args:
             num_simulations: Number of simulation runs
             num_trades: Number of trades per simulation (default: same as historical)
+            trade_size_percent: Percentage of account balance to risk per trade (default: 1.0%)
             confidence_levels: Percentiles to calculate for results
         
         Returns:
@@ -600,8 +602,9 @@ class MonteCarloSimulator:
         if num_trades is None:
             num_trades = len(all_trades)
         
-        # Extract trade returns for sampling
-        trade_returns = [trade.pnl for trade in all_trades]
+        # Extract trade returns for sampling (use aggregate P&L for portfolio-level analysis)
+        # Scale returns based on trade size percentage
+        trade_returns = [trade.pnl * (trade_size_percent / 100.0) for trade in all_trades]
         
         # Run simulations
         simulation_results = []
@@ -658,6 +661,15 @@ class MonteCarloSimulator:
         win_probability = (total_pnls > 0).mean() * 100
         loss_probability = (total_pnls < 0).mean() * 100
         
+        # Calculate risk-adjusted ratios
+        risk_ratios = self._calculate_risk_ratios(total_pnls, final_balances, None, trade_size_percent)
+        
+        # Calculate t-test statistics
+        t_test_results = self._calculate_t_tests(total_pnls, final_balances, initial_balance)
+        
+        # Calculate p-values for statistical significance
+        p_values = self._calculate_p_values(total_pnls, final_balances, max_drawdowns, initial_balance)
+        
         return {
             'simulation_summary': {
                 'num_simulations': num_simulations,
@@ -694,12 +706,15 @@ class MonteCarloSimulator:
                 'loss_probability': loss_probability,
                 'break_even_probability': 100 - win_probability - loss_probability
             },
+            'risk_ratios': risk_ratios,
+            't_test_results': t_test_results,
+            'p_values': p_values,
             'simulation_results': simulation_results[:100],  # Return first 100 for charts
             'confidence_levels': confidence_levels
         }
     
     def run_strategy_specific_simulation(self, strategy_name: str, num_simulations: int = 1000, 
-                                       num_trades: int = None) -> Dict:
+                                       num_trades: int = None, trade_size_percent: float = 1.0) -> Dict:
         """
         Run Monte Carlo simulation for a specific strategy.
         
@@ -707,6 +722,7 @@ class MonteCarloSimulator:
             strategy_name: Name of the strategy to simulate
             num_simulations: Number of simulation runs
             num_trades: Number of trades per simulation
+            trade_size_percent: Percentage of account balance to risk per trade (default: 1.0%)
         
         Returns:
             Dictionary with strategy-specific simulation results
@@ -723,12 +739,23 @@ class MonteCarloSimulator:
         if num_trades is None:
             num_trades = len(strategy.trades)
         
-        # Extract trade returns for this strategy
-        trade_returns = [trade.pnl for trade in strategy.trades]
+        # Extract trade returns for this strategy (use per-lot P&L for consistency)
+        # For per-lot statistics, use raw per-lot P&L (not scaled by trade size)
+        trade_returns = [trade.pnl_per_lot for trade in strategy.trades]
+        
+        # Debug: Check the actual values
+        print(f"DEBUG: Strategy {strategy_name} - Sample trade_returns:")
+        for i, trade in enumerate(strategy.trades[:5]):  # First 5 trades
+            print(f"DEBUG: Trade {i+1}: P&L=${trade.pnl:,.2f}, Contracts={trade.contracts}, P&L/Lot=${trade.pnl_per_lot:,.2f}")
+        print(f"DEBUG: Trade returns range: ${min(trade_returns):,.2f} to ${max(trade_returns):,.2f}")
+        print(f"DEBUG: Mean trade return: ${np.mean(trade_returns):,.2f}")
         
         # Calculate initial balance (for single strategy, use average account balance)
+        # Since we're using per-lot P&L, we need to normalize the initial balance calculation
         account_balances = [trade.funds_at_close for trade in strategy.trades]
-        initial_balance = np.mean(account_balances) - strategy.total_pnl
+        avg_contracts = np.mean([getattr(trade, 'contracts', 1) for trade in strategy.trades])
+        # For per-lot analysis, use a standard initial balance per lot
+        initial_balance = 1000.0  # Standard $1000 per lot initial balance
         
         # Run simulations
         simulation_results = []
@@ -745,35 +772,238 @@ class MonteCarloSimulator:
             simulation_results.append({
                 'simulation_id': sim_num + 1,
                 'final_pnl': final_pnl,
-                'cumulative_pnl': cumulative_pnl.tolist()
+                'cumulative_pnl': cumulative_pnl.tolist(),
+                'simulated_trades': simulated_pnl.tolist()  # Store individual trade returns
             })
             
             final_pnls.append(final_pnl)
         
         # Calculate statistics
         final_pnls = np.array(final_pnls)
+        # Since we're using per-lot P&L, the final_balances should also be per-lot
+        final_balances = initial_balance + final_pnls
+        
+        # Debug: Check simulation results
+        print(f"DEBUG: Simulation results for {strategy_name}:")
+        print(f"DEBUG: Final P&Ls range: ${np.min(final_pnls):,.2f} to ${np.max(final_pnls):,.2f}")
+        print(f"DEBUG: Mean final P&L: ${np.mean(final_pnls):,.2f}")
+        print(f"DEBUG: Initial balance: ${initial_balance:,.2f}")
+        print(f"DEBUG: Final balances range: ${np.min(final_balances):,.2f} to ${np.max(final_balances):,.2f}")
+        
+        # Calculate max drawdowns for each simulation
+        max_drawdowns = []
+        for result in simulation_results:
+            cumulative_pnl = np.array(result['cumulative_pnl'])
+            account_balance = initial_balance + cumulative_pnl
+            max_drawdown = self._calculate_simulation_max_drawdown(account_balance)
+            max_drawdowns.append(max_drawdown)
+        
+        max_drawdowns = np.array(max_drawdowns)
+        
+        # Calculate percentiles
+        pnl_percentiles = {}
+        balance_percentiles = {}
+        drawdown_percentiles = {}
+        confidence_levels = [0.05, 0.25, 0.5, 0.75, 0.95]
+        
+        for level in confidence_levels:
+            percentile = level * 100
+            pnl_percentiles[f'p{int(percentile)}'] = np.percentile(final_pnls, percentile)
+            balance_percentiles[f'p{int(percentile)}'] = np.percentile(final_balances, percentile)
+            drawdown_percentiles[f'p{int(percentile)}'] = np.percentile(max_drawdowns, percentile)
+        
+        # Calculate additional statistics
+        win_probability = (final_pnls > 0).mean() * 100
+        loss_probability = (final_pnls < 0).mean() * 100
+        
+        # Calculate risk-adjusted ratios
+        risk_ratios = self._calculate_risk_ratios(final_pnls, final_balances, strategy.trades, trade_size_percent)
+        
+        # Calculate t-test statistics
+        t_test_results = self._calculate_t_tests(final_pnls, final_balances, initial_balance)
+        
+        # Calculate p-values for statistical significance
+        p_values = self._calculate_p_values(final_pnls, final_balances, max_drawdowns, initial_balance)
         
         return {
             'strategy_name': strategy_name,
             'simulation_summary': {
                 'num_simulations': num_simulations,
                 'num_trades_per_sim': num_trades,
+                'initial_balance': initial_balance,
                 'historical_pnl': strategy.total_pnl,
                 'historical_trade_count': len(strategy.trades)
             },
+            'final_balance_stats': {
+                'mean': np.mean(final_balances),
+                'median': np.median(final_balances),
+                'std': np.std(final_balances),
+                'min': np.min(final_balances),
+                'max': np.max(final_balances),
+                'percentiles': balance_percentiles
+            },
             'pnl_stats': {
-                'mean': np.mean(final_pnls),
-                'median': np.median(final_pnls),
-                'std': np.std(final_pnls),
-                'min': np.min(final_pnls),
-                'max': np.max(final_pnls)
+                'mean': np.mean(final_pnls) / num_trades,  # Average per-lot P&L per trade
+                'median': np.median(final_pnls) / num_trades,  # Median per-lot P&L per trade
+                'std': np.std(final_pnls) / num_trades,  # Standard deviation per-lot P&L per trade
+                'min': np.min(final_pnls) / num_trades,  # Min per-lot P&L per trade
+                'max': np.max(final_pnls) / num_trades,  # Max per-lot P&L per trade
+                'percentiles': {k: v / num_trades for k, v in pnl_percentiles.items()}  # Percentiles of per-lot P&L per trade
+            },
+            'drawdown_stats': {
+                'mean': np.mean(max_drawdowns),  # Average per-lot max drawdown across simulations
+                'median': np.median(max_drawdowns),  # Median per-lot max drawdown across simulations
+                'std': np.std(max_drawdowns),  # Standard deviation of per-lot max drawdown across simulations
+                'min': np.min(max_drawdowns),  # Min per-lot max drawdown across simulations
+                'max': np.max(max_drawdowns),  # Max per-lot max drawdown across simulations
+                'percentiles': drawdown_percentiles  # Percentiles of per-lot max drawdown across simulations
             },
             'probabilities': {
-                'win_probability': (final_pnls > 0).mean() * 100,
-                'loss_probability': (final_pnls < 0).mean() * 100
+                'win_probability': win_probability,
+                'loss_probability': loss_probability,
+                'break_even_probability': 100 - win_probability - loss_probability
             },
-            'simulation_results': simulation_results[:100]  # Return first 100 for charts
+            'risk_ratios': risk_ratios,
+            't_test_results': t_test_results,
+            'p_values': p_values,
+            'simulation_results': simulation_results[:100],  # Return first 100 for charts
+            'confidence_levels': confidence_levels
         }
+    
+    def run_all_strategies_simulation(self, num_simulations: int = 1000, num_trades: int = None, 
+                                    trade_size_percent: float = 1.0) -> Dict:
+        """
+        Run Monte Carlo simulation for each strategy individually to identify fragility.
+        
+        Args:
+            num_simulations: Number of simulation runs per strategy
+            num_trades: Number of trades per simulation (default: strategy's historical count)
+            trade_size_percent: Percentage of account balance to risk per trade (default: 1.0%)
+        
+        Returns:
+            Dictionary with results for each strategy and comparative analysis
+        """
+        if not self.portfolio.strategies:
+            return {'error': 'No strategies available'}
+        
+        strategy_results = {}
+        fragility_analysis = {}
+        
+        # Run simulation for each strategy
+        for strategy_name in self.portfolio.strategies.keys():
+            strategy_results[strategy_name] = self.run_strategy_specific_simulation(
+                strategy_name, num_simulations, num_trades, trade_size_percent
+            )
+        
+        # Analyze fragility across strategies
+        fragility_metrics = self._analyze_strategy_fragility(strategy_results)
+        
+        return {
+            'strategy_results': strategy_results,
+            'fragility_analysis': fragility_metrics,
+            'summary': {
+                'total_strategies': len(self.portfolio.strategies),
+                'num_simulations_per_strategy': num_simulations,
+                'analysis_timestamp': pd.Timestamp.now().isoformat()
+            }
+        }
+    
+    def _analyze_strategy_fragility(self, strategy_results: Dict) -> Dict:
+        """
+        Analyze strategy fragility by comparing individual strategy performance.
+        
+        Args:
+            strategy_results: Results from individual strategy simulations
+            
+        Returns:
+            Dictionary with fragility analysis metrics
+        """
+        fragility_metrics = {}
+        
+        # Collect key metrics from each strategy
+        win_probabilities = []
+        sharpe_ratios = []
+        max_drawdowns = []
+        pnl_volatilities = []
+        
+        for strategy_name, results in strategy_results.items():
+            if 'probabilities' in results:
+                win_probabilities.append(results['probabilities']['win_probability'])
+            if 'risk_ratios' in results and results['risk_ratios'].get('sharpe_ratio'):
+                sharpe_ratios.append(results['risk_ratios']['sharpe_ratio'])
+            if 'drawdown_stats' in results:
+                max_drawdowns.append(results['drawdown_stats']['max'])
+            if 'pnl_stats' in results:
+                pnl_volatilities.append(results['pnl_stats']['std'])
+        
+        # Calculate fragility indicators
+        if win_probabilities:
+            fragility_metrics['win_probability_range'] = {
+                'min': min(win_probabilities),
+                'max': max(win_probabilities),
+                'std': np.std(win_probabilities),
+                'coefficient_of_variation': np.std(win_probabilities) / np.mean(win_probabilities) if np.mean(win_probabilities) > 0 else 0
+            }
+        
+        if sharpe_ratios:
+            sharpe_ratios = [r for r in sharpe_ratios if r is not None]
+            if sharpe_ratios:
+                fragility_metrics['sharpe_ratio_range'] = {
+                    'min': min(sharpe_ratios),
+                    'max': max(sharpe_ratios),
+                    'std': np.std(sharpe_ratios),
+                    'coefficient_of_variation': np.std(sharpe_ratios) / np.mean(sharpe_ratios) if np.mean(sharpe_ratios) > 0 else 0
+                }
+        
+        if max_drawdowns:
+            fragility_metrics['drawdown_range'] = {
+                'min': min(max_drawdowns),
+                'max': max(max_drawdowns),
+                'std': np.std(max_drawdowns),
+                'coefficient_of_variation': np.std(max_drawdowns) / np.mean(max_drawdowns) if np.mean(max_drawdowns) > 0 else 0
+            }
+        
+        if pnl_volatilities:
+            fragility_metrics['volatility_range'] = {
+                'min': min(pnl_volatilities),
+                'max': max(pnl_volatilities),
+                'std': np.std(pnl_volatilities),
+                'coefficient_of_variation': np.std(pnl_volatilities) / np.mean(pnl_volatilities) if np.mean(pnl_volatilities) > 0 else 0
+            }
+        
+        # Create rankings based on established risk-adjusted metrics
+        sharpe_ratios = {}
+        sortino_ratios = {}
+        
+        for strategy_name, results in strategy_results.items():
+            # Get Sharpe ratio
+            if 'risk_ratios' in results and results['risk_ratios'].get('sharpe_ratio') is not None:
+                sharpe_ratios[strategy_name] = results['risk_ratios']['sharpe_ratio']
+            
+            # Get Sortino ratio (include None values as they represent infinite Sortino ratios)
+            if 'risk_ratios' in results and 'sortino_ratio' in results['risk_ratios']:
+                sortino_ratios[strategy_name] = results['risk_ratios']['sortino_ratio']
+        
+        # Sort by Sharpe ratio (descending - higher is better)
+        sharpe_ranking = sorted(sharpe_ratios.items(), key=lambda x: x[1], reverse=True)
+        
+        # Sort by Sortino ratio (descending - higher is better, None values = infinite = best)
+        def sortino_sort_key(item):
+            value = item[1]
+            if value is None:  # None represents infinite Sortino ratio
+                return float('inf')
+            return value
+        
+        sortino_ranking = sorted(sortino_ratios.items(), key=sortino_sort_key, reverse=True)
+        
+        fragility_metrics['sharpe_ranking'] = sharpe_ranking
+        fragility_metrics['sortino_ranking'] = sortino_ranking
+        fragility_metrics['best_sharpe'] = sharpe_ranking[0][0] if sharpe_ranking else None
+        fragility_metrics['worst_sharpe'] = sharpe_ranking[-1][0] if sharpe_ranking else None
+        fragility_metrics['best_sortino'] = sortino_ranking[0][0] if sortino_ranking else None
+        fragility_metrics['worst_sortino'] = sortino_ranking[-1][0] if sortino_ranking else None
+        
+        return fragility_metrics
     
     def _calculate_simulation_max_drawdown(self, account_balance: np.ndarray) -> float:
         """Calculate maximum drawdown for a simulation run."""
@@ -789,6 +1019,605 @@ class MonteCarloSimulator:
         # Return maximum drawdown
         return np.max(drawdown)
     
+    def _calculate_risk_ratios(self, total_pnls: np.ndarray, final_balances: np.ndarray, strategy_trades: List = None, trade_size_percent: float = 1.0) -> Dict:
+        """
+        Calculate risk-adjusted performance ratios for Monte Carlo results.
+        
+        Args:
+            total_pnls: Array of total P&L values from simulations
+            final_balances: Array of final balance values from simulations
+            strategy_trades: List of actual strategy trades for risk calculation
+            trade_size_percent: Percentage of account balance to risk per trade
+            
+        Returns:
+            Dictionary with Sharpe ratio, Sortino ratio, and other risk metrics
+        """
+        print(f"DEBUG: _calculate_risk_ratios called with strategy_trades: {strategy_trades is not None}")
+        if strategy_trades:
+            print(f"DEBUG: Number of strategy trades: {len(strategy_trades)}")
+        else:
+            print("DEBUG: No strategy trades provided, using portfolio-level calculation")
+        
+        # Use standard 2% annual risk-free rate (Treasury bill rate)
+        risk_free_rate = 0.02
+        
+        print(f"DEBUG: Input parameters:")
+        print(f"DEBUG: Total P&Ls shape: {total_pnls.shape if hasattr(total_pnls, 'shape') else len(total_pnls)}")
+        print(f"DEBUG: Final balances shape: {final_balances.shape if hasattr(final_balances, 'shape') else len(final_balances)}")
+        print(f"DEBUG: Trade size percent: {trade_size_percent}%")
+        print(f"DEBUG: Risk-free rate: {risk_free_rate*100:.4f}%")
+        
+        try:
+            
+            # For strategy-specific analysis, use time-normalized annualized returns
+            # This gives us proper Sharpe/Sortino ratios that account for compounding and time
+            if strategy_trades:
+                # Sort trades by date to ensure chronological order
+                sorted_trades = sorted(strategy_trades, key=lambda t: pd.to_datetime(t.date_closed))
+                
+                # Calculate time span and trade frequency for proper annualization
+                start_date = pd.to_datetime(sorted_trades[0].date_closed)
+                end_date = pd.to_datetime(sorted_trades[-1].date_closed)
+                days_elapsed = (end_date - start_date).days
+                
+                print(f"DEBUG: Start date: {start_date}, End date: {end_date}")
+                print(f"DEBUG: Days elapsed: {days_elapsed}")
+                
+                if days_elapsed > 0:
+                    print("DEBUG: Using time-normalized annualized returns calculation")
+                    # Calculate trades per year
+                    trades_per_year = len(sorted_trades) * 365.25 / days_elapsed
+                    
+                    # Calculate actual position sizing and compounding for each trade
+                    # Scale the position sizing by the trade size percentage
+                    trade_returns = []
+                    current_balance = sorted_trades[0].funds_at_close - sorted_trades[0].pnl  # Initial balance
+                    
+                    print(f"DEBUG: Strategy {sorted_trades[0].strategy if hasattr(sorted_trades[0], 'strategy') else 'Unknown'}")
+                    print(f"DEBUG: Initial balance: ${current_balance:,.2f}")
+                    print(f"DEBUG: Number of trades: {len(sorted_trades)}")
+                    
+                    for i, trade in enumerate(sorted_trades[:5]):  # Debug first 5 trades
+                        # Calculate margin requirement for this trade
+                        margin_req = getattr(trade, 'margin_req', 0)
+                        if margin_req == 0:
+                            # Fallback: estimate margin from contracts and margin_per_contract
+                            margin_per_contract = getattr(trade, 'margin_per_contract', 1000.0)
+                            margin_req = trade.contracts * margin_per_contract
+                        
+                        # Calculate position size as percentage of current balance
+                        # Scale by the trade size percentage parameter
+                        if current_balance > 0 and margin_req > 0:
+                            # Use the specified trade size percentage instead of actual margin requirement
+                            position_size_pct = trade_size_percent / 100.0
+                            # Calculate return based on actual margin requirement and position sizing
+                            # This gives us the true return on the capital at risk
+                            trade_return = (trade.pnl / margin_req) * position_size_pct
+                        else:
+                            # Fallback to per-lot calculation scaled by trade size
+                            trade_return = (trade.pnl_per_lot / 1000.0) * (trade_size_percent / 100.0)
+                        
+                        print(f"DEBUG: Trade {i+1}: Balance=${current_balance:,.2f}, Margin=${margin_req:,.2f}, P&L=${trade.pnl:,.2f}, Position%={position_size_pct*100:.2f}%, Return={trade_return*100:.4f}%")
+                        
+                        trade_returns.append(trade_return)
+                        
+                        # Update balance for next trade (compounding effect)
+                        current_balance = trade.funds_at_close
+                    
+                    # Calculate middle trades without debug
+                    for trade in sorted_trades[5:-5]:
+                        margin_req = getattr(trade, 'margin_req', 0)
+                        if margin_req == 0:
+                            margin_per_contract = getattr(trade, 'margin_per_contract', 1000.0)
+                            margin_req = trade.contracts * margin_per_contract
+                        
+                        # Use the specified trade size percentage
+                        position_size_pct = trade_size_percent / 100.0
+                        # Calculate return based on actual margin requirement and position sizing
+                        trade_return = (trade.pnl / margin_req) * position_size_pct
+                        
+                        trade_returns.append(trade_return)
+                        current_balance = trade.funds_at_close
+                    
+                    # Debug last 5 trades
+                    print("DEBUG: Last 5 trades:")
+                    for i, trade in enumerate(sorted_trades[-5:]):
+                        margin_req = getattr(trade, 'margin_req', 0)
+                        if margin_req == 0:
+                            margin_per_contract = getattr(trade, 'margin_per_contract', 1000.0)
+                            margin_req = trade.contracts * margin_per_contract
+                        
+                        # Use the specified trade size percentage
+                        position_size_pct = trade_size_percent / 100.0
+                        # Calculate return based on actual margin requirement and position sizing
+                        trade_return = (trade.pnl / margin_req) * position_size_pct
+                        
+                        print(f"DEBUG: Trade {len(sorted_trades)-4+i}: Balance=${current_balance:,.2f}, Margin=${margin_req:,.2f}, P&L=${trade.pnl:,.2f}, Position%={position_size_pct*100:.2f}%, Return={trade_return*100:.4f}%")
+                        
+                        trade_returns.append(trade_return)
+                        current_balance = trade.funds_at_close
+                    
+                    # Use the actual individual trade returns for risk calculation
+                    # This gives us the true risk profile of the strategy
+                    returns = np.array(trade_returns)
+                    
+                    # Scale risk-free rate to match trade frequency
+                    # If we have 50 trades per year, each trade represents 1/50th of a year
+                    trade_period_risk_free_rate = risk_free_rate / trades_per_year
+                    
+                    print(f"DEBUG: Mean return per trade: {np.mean(trade_returns)*100:.4f}%")
+                    print(f"DEBUG: Trades per year: {trades_per_year:.2f}")
+                    print(f"DEBUG: Annual return: {np.mean(trade_returns)*trades_per_year*100:.2f}%")
+                    print(f"DEBUG: Annual volatility: {np.std(trade_returns)*np.sqrt(trades_per_year)*100:.2f}%")
+                    print(f"DEBUG: Trade period risk-free rate: {trade_period_risk_free_rate*100:.4f}%")
+                else:
+                    print("DEBUG: Using fallback per-lot returns calculation (days_elapsed <= 0)")
+                    # Fallback to per-lot returns if no time data
+                    initial_balance = 1000.0
+                    returns = np.array([trade.pnl_per_lot / initial_balance for trade in strategy_trades])
+            else:
+                # For portfolio-level analysis, use the final P&L from each simulation
+                initial_balance = 1000.0  # Standard per-lot initial balance
+                returns = total_pnls / initial_balance  # Convert to percentage returns
+            
+            # Calculate mean return and standard deviation
+            mean_return = np.mean(returns)
+            std_return = np.std(returns)
+            
+            print(f"DEBUG: Basic return statistics:")
+            print(f"DEBUG: Mean return: {mean_return*100:.6f}%")
+            print(f"DEBUG: Standard deviation: {std_return*100:.6f}%")
+            print(f"DEBUG: Number of returns: {len(returns)}")
+            print(f"DEBUG: Min return: {np.min(returns)*100:.6f}%")
+            print(f"DEBUG: Max return: {np.max(returns)*100:.6f}%")
+            
+            # Sharpe Ratio: (Annual Return - Risk Free Rate) / Annual Volatility
+            print(f"DEBUG: === SHARPE RATIO CALCULATION ===")
+            if std_return > 0:
+                if strategy_trades and days_elapsed > 0:
+                    # Calculate annualized metrics for proper Sharpe ratio
+                    trades_per_year = len(strategy_trades) * 365.25 / days_elapsed
+                    annual_return = mean_return * trades_per_year
+                    annual_volatility = std_return * np.sqrt(trades_per_year)
+                    excess_return = annual_return - risk_free_rate
+                    sharpe_ratio = excess_return / annual_volatility
+                    
+                    print(f"DEBUG: Strategy-specific Sharpe calculation:")
+                    print(f"DEBUG: Trades per year: {trades_per_year:.2f}")
+                    print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
+                    print(f"DEBUG: Annual volatility: {annual_volatility*100:.4f}%")
+                    print(f"DEBUG: Risk-free rate: {risk_free_rate*100:.4f}%")
+                    print(f"DEBUG: Excess return: {excess_return*100:.4f}%")
+                    print(f"DEBUG: Sharpe ratio: {sharpe_ratio:.4f}")
+                else:
+                    # For portfolio-level, use the returns as-is (already annualized)
+                    excess_return = mean_return - risk_free_rate
+                    sharpe_ratio = excess_return / std_return
+                    
+                    print(f"DEBUG: Portfolio-level Sharpe calculation:")
+                    print(f"DEBUG: Mean return: {mean_return*100:.4f}%")
+                    print(f"DEBUG: Standard deviation: {std_return*100:.4f}%")
+                    print(f"DEBUG: Risk-free rate: {risk_free_rate*100:.4f}%")
+                    print(f"DEBUG: Excess return: {excess_return*100:.4f}%")
+                    print(f"DEBUG: Sharpe ratio: {sharpe_ratio:.4f}")
+            else:
+                sharpe_ratio = 0
+                print(f"DEBUG: Sharpe ratio = 0 (standard deviation is 0)")
+            
+            # Sortino Ratio: (Annual Return - Risk Free Rate) / Annual Downside Deviation
+            # Downside deviation only considers negative returns
+            negative_returns = returns[returns < 0]
+            
+            print(f"DEBUG: === SORTINO RATIO CALCULATION ===")
+            print(f"DEBUG: Total returns: {len(returns)}")
+            print(f"DEBUG: Negative returns: {len(negative_returns)}")
+            if len(negative_returns) > 0:
+                print(f"DEBUG: Negative returns range: {np.min(negative_returns)*100:.6f}% to {np.max(negative_returns)*100:.6f}%")
+                print(f"DEBUG: Mean negative return: {np.mean(negative_returns)*100:.6f}%")
+                print(f"DEBUG: Std dev of negative returns: {np.std(negative_returns)*100:.6f}%")
+            else:
+                print(f"DEBUG: No negative returns found - perfect downside protection")
+            
+            if strategy_trades and days_elapsed > 0:
+                # Calculate annualized metrics for proper Sortino ratio
+                trades_per_year = len(strategy_trades) * 365.25 / days_elapsed
+                annual_return = mean_return * trades_per_year
+                
+                print(f"DEBUG: Strategy-specific Sortino calculation:")
+                print(f"DEBUG: Trades per year: {trades_per_year:.2f}")
+                print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
+                print(f"DEBUG: Risk-free rate: {risk_free_rate*100:.4f}%")
+                
+                if len(negative_returns) > 1:  # Need at least 2 negative returns for meaningful std dev
+                    downside_deviation = np.std(negative_returns) * np.sqrt(trades_per_year)  # Annualize downside deviation
+                    if downside_deviation > 0:
+                        sortino_ratio = (annual_return - risk_free_rate) / downside_deviation
+                        print(f"DEBUG: Multiple negative returns case:")
+                        print(f"DEBUG: Downside deviation (annualized): {downside_deviation*100:.4f}%")
+                        print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                    else:
+                        # All negative returns are identical - use a small value to avoid division by zero
+                        sortino_ratio = (annual_return - risk_free_rate) / 0.001
+                        print(f"DEBUG: Identical negative returns case (using 0.001 divisor):")
+                        print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                elif len(negative_returns) == 1:
+                    # Only one negative return - use its absolute value as downside deviation
+                    downside_deviation = abs(negative_returns[0]) * np.sqrt(trades_per_year)  # Annualize
+                    sortino_ratio = (annual_return - risk_free_rate) / downside_deviation
+                    print(f"DEBUG: Single negative return case:")
+                    print(f"DEBUG: Single negative return: {negative_returns[0]*100:.6f}%")
+                    print(f"DEBUG: Downside deviation (annualized): {downside_deviation*100:.4f}%")
+                    print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                else:
+                    # If no negative returns, Sortino ratio is infinite (perfect downside protection)
+                    sortino_ratio = float('inf') if annual_return > risk_free_rate else 0
+                    print(f"DEBUG: No negative returns case:")
+                    print(f"DEBUG: Sortino ratio: {'∞' if sortino_ratio == float('inf') else sortino_ratio}")
+            else:
+                # For portfolio-level, use the returns as-is (already annualized)
+                print(f"DEBUG: Portfolio-level Sortino calculation:")
+                print(f"DEBUG: Mean return: {mean_return*100:.4f}%")
+                print(f"DEBUG: Risk-free rate: {risk_free_rate*100:.4f}%")
+                
+                if len(negative_returns) > 1:
+                    downside_deviation = np.std(negative_returns)
+                    if downside_deviation > 0:
+                        sortino_ratio = (mean_return - risk_free_rate) / downside_deviation
+                        print(f"DEBUG: Multiple negative returns case:")
+                        print(f"DEBUG: Downside deviation: {downside_deviation*100:.4f}%")
+                        print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                    else:
+                        sortino_ratio = (mean_return - risk_free_rate) / 0.001
+                        print(f"DEBUG: Identical negative returns case (using 0.001 divisor):")
+                        print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                elif len(negative_returns) == 1:
+                    downside_deviation = abs(negative_returns[0])
+                    sortino_ratio = (mean_return - risk_free_rate) / downside_deviation
+                    print(f"DEBUG: Single negative return case:")
+                    print(f"DEBUG: Single negative return: {negative_returns[0]*100:.6f}%")
+                    print(f"DEBUG: Downside deviation: {downside_deviation*100:.4f}%")
+                    print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                else:
+                    sortino_ratio = float('inf') if mean_return > risk_free_rate else 0
+                    print(f"DEBUG: No negative returns case:")
+                    print(f"DEBUG: Sortino ratio: {'∞' if sortino_ratio == float('inf') else sortino_ratio}")
+            
+            # Calmar Ratio: Annual Return / Maximum Drawdown
+            # For Monte Carlo, we'll use the mean return and mean max drawdown
+            max_drawdowns = []
+            for balance in final_balances:
+                # Calculate drawdown for this simulation
+                initial = balance - total_pnls[final_balances == balance][0]
+                running_max = np.maximum.accumulate([initial] + [balance])
+                drawdown = (running_max[-1] - balance) / running_max[-1] * 100
+                max_drawdowns.append(drawdown)
+            
+            mean_max_drawdown = np.mean(max_drawdowns)
+            if mean_max_drawdown > 0:
+                calmar_ratio = mean_return / mean_max_drawdown
+            else:
+                calmar_ratio = float('inf') if mean_return > 0 else 0
+            
+            # Information Ratio: (Portfolio Return - Benchmark Return) / Tracking Error
+            # For this calculation, we'll use 0 as benchmark (cash)
+            benchmark_return = 0
+            excess_returns = returns - benchmark_return
+            tracking_error = np.std(excess_returns)
+            
+            if tracking_error > 0:
+                information_ratio = np.mean(excess_returns) / tracking_error
+            else:
+                information_ratio = 0
+            
+            # Return to Risk Ratio: Mean Return / Standard Deviation
+            return_to_risk = mean_return / std_return if std_return > 0 else 0
+            
+            # Handle infinity values for JSON serialization
+            def safe_float(value):
+                if value == float('inf') or value == float('-inf'):
+                    return None
+                return value
+            
+            return {
+                'sharpe_ratio': safe_float(sharpe_ratio),
+                'sortino_ratio': safe_float(sortino_ratio),
+                'calmar_ratio': safe_float(calmar_ratio),
+                'information_ratio': safe_float(information_ratio),
+                'return_to_risk': safe_float(return_to_risk),
+                'mean_return_pct': mean_return,
+                'std_return_pct': std_return,
+                'downside_deviation_pct': np.std(negative_returns) if len(negative_returns) > 0 else 0,
+                'mean_max_drawdown_pct': mean_max_drawdown
+            }
+            
+        except Exception as e:
+            # Return default values if calculation fails
+            return {
+                'sharpe_ratio': 0,
+                'sortino_ratio': 0,
+                'calmar_ratio': 0,
+                'information_ratio': 0,
+                'return_to_risk': 0,
+                'mean_return_pct': 0,
+                'std_return_pct': 0,
+                'downside_deviation_pct': 0,
+                'mean_max_drawdown_pct': 0
+            }
+    
+    def _calculate_t_tests(self, total_pnls: np.ndarray, final_balances: np.ndarray, 
+                          initial_balance: float) -> Dict:
+        """
+        Calculate t-test statistics for Monte Carlo results.
+        
+        Args:
+            total_pnls: Array of total P&L values from simulations
+            final_balances: Array of final balance values from simulations
+            initial_balance: Initial account balance
+            
+        Returns:
+            Dictionary with t-test statistics and interpretations
+        """
+        try:
+            from scipy import stats
+            
+            t_test_results = {}
+            
+            # 1. One-sample t-test for profitability (H0: mean P&L = 0)
+            if len(total_pnls) > 1 and np.std(total_pnls) > 0:
+                t_stat_profit, p_val_profit = stats.ttest_1samp(total_pnls, 0)
+                t_test_results['profitability'] = {
+                    't_statistic': t_stat_profit,
+                    'p_value': p_val_profit,
+                    'degrees_of_freedom': len(total_pnls) - 1,
+                    'hypothesis': 'H0: mean P&L = 0, H1: mean P&L ≠ 0',
+                    'interpretation': self._interpret_t_test(t_stat_profit, p_val_profit, 'profitability')
+                }
+            else:
+                t_test_results['profitability'] = None
+            
+            # 2. One-sample t-test for outperforming initial balance (H0: mean final balance = initial balance)
+            if len(final_balances) > 1 and np.std(final_balances) > 0:
+                t_stat_balance, p_val_balance = stats.ttest_1samp(final_balances, initial_balance)
+                t_test_results['outperform_initial'] = {
+                    't_statistic': t_stat_balance,
+                    'p_value': p_val_balance,
+                    'degrees_of_freedom': len(final_balances) - 1,
+                    'hypothesis': 'H0: mean final balance = initial balance, H1: mean final balance ≠ initial balance',
+                    'interpretation': self._interpret_t_test(t_stat_balance, p_val_balance, 'outperform_initial')
+                }
+            else:
+                t_test_results['outperform_initial'] = None
+            
+            # 3. One-sample t-test for positive returns (H0: mean return = 0)
+            returns = (total_pnls / initial_balance) * 100  # Convert to percentage returns
+            if len(returns) > 1 and np.std(returns) > 0:
+                t_stat_return, p_val_return = stats.ttest_1samp(returns, 0)
+                t_test_results['positive_returns'] = {
+                    't_statistic': t_stat_return,
+                    'p_value': p_val_return,
+                    'degrees_of_freedom': len(returns) - 1,
+                    'hypothesis': 'H0: mean return = 0%, H1: mean return ≠ 0%',
+                    'interpretation': self._interpret_t_test(t_stat_return, p_val_return, 'positive_returns')
+                }
+            else:
+                t_test_results['positive_returns'] = None
+            
+            # 4. Two-sample t-test comparing to risk-free rate (H0: mean return = risk_free_rate)
+            risk_free_rate = 2.0  # 2% annual risk-free rate
+            if len(returns) > 1 and np.std(returns) > 0:
+                t_stat_risk_free, p_val_risk_free = stats.ttest_1samp(returns, risk_free_rate)
+                t_test_results['vs_risk_free'] = {
+                    't_statistic': t_stat_risk_free,
+                    'p_value': p_val_risk_free,
+                    'degrees_of_freedom': len(returns) - 1,
+                    'hypothesis': f'H0: mean return = {risk_free_rate}%, H1: mean return ≠ {risk_free_rate}%',
+                    'interpretation': self._interpret_t_test(t_stat_risk_free, p_val_risk_free, 'vs_risk_free')
+                }
+            else:
+                t_test_results['vs_risk_free'] = None
+            
+            # 5. Paired t-test for consistency (comparing first half vs second half of simulations)
+            if len(total_pnls) > 10:  # Need enough data for meaningful comparison
+                mid_point = len(total_pnls) // 2
+                first_half = total_pnls[:mid_point]
+                second_half = total_pnls[mid_point:]
+                
+                if len(first_half) > 1 and len(second_half) > 1:
+                    t_stat_consistency, p_val_consistency = stats.ttest_rel(first_half, second_half)
+                    t_test_results['consistency'] = {
+                        't_statistic': t_stat_consistency,
+                        'p_value': p_val_consistency,
+                        'degrees_of_freedom': len(first_half) - 1,
+                        'hypothesis': 'H0: first half = second half, H1: first half ≠ second half',
+                        'interpretation': self._interpret_t_test(t_stat_consistency, p_val_consistency, 'consistency')
+                    }
+                else:
+                    t_test_results['consistency'] = None
+            else:
+                t_test_results['consistency'] = None
+            
+            return t_test_results
+            
+        except ImportError:
+            # If scipy is not available, return None for all t-tests
+            return {
+                'profitability': None,
+                'outperform_initial': None,
+                'positive_returns': None,
+                'vs_risk_free': None,
+                'consistency': None
+            }
+        except Exception as e:
+            # Return None for all t-tests if calculation fails
+            return {
+                'profitability': None,
+                'outperform_initial': None,
+                'positive_returns': None,
+                'vs_risk_free': None,
+                'consistency': None
+            }
+    
+    def _interpret_t_test(self, t_statistic: float, p_value: float, test_type: str) -> str:
+        """
+        Interpret t-test results based on test type and significance.
+        
+        Args:
+            t_statistic: The calculated t-statistic
+            p_value: The p-value from the test
+            test_type: Type of test being performed
+            
+        Returns:
+            String interpretation of the test results
+        """
+        if p_value < 0.001:
+            significance = "highly significant (p < 0.001)"
+        elif p_value < 0.01:
+            significance = "very significant (p < 0.01)"
+        elif p_value < 0.05:
+            significance = "significant (p < 0.05)"
+        elif p_value < 0.1:
+            significance = "marginally significant (p < 0.1)"
+        else:
+            significance = "not significant (p ≥ 0.1)"
+        
+        if test_type == 'profitability':
+            if t_statistic > 0 and p_value < 0.05:
+                return f"Strategy is significantly profitable ({significance})"
+            elif t_statistic < 0 and p_value < 0.05:
+                return f"Strategy is significantly unprofitable ({significance})"
+            else:
+                return f"Strategy profitability is not statistically significant ({significance})"
+        
+        elif test_type == 'outperform_initial':
+            if t_statistic > 0 and p_value < 0.05:
+                return f"Strategy significantly outperforms initial balance ({significance})"
+            elif t_statistic < 0 and p_value < 0.05:
+                return f"Strategy significantly underperforms initial balance ({significance})"
+            else:
+                return f"Strategy performance vs initial balance is not significant ({significance})"
+        
+        elif test_type == 'positive_returns':
+            if t_statistic > 0 and p_value < 0.05:
+                return f"Strategy has significantly positive returns ({significance})"
+            elif t_statistic < 0 and p_value < 0.05:
+                return f"Strategy has significantly negative returns ({significance})"
+            else:
+                return f"Strategy returns are not significantly different from zero ({significance})"
+        
+        elif test_type == 'vs_risk_free':
+            if t_statistic > 0 and p_value < 0.05:
+                return f"Strategy significantly outperforms risk-free rate ({significance})"
+            elif t_statistic < 0 and p_value < 0.05:
+                return f"Strategy significantly underperforms risk-free rate ({significance})"
+            else:
+                return f"Strategy performance vs risk-free rate is not significant ({significance})"
+        
+        elif test_type == 'consistency':
+            if p_value < 0.05:
+                return f"Strategy shows significant inconsistency between periods ({significance})"
+            else:
+                return f"Strategy shows consistent performance across periods ({significance})"
+        
+        else:
+            return f"Test result: {significance}"
+    
+    def _calculate_p_values(self, total_pnls: np.ndarray, final_balances: np.ndarray, 
+                           max_drawdowns: np.ndarray, initial_balance: float) -> Dict:
+        """
+        Calculate p-values for various statistical tests on Monte Carlo results.
+        
+        Args:
+            total_pnls: Array of total P&L values from simulations
+            final_balances: Array of final balance values from simulations
+            max_drawdowns: Array of maximum drawdown values from simulations
+            initial_balance: Initial account balance
+            
+        Returns:
+            Dictionary with p-values for different statistical tests
+        """
+        try:
+            from scipy import stats
+            
+            p_values = {}
+            
+            # 1. P-value for profitability (one-sample t-test: H0: mean P&L <= 0)
+            if len(total_pnls) > 1 and np.std(total_pnls) > 0:
+                t_stat_profit, p_values['profitability'] = stats.ttest_1samp(total_pnls, 0)
+                # For one-tailed test (H0: mean <= 0, H1: mean > 0)
+                if t_stat_profit > 0:
+                    p_values['profitability'] = p_values['profitability'] / 2
+                else:
+                    p_values['profitability'] = 1 - (p_values['profitability'] / 2)
+            else:
+                p_values['profitability'] = None
+            
+            # 2. P-value for outperforming initial balance (one-sample t-test: H0: mean final balance <= initial balance)
+            if len(final_balances) > 1 and np.std(final_balances) > 0:
+                t_stat_balance, p_values['outperform_initial'] = stats.ttest_1samp(final_balances, initial_balance)
+                # For one-tailed test (H0: mean <= initial, H1: mean > initial)
+                if t_stat_balance > 0:
+                    p_values['outperform_initial'] = p_values['outperform_initial'] / 2
+                else:
+                    p_values['outperform_initial'] = 1 - (p_values['outperform_initial'] / 2)
+            else:
+                p_values['outperform_initial'] = None
+            
+            # 3. P-value for Sharpe ratio significance (if we can calculate it)
+            if len(total_pnls) > 1 and np.std(total_pnls) > 0 and np.mean(total_pnls) != 0:
+                # Calculate Sharpe ratio (assuming risk-free rate = 0 for simplicity)
+                sharpe_ratio = np.mean(total_pnls) / np.std(total_pnls)
+                # Test if Sharpe ratio is significantly different from 0
+                t_stat_sharpe, p_values['sharpe_ratio'] = stats.ttest_1samp(total_pnls, 0)
+                p_values['sharpe_ratio'] = p_values['sharpe_ratio'] / 2  # One-tailed test
+            else:
+                p_values['sharpe_ratio'] = None
+            
+            # 4. P-value for drawdown risk (test if mean drawdown is significantly different from 0)
+            if len(max_drawdowns) > 1 and np.std(max_drawdowns) > 0:
+                t_stat_drawdown, p_values['drawdown_risk'] = stats.ttest_1samp(max_drawdowns, 0)
+                # For one-tailed test (H0: mean drawdown <= 0, H1: mean drawdown > 0)
+                if t_stat_drawdown > 0:
+                    p_values['drawdown_risk'] = p_values['drawdown_risk'] / 2
+                else:
+                    p_values['drawdown_risk'] = 1 - (p_values['drawdown_risk'] / 2)
+            else:
+                p_values['drawdown_risk'] = None
+            
+            # 5. P-value for consistency (test if variance is significantly different from a benchmark)
+            # This tests if the strategy has consistent returns (lower variance = more consistent)
+            if len(total_pnls) > 1:
+                # Chi-square test for variance (H0: variance = benchmark_variance)
+                # Using a reasonable benchmark variance (e.g., 10% of mean absolute P&L)
+                benchmark_variance = (np.mean(np.abs(total_pnls)) * 0.1) ** 2
+                if benchmark_variance > 0:
+                    chi2_stat = (len(total_pnls) - 1) * np.var(total_pnls) / benchmark_variance
+                    p_values['consistency'] = 1 - stats.chi2.cdf(chi2_stat, len(total_pnls) - 1)
+                else:
+                    p_values['consistency'] = None
+            else:
+                p_values['consistency'] = None
+            
+            return p_values
+            
+        except ImportError:
+            # If scipy is not available, return None for all p-values
+            return {
+                'profitability': None,
+                'outperform_initial': None,
+                'sharpe_ratio': None,
+                'drawdown_risk': None,
+                'consistency': None
+            }
+        except Exception as e:
+            # Return None for all p-values if calculation fails
+            return {
+                'profitability': None,
+                'outperform_initial': None,
+                'sharpe_ratio': None,
+                'drawdown_risk': None,
+                'consistency': None
+            }
+    
     def _empty_simulation_results(self) -> Dict:
         """Return empty results when no data available."""
         return {
@@ -802,6 +1631,9 @@ class MonteCarloSimulator:
             'pnl_stats': {},
             'drawdown_stats': {},
             'probabilities': {},
+            'risk_ratios': {},
+            't_test_results': {},
+            'p_values': {},
             'simulation_results': [],
             'confidence_levels': []
         }

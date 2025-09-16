@@ -2046,6 +2046,7 @@ def run_portfolio_monte_carlo():
         data = request.get_json() or {}
         num_simulations = data.get('num_simulations', 1000)
         num_trades = data.get('num_trades', None)  # None = use historical count
+        trade_size_percent = data.get('trade_size_percent', 1.0)  # Default to 1%
         
         # Validate parameters
         if not isinstance(num_simulations, int) or num_simulations < 100 or num_simulations > 10000:
@@ -2060,9 +2061,15 @@ def run_portfolio_monte_carlo():
                 'error': 'Number of trades must be at least 10'
             }), 400
         
+        if not isinstance(trade_size_percent, (int, float)) or trade_size_percent <= 0 or trade_size_percent > 50:
+            return jsonify({
+                'success': False,
+                'error': 'Trade size percentage must be between 0.1 and 50'
+            }), 400
+        
         # Run simulation
         simulator = MonteCarloSimulator(portfolio)
-        results = simulator.run_simulation(num_simulations, num_trades)
+        results = simulator.run_simulation(num_simulations, num_trades, trade_size_percent)
         
         return jsonify({
             'success': True,
@@ -2089,6 +2096,7 @@ def run_strategy_monte_carlo(strategy_name):
         data = request.get_json() or {}
         num_simulations = data.get('num_simulations', 1000)
         num_trades = data.get('num_trades', None)  # None = use historical count
+        trade_size_percent = data.get('trade_size_percent', 1.0)  # Default to 1%
         
         # Validate parameters
         if not isinstance(num_simulations, int) or num_simulations < 100 or num_simulations > 10000:
@@ -2103,9 +2111,15 @@ def run_strategy_monte_carlo(strategy_name):
                 'error': 'Number of trades must be at least 10'
             }), 400
         
+        if not isinstance(trade_size_percent, (int, float)) or trade_size_percent <= 0 or trade_size_percent > 50:
+            return jsonify({
+                'success': False,
+                'error': 'Trade size percentage must be between 0.1 and 50'
+            }), 400
+        
         # Run simulation
         simulator = MonteCarloSimulator(portfolio)
-        results = simulator.run_strategy_specific_simulation(strategy_name, num_simulations, num_trades)
+        results = simulator.run_strategy_specific_simulation(strategy_name, num_simulations, num_trades, trade_size_percent)
         
         return jsonify({
             'success': True,
@@ -2116,6 +2130,56 @@ def run_strategy_monte_carlo(strategy_name):
         return jsonify({
             'success': False,
             'error': f'Strategy Monte Carlo simulation failed: {str(e)}'
+        }), 500
+
+@app.route('/api/monte-carlo/all-strategies', methods=['POST'])
+def run_all_strategies_monte_carlo():
+    """Run Monte Carlo simulation for all strategies individually to analyze fragility."""
+    try:
+        if not portfolio.strategies:
+            return jsonify({
+                'success': False,
+                'error': 'No data loaded. Please upload a CSV file first.'
+            }), 400
+        
+        # Get parameters from request
+        data = request.get_json() or {}
+        num_simulations = data.get('num_simulations', 1000)
+        num_trades = data.get('num_trades', None)  # None = use historical count
+        trade_size_percent = data.get('trade_size_percent', 1.0)  # Default to 1%
+        
+        # Validate parameters
+        if not isinstance(num_simulations, int) or num_simulations < 100 or num_simulations > 10000:
+            return jsonify({
+                'success': False,
+                'error': 'Number of simulations must be between 100 and 10,000'
+            }), 400
+        
+        if num_trades is not None and (not isinstance(num_trades, int) or num_trades < 10):
+            return jsonify({
+                'success': False,
+                'error': 'Number of trades must be at least 10'
+            }), 400
+        
+        if not isinstance(trade_size_percent, (int, float)) or trade_size_percent <= 0 or trade_size_percent > 50:
+            return jsonify({
+                'success': False,
+                'error': 'Trade size percentage must be between 0.1 and 50'
+            }), 400
+        
+        # Run Monte Carlo simulation for all strategies
+        simulator = MonteCarloSimulator(portfolio)
+        results = simulator.run_all_strategies_simulation(num_simulations, num_trades, trade_size_percent)
+        
+        return jsonify({
+            'success': True,
+            'data': results
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'All strategies Monte Carlo simulation failed: {str(e)}'
         }), 500
 
 @app.route('/api/monte-carlo/simulation-details/<int:simulation_id>', methods=['POST'])
@@ -2520,6 +2584,63 @@ def get_pnl_by_day_of_week():
         return jsonify({
             'success': True,
             'data': pnl_data,
+            'days_of_week': days_of_week
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/pnl-by-day-of-week-cumulative')
+def get_pnl_by_day_of_week_cumulative():
+    """Get cumulative P&L by day of week for all strategies."""
+    try:
+        if not portfolio.strategies:
+            return jsonify({
+                'success': True,
+                'data': []
+            })
+        
+        # Initialize days of week (excluding weekends)
+        days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+        
+        # Get all trades from all strategies, sorted by date
+        all_trades = []
+        for strategy_name, strategy in portfolio.strategies.items():
+            for trade in strategy.trades:
+                if trade.date_closed:
+                    all_trades.append({
+                        'date': trade.date_closed,
+                        'pnl': trade.pnl,
+                        'strategy': strategy_name,
+                        'day_of_week': trade.date_closed.strftime('%A')
+                    })
+        
+        # Sort trades by date
+        all_trades.sort(key=lambda x: x['date'])
+        
+        # Calculate cumulative P&L by day of week
+        cumulative_data = []
+        day_cumulative = {day: 0.0 for day in days_of_week}
+        
+        for trade in all_trades:
+            day_of_week = trade['day_of_week']
+            if day_of_week in day_cumulative:
+                day_cumulative[day_of_week] += trade['pnl']
+                
+                # Add data point for this trade
+                cumulative_data.append({
+                    'date': trade['date'].strftime('%Y-%m-%d'),
+                    'day_of_week': day_of_week,
+                    'pnl': trade['pnl'],
+                    'cumulative_pnl': day_cumulative[day_of_week],
+                    'strategy': trade['strategy']
+                })
+        
+        return jsonify({
+            'success': True,
+            'data': cumulative_data,
             'days_of_week': days_of_week
         })
     except Exception as e:
@@ -2951,6 +3072,128 @@ def get_cross_file_correlation():
             'error': f'Cross-file correlation analysis failed: {str(e)}'
         }), 500
 
+@app.route('/api/blackout-dates', methods=['POST'])
+@guest_mode_required
+def get_blackout_dates_analysis():
+    """Get blackout dates analysis for strategies"""
+    try:
+        data = request.get_json()
+        date_list_name = data.get('date_list', 'FOMC Announcements')
+        
+        # Check if portfolio has data
+        if not portfolio or not portfolio.strategies:
+            return jsonify({'success': False, 'error': 'No portfolio data available'})
+        
+        # Define blackout date lists
+        blackout_date_lists = {
+            'FOMC Announcements': [
+                '2021-01-27', '2021-03-17', '2021-04-28', '2021-06-16', '2021-07-28', '2021-09-22', '2021-11-03', '2021-12-15',
+                '2022-01-26', '2022-03-16', '2022-05-04', '2022-06-15', '2022-07-27', '2022-09-21', '2022-11-02', '2022-12-14',
+                '2023-01-31', '2023-03-22', '2023-05-03', '2023-06-14', '2023-07-26', '2023-09-20', '2023-11-01', '2023-12-13',
+                '2024-01-31', '2024-03-20', '2024-05-01', '2024-06-12', '2024-07-31', '2024-09-18', '2024-11-07', '2024-12-18',
+                '2025-01-29', '2025-03-19', '2025-05-07', '2025-06-18', '2025-07-30', '2025-09-17', '2025-11-05', '2025-12-17'
+            ]
+        }
+        
+        # Get the selected date list
+        if date_list_name not in blackout_date_lists:
+            return jsonify({'success': False, 'error': f'Date list "{date_list_name}" not found'})
+        
+        blackout_dates = set(blackout_date_lists[date_list_name])
+        
+        # Analyze each strategy
+        strategy_results = []
+        
+        for strategy in portfolio.strategies.values():
+            # Filter trades that were initiated on blackout dates
+            blackout_trades = []
+            
+            for trade in strategy.trades:
+                # Parse the date opened (assuming it's in YYYY-MM-DD format)
+                try:
+                    # Handle different date formats
+                    if hasattr(trade.date_opened, 'strftime'):
+                        # It's a datetime object
+                        trade_date = trade.date_opened.strftime('%Y-%m-%d')
+                    else:
+                        # It's a string
+                        trade_date = str(trade.date_opened).split(' ')[0]  # Get just the date part
+                    
+                    if trade_date in blackout_dates:
+                        blackout_trades.append(trade)
+                        
+                except Exception as e:
+                    continue
+            
+            if blackout_trades:
+                # Calculate statistics for blackout trades
+                profitable_trades = [t for t in blackout_trades if t.pnl > 0]
+                unprofitable_trades = [t for t in blackout_trades if t.pnl <= 0]
+                
+                total_pnl = sum(t.pnl for t in blackout_trades)
+                profitable_count = len(profitable_trades)
+                unprofitable_count = len(unprofitable_trades)
+                total_count = len(blackout_trades)
+                
+                # Calculate P&L per lot
+                total_contracts = sum(getattr(trade, 'contracts', 1) for trade in blackout_trades)
+                pnl_per_lot = round(total_pnl / total_contracts, 2) if total_contracts > 0 else 0
+                
+                # Convert trade objects to dictionaries for JSON serialization
+                trades_data = []
+                for trade in blackout_trades:
+                    # Handle date_opened conversion safely
+                    date_opened_str = 'N/A'
+                    try:
+                        if hasattr(trade.date_opened, 'strftime'):
+                            date_opened_str = trade.date_opened.strftime('%Y-%m-%d')
+                        elif trade.date_opened:
+                            # If it's a string, try to extract just the date part
+                            date_opened_str = str(trade.date_opened).split(' ')[0]
+                    except Exception as e:
+                        print(f"DEBUG: Error converting date_opened: {e}")
+                        date_opened_str = 'N/A'
+                    
+                    trade_dict = {
+                        'pnl': float(trade.pnl),  # Ensure it's a float
+                        'contracts': int(getattr(trade, 'contracts', 1)),  # Ensure it's an int
+                        'date_opened': date_opened_str
+                    }
+                    trades_data.append(trade_dict)
+                
+                strategy_results.append({
+                    'strategy': str(strategy.name),  # Ensure string
+                    'total_trades': int(total_count),  # Ensure int
+                    'profitable_trades': int(profitable_count),  # Ensure int
+                    'unprofitable_trades': int(unprofitable_count),  # Ensure int
+                    'total_pnl': float(round(total_pnl, 2)),  # Ensure float
+                    'pnl_per_lot': float(pnl_per_lot),  # Ensure float
+                    'win_rate': float(round((profitable_count / total_count) * 100, 1)) if total_count > 0 else 0.0,  # Ensure float
+                    'trades': trades_data  # Include serialized trade data
+                })
+        
+        # Sort by total P&L descending
+        strategy_results.sort(key=lambda x: x['total_pnl'], reverse=True)
+        
+        # Debug: Check for any non-serializable objects
+        print(f"DEBUG: About to return strategy_results with {len(strategy_results)} strategies")
+        for i, result in enumerate(strategy_results):
+            print(f"DEBUG: Strategy {i}: {result['strategy']}, trades count: {len(result.get('trades', []))}")
+            if 'trades' in result:
+                for j, trade in enumerate(result['trades']):
+                    print(f"DEBUG: Trade {j}: type={type(trade)}, keys={list(trade.keys()) if isinstance(trade, dict) else 'not dict'}")
+        
+        return jsonify({
+            'success': True,
+            'date_list_name': date_list_name,
+            'available_lists': list(blackout_date_lists.keys()),
+            'strategy_results': strategy_results
+        })
+        
+    except Exception as e:
+        print(f"Error in blackout dates analysis: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/files/overview')
 def get_files_overview():
     """Get overview of all uploaded files with their metrics."""
@@ -2997,8 +3240,8 @@ def get_files_overview():
                     end_date = 'N/A'
                 
                 # Calculate basic metrics without loading full portfolio
-                total_trades = len(df)
-                strategy_count = df['Strategy'].nunique() if 'Strategy' in df.columns else 0
+                total_trades = int(len(df))
+                strategy_count = int(df['Strategy'].nunique()) if 'Strategy' in df.columns else 0
                 
                 # Calculate initial capital and ending capital
                 initial_capital = None
@@ -3007,7 +3250,7 @@ def get_files_overview():
                 
                 if data_type == 'Live Data':
                     # For live data, extract from filename if available
-                    total_pnl = df['P/L'].sum() if 'P/L' in df.columns else 0
+                    total_pnl = float(df['P/L'].sum()) if 'P/L' in df.columns else 0.0
                     if '__capital=' in filename:
                         try:
                             capital_match = re.search(r'__capital=(\d+)', filename)
@@ -3043,15 +3286,15 @@ def get_files_overview():
                         last_trade = df_sorted.iloc[-1]
                         
                         if pd.notna(first_trade['Funds at Close']) and pd.notna(first_trade['P/L']):
-                            initial_capital = first_trade['Funds at Close'] - first_trade['P/L']
+                            initial_capital = float(first_trade['Funds at Close'] - first_trade['P/L'])
                             
                             # For backtest files, calculate total_pnl as the difference between final and initial Funds at Close
                             if pd.notna(last_trade['Funds at Close']):
-                                total_pnl = last_trade['Funds at Close'] - initial_capital
+                                total_pnl = float(last_trade['Funds at Close'] - initial_capital)
                             else:
-                                total_pnl = 0
+                                total_pnl = 0.0
                             
-                            ending_capital = initial_capital + total_pnl
+                            ending_capital = float(initial_capital + total_pnl)
                         else:
                             initial_capital = 0
                             ending_capital = total_pnl
@@ -3072,7 +3315,7 @@ def get_files_overview():
                                 end_date = valid_dates['Date Closed'].max()
                                 years = (end_date - start_date).days / 365.25
                                 if years > 0:
-                                    cagr = ((ending_capital / initial_capital) ** (1 / years) - 1) * 100
+                                    cagr = float(((ending_capital / initial_capital) ** (1 / years) - 1) * 100)
                     except:
                         pass
                 
@@ -3097,16 +3340,24 @@ def get_files_overview():
                         
                         funds_series = df_sorted['Funds at Close'].dropna()
                         if len(funds_series) > 0:
-                            # Calculate running maximum
+                            # Calculate running maximum (rolling highest high)
                             running_max = funds_series.expanding().max()
                             # Calculate drawdown
                             drawdown = running_max - funds_series
-                            max_drawdown = drawdown.max()
+                            max_drawdown = float(drawdown.max())
                             
-                            # Calculate max drawdown percentage
-                            drawdown_pct = (drawdown / running_max) * 100
-                            max_drawdown_pct = drawdown_pct.max()
-                    except:
+                            # Calculate max drawdown percentage using the rolling highest high
+                            # Only calculate percentage where running_max > 0 to avoid division by zero
+                            valid_indices = running_max > 0
+                            if valid_indices.any():
+                                drawdown_pct = (drawdown[valid_indices] / running_max[valid_indices]) * 100
+                                max_drawdown_pct = float(drawdown_pct.max())
+                            else:
+                                max_drawdown_pct = 0
+                    except Exception as e:
+                        print(f"DEBUG {filename}: Error in max drawdown calculation: {e}")
+                        import traceback
+                        traceback.print_exc()
                         pass
                 
                 files_overview.append({

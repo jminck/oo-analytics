@@ -210,9 +210,15 @@ def discord_login():
             current_app.logger.debug(f"Discord token validation failed: {str(e)}")
     
     # No valid session found, proceed with OAuth flow
-    redirect_uri = url_for('auth.discord_callback', _external=True)
-    # Force localhost usage for consistency with Discord app settings
-    redirect_uri = redirect_uri.replace('127.0.0.1', 'localhost')
+    # Use configured redirect URI if available, otherwise generate dynamically
+    if current_app.config.get('DISCORD_REDIRECT_URI'):
+        redirect_uri = current_app.config['DISCORD_REDIRECT_URI']
+        print(f"Using configured Discord redirect URI: {redirect_uri}")
+    else:
+        redirect_uri = url_for('auth.discord_callback', _external=True)
+        # Force localhost usage for consistency with Discord app settings
+        redirect_uri = redirect_uri.replace('127.0.0.1', 'localhost')
+        print(f"Using dynamic Discord redirect URI: {redirect_uri}")
     return oauth.discord.authorize_redirect(redirect_uri)
 
 @auth_bp.route('/check-discord-auth')
@@ -259,8 +265,13 @@ def google_login():
     """Initiate Google OAuth login."""
     try:
         print("Google login initiated")
-        redirect_uri = url_for('auth.google_callback', _external=True)
-        print(f"Redirect URI: {redirect_uri}")
+        # Use configured redirect URI if available, otherwise generate dynamically
+        if current_app.config.get('GOOGLE_REDIRECT_URI'):
+            redirect_uri = current_app.config['GOOGLE_REDIRECT_URI']
+            print(f"Using configured redirect URI: {redirect_uri}")
+        else:
+            redirect_uri = url_for('auth.google_callback', _external=True)
+            print(f"Using dynamic redirect URI: {redirect_uri}")
         return oauth.google.authorize_redirect(redirect_uri)
     except Exception as e:
         print(f"Google login error: {str(e)}")

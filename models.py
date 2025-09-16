@@ -64,7 +64,9 @@ class DatabaseManager:
         conn.execute('CREATE INDEX IF NOT EXISTS idx_trades_date ON trades(date_opened)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_trades_pnl ON trades(pnl)')
         
+        
         conn.close()
+    
     
     def get_connection(self):
         """Get database connection."""
@@ -346,17 +348,37 @@ class Strategy:
         # Calculate expectancy per lot
         expectancy_per_lot = (avg_win_per_lot * (wins_count / len(self.trades))) - (avg_loss_per_lot * (losses_count / len(self.trades))) if self.trades else 0
         
-        # Calculate margin percentage from first trade
+        # Calculate margin percentage and efficiency from trades
         margin_percentage = 0.0
+        efficiency = 0.0
         if self.trades:
-            first_trade = self.trades[0]  # Get first trade
-            margin_req = getattr(first_trade, 'margin_req', 0)
-            funds_at_close = getattr(first_trade, 'funds_at_close', 0)
+            # Calculate average margin per contract for efficiency calculation
+            margin_values = []
+            for trade in self.trades:
+                margin_req = getattr(trade, 'margin_req', 0)
+                contracts = getattr(trade, 'contracts', 1)
+                if margin_req > 0 and contracts > 0:
+                    margin_per_contract = margin_req / contracts
+                    margin_values.append(margin_per_contract)
             
-            if funds_at_close > 0 and margin_req > 0:
-                margin_percentage = (margin_req / funds_at_close) * 100
+            if margin_values:
+                avg_margin_per_contract = sum(margin_values) / len(margin_values)
+                
+                # Calculate margin percentage using first trade: Margin Req. / (Funds at Close - P/L)
+                first_trade = self.trades[0]
+                first_trade_margin_req = getattr(first_trade, 'margin_req', 0)
+                funds_at_close = getattr(first_trade, 'funds_at_close', 0)
+                first_trade_pnl = first_trade.pnl
+                # Initial balance = funds at close - P&L of first trade
+                initial_balance = funds_at_close - first_trade_pnl
+                if initial_balance > 0 and first_trade_margin_req > 0:
+                    margin_percentage = (first_trade_margin_req / initial_balance) * 100
+                
+                # Calculate efficiency: (expectancy / avg margin) * win rate
+                if avg_margin_per_contract > 0:
+                    efficiency = (expectancy_per_lot / avg_margin_per_contract) * (win_rate / 100)
 
-        return {
+        result = {
             'name': self.name,
             'strategy_type': self.strategy_type,
             'total_pnl': round(total_pnl, 2),
@@ -379,8 +401,12 @@ class Strategy:
             'profit_factor': round(profit_factor, 2),
             'max_loss_streak': self.max_loss_streak,
             'max_win_streak': self.max_win_streak,
-            'margin_percentage': round(margin_percentage, 1)
+            'margin_percentage': round(margin_percentage, 2),
+            'efficiency': round(efficiency, 4)
         }
+        
+        
+        return result
 
 class Portfolio:
     """Container for multiple strategies with portfolio-level analytics."""

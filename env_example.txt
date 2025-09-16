@@ -1,0 +1,24 @@
+# Environment Variables for Local Development
+# Copy this file to .env and fill in your actual values
+
+# Flask Configuration
+SECRET_KEY=your-dev-secret-key-change-in-production
+
+# Google OAuth (for local development)
+# Get these from: https://console.cloud.google.com/apis/credentials
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+# For local development, this will be auto-generated as http://localhost:5000/auth/callback/google
+
+# Discord OAuth (for local development)
+# Get these from: https://discord.com/developers/applications
+DISCORD_CLIENT_ID=your_discord_client_id_here
+DISCORD_CLIENT_SECRET=your_discord_client_secret_here
+# For local development, this will be auto-generated as http://localhost:5000/auth/callback/discord
+
+# Database (optional - will use SQLite by default)
+# DATABASE_URL=sqlite:///instance/portfolio_auth.db
+
+# Production OAuth Redirect URIs (only needed for production)
+# GOOGLE_REDIRECT_URI=https://oo-analytics.azurewebsites.net/auth/callback/google
+# DISCORD_REDIRECT_URI=https://oo-analytics.azurewebsites.net/auth/callback/discord
