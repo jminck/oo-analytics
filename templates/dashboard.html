@@ -18,6 +18,16 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Azure Application Insights JavaScript SDK -->
+    <script type="text/javascript">
+        var appInsights=window.appInsights||function(config){
+            function r(config){t[config]=function(){var i=arguments;t.queue.push(function(){t[config].apply(t,i)})}}var t={config:config},u=document,e=window,o="script",s=u.createElement(o),i,f;for(s.src=config.url||"https://az416426.vo.msecnd.net/scripts/a/ai.0.js",u.getElementsByTagName(o)[0].parentNode.appendChild(s),t.cookie=u.cookie,t.queue=[],i=["Event","Exception","Metric","PageView","Trace","Dependency"];i.length;)r("track"+i.pop());return r("setAuthenticatedUserContext"),r("clearAuthenticatedUserContext"),config.disableExceptionTracking||(i="onerror",r("_"+i),f=e[i],e[i]=function(config,r,u,e,o){var s=f&&f(config,r,u,e,o);return s!==!0&&t["_"+i](config,r,u,e,o),s}),t
+        }({
+            instrumentationKey: "{{ app_insights_key }}"
+        });
+        window.appInsights=appInsights,appInsights.queue&&0===appInsights.queue.length&&appInsights.trackPageView();
+    </script>
+    
     <style>
         :root {
             --primary-color: #6366f1;
@@ -1942,7 +1952,23 @@
         }
 
         function handleFileUpload(file) {
+            // Track file upload attempt
+            if (window.appInsights) {
+                window.appInsights.trackEvent('frontend_file_upload_attempted', {
+                    fileName: file.name,
+                    fileSize: file.size,
+                    fileType: file.type
+                });
+            }
+            
             if (!file.name.toLowerCase().endsWith('.csv')) {
+                // Track invalid file type
+                if (window.appInsights) {
+                    window.appInsights.trackEvent('frontend_file_upload_failed', {
+                        fileName: file.name,
+                        error: 'invalid_file_type'
+                    });
+                }
                 showAlert('Please select a CSV file', 'warning');
                 return;
             }
@@ -1969,6 +1995,19 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Track successful upload
+                    if (window.appInsights) {
+                        window.appInsights.trackEvent('frontend_file_upload_success', {
+                            fileName: file.name,
+                            tradesCount: data.data.trades_count,
+                            strategiesCount: data.data.strategies_count,
+                            friendlyName: data.data.friendly_name
+                        }, {
+                            tradesCount: data.data.trades_count,
+                            strategiesCount: data.data.strategies_count
+                        });
+                    }
+                    
                     const displayName = data.data.friendly_name || file.name;
                     showAlert(`Success! Uploaded ${data.data.trades_count} trades from ${data.data.strategies_count} strategies as "${displayName}"`, 'success');
                     
@@ -1992,10 +2031,24 @@
                     loadSavedFilesList();
                     loadFilesOverview();
                 } else {
+                    // Track upload failure
+                    if (window.appInsights) {
+                        window.appInsights.trackEvent('frontend_file_upload_failed', {
+                            fileName: file.name,
+                            error: data.error
+                        });
+                    }
                     showAlert(`Upload failed: ${data.error}`, 'danger');
                 }
             })
             .catch(error => {
+                // Track upload error
+                if (window.appInsights) {
+                    window.appInsights.trackEvent('frontend_file_upload_error', {
+                        fileName: file.name,
+                        error: error.message
+                    });
+                }
                 showAlert(`Upload error: ${error.message}`, 'danger');
             });
         }
@@ -3045,6 +3098,13 @@
         }
 
                function loadChart(chartType) {
+           // Track chart loading
+           if (window.appInsights) {
+               window.appInsights.trackEvent('chart_loaded', {
+                   chartType: chartType
+               });
+           }
+           
            console.log('=== LOADCHART FUNCTION START ===');
            console.log('loadChart called with chartType:', chartType);
            console.log('chartType type:', typeof chartType);

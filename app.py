@@ -25,6 +25,7 @@ from charts import ChartFactory
 from file_manager import FileManager
 from auth import init_auth, auth_bp, guest_mode_required, get_current_data_folder
 from config import Config
+from app_insights import app_insights
 
 def get_current_user_id():
     """Get the current user ID, handling both authenticated users and guests."""
@@ -42,6 +43,9 @@ def get_current_user_id():
 app = Flask(__name__)
 app.config.from_object(Config)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
+
+# Initialize Application Insights (only in production)
+app_insights.init_app(app)
 
 # Initialize authentication
 init_auth(app)
@@ -1175,7 +1179,9 @@ def calculate_margin_from_legs(legs_str, context: dict | None = None):
 @guest_mode_required
 def dashboard():
     """Main dashboard with strategy analytics."""
-    return render_template('dashboard.html')
+    # Get Application Insights key for frontend tracking
+    app_insights_key = os.getenv('APPINSIGHTS_INSTRUMENTATIONKEY', '')
+    return render_template('dashboard.html', app_insights_key=app_insights_key)
 
 @app.route('/debug_charts.html')
 def debug_charts():
@@ -1743,7 +1749,17 @@ def get_strategy_details():
 def upload_csv():
     """Upload and process CSV file with trade data."""
     try:
+        # Track upload attempt
+        app_insights.track_event('file_upload_attempted', {
+            'user_id': get_current_user_id(),
+            'has_file': 'file' in request.files
+        })
+        
         if 'file' not in request.files:
+            app_insights.track_event('file_upload_failed', {
+                'user_id': get_current_user_id(),
+                'error': 'no_file_provided'
+            })
             return jsonify({
                 'success': False,
                 'error': 'No file provided'
@@ -1825,6 +1841,17 @@ def upload_csv():
                     # print(f"DEBUG: After upload - {len(portfolio.strategies)} strategies loaded")
         # print(f"DEBUG: Strategy names: {list(portfolio.strategies.keys())}")
             
+            # Track successful upload
+            app_insights.track_event('file_upload_success', {
+                'user_id': get_current_user_id(),
+                'trades_count': portfolio.total_trades,
+                'strategies_count': len(portfolio.strategies),
+                'filename': saved_filename
+            }, {
+                'trades_count': portfolio.total_trades,
+                'strategies_count': len(portfolio.strategies)
+            })
+            
             return jsonify({
                 'success': True,
                 'message': f'Successfully uploaded {portfolio.total_trades} trades',
@@ -1845,6 +1872,12 @@ def upload_csv():
             raise e
         
     except Exception as e:
+        # Track upload failure
+        app_insights.track_exception(e, {
+            'user_id': get_current_user_id(),
+            'endpoint': 'upload_csv'
+        })
+        
         return jsonify({
             'success': False,
             'error': f'Upload failed: {str(e)}'

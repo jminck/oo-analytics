@@ -11,4 +11,9 @@ scipy==1.11.1
 gunicorn==20.1.0
 # Production dependencies
 Werkzeug==2.3.7
-cryptography==41.0.7 
+cryptography==41.0.7
+# Azure Application Insights
+opencensus-ext-azure==1.1.13
+opencensus-ext-flask==0.7.4
+opencensus-ext-logging==0.1.0
+opencensus-ext-requests==0.7.3 
