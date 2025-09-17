@@ -31,7 +31,6 @@ env/
 ENV/
 
 # Database files
-*.db
 *.sqlite
 *.sqlite3
 
