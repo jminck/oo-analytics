@@ -7290,9 +7290,6 @@
                     
                     // Reload commission analysis to show updated calculations
                     loadCommissionAnalysis();
-                    
-                    // Show success message
-                    showAlert('Commission configuration updated successfully!', 'success');
                 } else {
                     showAlert('Error updating configuration: ' + data.error, 'danger');
                 }
@@ -8052,6 +8049,192 @@
 
 
 
+        function renderBlackoutCumulativeChart(chartData, dateListName) {
+            console.log('Rendering blackout cumulative chart with data:', chartData);
+            
+            const container = document.getElementById('blackoutCumulativeChart');
+            if (!container) {
+                console.error('Chart container not found');
+                return;
+            }
+            
+            // Prepare data for Plotly
+            const traces = [];
+            
+            // Create main cumulative line using only the latest trade of each day
+            const lineData = chartData.filter(d => d.is_latest_of_day);
+            const x = lineData.map(d => d.date);
+            const y = lineData.map(d => d.cumulative_pnl);
+            
+            traces.push({
+                x: x,
+                y: y,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Cumulative P&L',
+                line: {
+                    color: '#007bff',
+                    width: 3
+                },
+                marker: {
+                    size: 6,
+                    color: '#007bff'
+                },
+                hovertemplate: '<b>%{x}</b><br>Cumulative P&L: $%{y:,.2f}<extra></extra>'
+            });
+            
+            // Add individual trade markers with strategy colors
+            const strategyColors = {};
+            let colorIndex = 0;
+            const colors = ['#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'];
+            
+            chartData.forEach((point, index) => {
+                if (!strategyColors[point.strategy]) {
+                    strategyColors[point.strategy] = colors[colorIndex % colors.length];
+                    colorIndex++;
+                }
+                
+                traces.push({
+                    x: [point.date],
+                    y: [point.cumulative_pnl],
+                    type: 'scatter',
+                    mode: 'markers',
+                    name: point.strategy,
+                    marker: {
+                        size: 8,
+                        color: strategyColors[point.strategy],
+                        symbol: 'circle'
+                    },
+                    hovertemplate: `<b>${point.strategy}</b><br>Date: %{x}<br>Cumulative P&L: $%{y:,.2f}<br>Trade P&L: $${point.trade_pnl.toFixed(2)}<extra></extra>`,
+                    showlegend: false
+                });
+            });
+            
+            const layout = {
+                title: {
+                    text: `Cumulative P&L Over Time - ${dateListName}`,
+                    font: { size: 14, color: '#ffffff' },
+                    x: 0.5,
+                    xanchor: 'center'
+                },
+                xaxis: {
+                    title: {
+                        text: 'Date',
+                        font: { color: '#ffffff', size: 12 }
+                    },
+                    type: 'date',
+                    showgrid: true,
+                    gridcolor: 'rgba(255,255,255,0.2)',
+                    tickfont: { color: '#ffffff', size: 10 },
+                    titlefont: { color: '#ffffff', size: 12 }
+                },
+                yaxis: {
+                    title: {
+                        text: 'Cumulative P&L ($)',
+                        font: { color: '#ffffff', size: 12 }
+                    },
+                    tickformat: '$,.0f',
+                    showgrid: true,
+                    gridcolor: 'rgba(255,255,255,0.2)',
+                    tickfont: { color: '#ffffff', size: 10 },
+                    titlefont: { color: '#ffffff', size: 12 }
+                },
+                hovermode: 'closest',
+                showlegend: true,
+                legend: {
+                    orientation: 'h',
+                    y: -0.25,
+                    x: 0.5,
+                    xanchor: 'center',
+                    font: { color: '#ffffff', size: 11 }
+                },
+                margin: { t: 50, r: 20, b: 80, l: 70 },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                autosize: true,
+                width: null,
+                height: 380
+            };
+            
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+                displaylogo: false,
+                toImageButtonOptions: {
+                    format: 'png',
+                    filename: 'blackout_cumulative_pnl',
+                    height: 400,
+                    width: 800,
+                    scale: 1
+                }
+            };
+            
+            Plotly.newPlot(container, traces, layout, config);
+        }
+
+        function updateAnalyzeButton() {
+            const whitelistMode = document.getElementById('whitelistMode');
+            const analyzeButton = document.getElementById('analyzeButton');
+            
+            if (!whitelistMode || !analyzeButton) return;
+            
+            const isWhitelistMode = whitelistMode.checked;
+            
+            if (isWhitelistMode) {
+                analyzeButton.innerHTML = '<i class="fas fa-chart-bar"></i> Analyze Whitelist Dates';
+            } else {
+                analyzeButton.innerHTML = '<i class="fas fa-chart-bar"></i> Analyze Blackout Dates';
+            }
+        }
+
+        function updateDateListDisplay() {
+            const select = document.getElementById('dateListSelect');
+            const display = document.getElementById('dateListDisplay');
+            const whitelistMode = document.getElementById('whitelistMode');
+            
+            if (!select || !display) return;
+            
+            const selectedList = select.value;
+            const isWhitelistMode = whitelistMode ? whitelistMode.checked : false;
+            
+            // Get the dates for the selected list
+            fetch('/api/blackout-dates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    date_list: selectedList,
+                    whitelist_mode: isWhitelistMode
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.blackout_dates) {
+                    // Show the complete list of dates, comma-separated
+                    display.value = data.blackout_dates.join(', ');
+                    
+                    // Update labels based on mode
+                    const label = document.getElementById('dateListDisplayLabel');
+                    const help = document.getElementById('dateListDisplayHelp');
+                    
+                    if (isWhitelistMode) {
+                        label.textContent = 'Whitelist Dates:';
+                        help.textContent = 'This shows the dates NOT in the selected blackout list (whitelist mode).';
+                    } else {
+                        label.textContent = 'Selected Dates:';
+                        help.textContent = 'This shows the dates included in the selected blackout list.';
+                    }
+                } else {
+                    display.value = 'Error loading date list';
+                }
+            })
+            .catch(error => {
+                display.value = 'Error loading date list: ' + error.message;
+            });
+        }
+
         function loadBlackoutDatesChart() {
             const container = document.getElementById('chartContainer');
             const loading = document.getElementById('chartLoading');
@@ -8065,36 +8248,82 @@
                     <div class="card-body">
                         <div class="alert alert-info mb-4">
                             <h6><i class="fas fa-info-circle"></i> What is Blackout Dates Analysis?</h6>
-                            <p class="mb-2">This tool analyzes trading performance on specific dates (like FOMC announcements) to see how your strategies perform during these high-impact events.</p>
+                            <p class="mb-2">This tool analyzes trading performance on specific dates (like FOMC announcements, end of month, or end of quarter) to see how your strategies perform during these high-impact events.</p>
+                            <p class="mb-2"><strong>Available Date Lists:</strong></p>
+                            <ul class="mb-2">
+                                <li><strong>FOMC Announcements:</strong> Federal Reserve meeting dates (2021-2025)</li>
+                                <li><strong>End of Month (EOM):</strong> Last trading day of each month (2021-present)</li>
+                                <li><strong>End of Quarter (EOQ):</strong> Last trading day of each quarter (2021-present)</li>
+                                <li><strong>Short Weeks:</strong> Stock market holidays (2020-present)</li>
+                            </ul>
                             <p class="mb-2"><strong>Why is this useful?</strong></p>
                             <ul class="mb-2">
-                                <li><strong>Event Impact:</strong> See how FOMC announcements or other events affect your strategies</li>
+                                <li><strong>Event Impact:</strong> See how market events affect your strategies</li>
                                 <li><strong>Risk Management:</strong> Identify which strategies are most vulnerable to market events</li>
                                 <li><strong>Strategy Selection:</strong> Choose strategies that perform well during high-volatility periods</li>
                                 <li><strong>Timing Optimization:</strong> Adjust entry/exit timing around known market events</li>
                             </ul>
-                            <p class="mb-0"><strong>How it works:</strong> The analysis filters trades that were initiated on the selected blackout dates and shows performance statistics for each strategy on those specific dates.</p>
+                            <p class="mb-0"><strong>How it works:</strong> The analysis includes trades that were either initiated on blackout dates OR had any blackout date fall between the opening and closing dates (multi-day trades).</p>
+                            <p class="mb-0 mt-2"><strong>Note:</strong> FOMC dates are static and cover 2021-2026. Update the list when new Fed schedules are published.</p>
                         </div>
                         
                         <div class="mb-3">
                             <label for="dateListSelect" class="form-label">Select Date List:</label>
-                            <select class="form-select" id="dateListSelect">
-                                <option value="FOMC Announcements">FOMC Announcements</option>
+                            <select class="form-select" id="dateListSelect" onchange="updateDateListDisplay()">
+                                <option value="FOMC Announcements">FOMC Announcements (until 2026-12-16)</option>
+                                <option value="End of Month (EOM)">End of Month (EOM)</option>
+                                <option value="End of Quarter (EOQ)">End of Quarter (EOQ)</option>
+                                <option value="Short Weeks">Short Weeks (Stock Market Holidays)</option>
                             </select>
                         </div>
                         
-                        <button class="btn btn-primary" onclick="runBlackoutDatesAnalysis()">
-                            <i class="fas fa-chart-bar"></i> Analyze Blackout Dates
-                        </button>
+                        <div class="mb-3">
+                            <label for="maxDaysInput" class="form-label">Max Days Between Blackout Date and Close Date:</label>
+                            <input type="number" class="form-control" id="maxDaysInput" value="5" min="1" max="30" style="width: 100px;">
+                            <small class="form-text text-muted">For multi-day trades, maximum days between blackout date and trade close date (default: 5)</small>
+                        </div>
+                        
+                        
+                        <div class="mb-3">
+                            <label for="dateListDisplay" class="form-label" id="dateListDisplayLabel">Selected Dates:</label>
+                            <textarea class="form-control" id="dateListDisplay" rows="4" readonly style="font-family: monospace; font-size: 12px; background-color: #f8f9fa; color: #000000 !important;"></textarea>
+                            <small class="form-text text-muted" id="dateListDisplayHelp">This shows the dates included in the selected blackout list.</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button class="btn btn-outline-primary me-2" onclick="showCustomListManager()">
+                                <i class="fas fa-cog"></i> Manage Custom Lists
+                            </button>
+                            <button class="btn btn-primary me-2" id="analyzeButton" onclick="runBlackoutDatesAnalysis()">
+                                <i class="fas fa-chart-bar"></i> Analyze Blackout Dates
+                            </button>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="whitelistMode" onchange="updateDateListDisplay(); updateAnalyzeButton()">
+                                <label class="form-check-label" for="whitelistMode">
+                                    <strong>Analyze Whitelist Dates</strong>
+                                </label>
+                            </div>
+                        </div>
                         
                         <div id="blackoutResults" class="mt-4" style="display: none;"></div>
                     </div>
                 </div>
             `;
+            
+            // Load custom lists into dropdown
+            loadCustomListsIntoDropdown();
+            
+            // Initialize date list display and button text
+            updateDateListDisplay();
+            updateAnalyzeButton();
         }
 
         function runBlackoutDatesAnalysis() {
             const dateList = document.getElementById('dateListSelect').value;
+            const whitelistMode = document.getElementById('whitelistMode');
+            const maxDaysInput = document.getElementById('maxDaysInput');
+            const isWhitelistMode = whitelistMode ? whitelistMode.checked : false;
+            const maxDays = maxDaysInput ? parseInt(maxDaysInput.value) || 5 : 5;
             const resultsDiv = document.getElementById('blackoutResults');
             const loading = document.getElementById('chartLoading');
             
@@ -8107,7 +8336,9 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    date_list: dateList
+                    date_list: dateList,
+                    whitelist_mode: isWhitelistMode,
+                    max_days: maxDays
                 })
             })
             .then(response => response.json())
@@ -8225,6 +8456,17 @@
                         </div>
                     </div>
                     
+                    <!-- Cumulative P&L Chart -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line"></i> Cumulative P&L Over Time</h5>
+                            <small class="text-muted">Cumulative P&L for trades on ${data.date_list_name}</small>
+                        </div>
+                        <div class="card-body">
+                            <div id="blackoutCumulativeChart" style="height: 400px; width: 100%; overflow: hidden; position: relative;"></div>
+                        </div>
+                    </div>
+                    
                     <!-- Detailed Trades Table -->
                     <div class="card mt-4">
                         <div class="card-header">
@@ -8292,6 +8534,11 @@
                 
                 resultsDiv.innerHTML = tableHtml;
                 resultsDiv.style.display = 'block';
+                
+                // Render cumulative P&L chart if data is available
+                if (data.chart_data && data.chart_data.length > 0) {
+                    renderBlackoutCumulativeChart(data.chart_data, data.date_list_name);
+                }
             })
             .catch(error => {
                 loading.style.display = 'none';
@@ -8484,6 +8731,423 @@
                     }
                 }
             }
+        }
+
+        function loadCustomListsIntoDropdown() {
+            fetch('/api/custom-blackout-lists')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const select = document.getElementById('dateListSelect');
+                        if (select) {
+                            // Remove existing custom list options (keep built-in ones)
+                            const builtInOptions = Array.from(select.options).filter(option => 
+                                ['FOMC Announcements', 'End of Month (EOM)', 'End of Quarter (EOQ)', 'Short Weeks'].includes(option.value)
+                            );
+                            
+                            // Clear and re-add built-in options
+                            select.innerHTML = '';
+                            builtInOptions.forEach(option => select.appendChild(option));
+                            
+                            // Add custom list options
+                            data.lists.forEach(list => {
+                                const option = document.createElement('option');
+                                option.value = list.list_name;
+                                option.textContent = list.list_name;
+                                select.appendChild(option);
+                            });
+                            
+                            // Update date display after loading custom lists
+                            updateDateListDisplay();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading custom lists for dropdown:', error);
+                });
+        }
+
+        // Custom Blackout List Management Functions
+        function showCustomListManager() {
+            const container = document.getElementById('chartContainer');
+            
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>📅 Custom Blackout Date Lists</h5>
+                        <button class="btn btn-outline-info btn-sm" onclick="loadChart('blackout_dates')">
+                            <i class="fas fa-arrow-left"></i> Back to Analysis
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="customListsContainer">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading custom lists...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            loadCustomLists();
+        }
+
+        function loadCustomLists() {
+            fetch('/api/custom-blackout-lists')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderCustomLists(data.lists);
+                    } else {
+                        document.getElementById('customListsContainer').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i> Error loading custom lists: ${data.error}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('customListsContainer').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Error loading custom lists: ${error.message}
+                        </div>
+                    `;
+                });
+        }
+
+        function renderCustomLists(lists) {
+            const container = document.getElementById('customListsContainer');
+            
+            if (lists.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <h5>No Custom Lists</h5>
+                        <p>Create your first custom blackout date list to get started.</p>
+                        <button class="btn btn-primary" onclick="showCreateListForm()">
+                            <i class="fas fa-plus"></i> Create New List
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="row">';
+            lists.forEach(list => {
+                // Format dates for display (show first few dates)
+                const displayDates = list.dates.slice(0, 5);
+                const moreDates = list.dates.length > 5 ? ` and ${list.dates.length - 5} more...` : '';
+                const datesText = displayDates.join(', ') + moreDates;
+                
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">${escapeHtml(list.list_name)}</h6>
+                                <p class="card-text text-muted small">${escapeHtml(list.description || 'No description')}</p>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar"></i> ${list.dates.length} dates
+                                        <br>
+                                        <i class="fas fa-clock"></i> Created: ${new Date(list.created_at).toLocaleDateString()}
+                                    </small>
+                                </p>
+                                <div class="mt-2">
+                                    <small class="text-muted"><strong>Dates:</strong></small>
+                                    <div class="small" style="max-height: 60px; overflow-y: auto; background-color: #6c757d; padding: 5px; border-radius: 3px; margin-top: 2px; border: 1px solid #495057; color: #ffffff !important; font-weight: 500;">
+                                        ${escapeHtml(datesText)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="btn-group w-100" role="group">
+                                    <button class="btn btn-primary btn-sm" onclick="editCustomList(${list.id}, '${escapeHtml(list.list_name)}', '${escapeHtml(list.description || '')}', ${JSON.stringify(list.dates).replace(/"/g, '&quot;')})">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-success btn-sm" onclick="useCustomList('${escapeHtml(list.list_name)}')">
+                                        <i class="fas fa-chart-bar"></i> Use
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteCustomList(${list.id}, '${escapeHtml(list.list_name)}')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
+
+        function showCreateListForm() {
+            const container = document.getElementById('chartContainer');
+            
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>📅 Create Custom Blackout Date List</h5>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="showCustomListManager()">
+                            <i class="fas fa-arrow-left"></i> Back to Lists
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <form id="createListForm">
+                            <div class="mb-3">
+                                <label for="listName" class="form-label">List Name *</label>
+                                <input type="text" class="form-control" id="listName" required 
+                                       placeholder="e.g., Earnings Season, Holiday Periods">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="listDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="listDescription" rows="2" 
+                                          placeholder="Optional description of this date list"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="datesInput" class="form-label">Dates *</label>
+                                <textarea class="form-control" id="datesInput" rows="4" required
+                                          placeholder="Enter dates in YYYY-MM-DD format, separated by commas&#10;Example: 2023-01-15, 2023-02-14, 2023-03-15"></textarea>
+                                <div class="form-text">Enter dates in YYYY-MM-DD format, separated by commas</div>
+                            </div>
+                            
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Create List
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="showCustomListManager()">
+                                    Cancel
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="loadChart('blackout_dates')">
+                                    <i class="fas fa-arrow-left"></i> Back to Analysis
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            // Handle form submission
+            document.getElementById('createListForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                createCustomList();
+            });
+        }
+
+        function createCustomList() {
+            const listName = document.getElementById('listName').value.trim();
+            const description = document.getElementById('listDescription').value.trim();
+            const datesText = document.getElementById('datesInput').value.trim();
+            
+            if (!listName) {
+                alert('Please enter a list name');
+                return;
+            }
+            
+            if (!datesText) {
+                alert('Please enter at least one date');
+                return;
+            }
+            
+            // Parse comma-separated dates
+            const dates = datesText.split(',').map(d => d.trim()).filter(d => d);
+            
+            // Validate date format
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            const invalidDates = dates.filter(date => !dateRegex.test(date));
+            
+            if (invalidDates.length > 0) {
+                alert(`Invalid date format(s): ${invalidDates.join(', ')}\nPlease use YYYY-MM-DD format`);
+                return;
+            }
+            
+            // Remove duplicates and sort
+            const uniqueDates = [...new Set(dates)].sort();
+            
+            const data = {
+                list_name: listName,
+                description: description,
+                dates: uniqueDates
+            };
+            
+            fetch('/api/custom-blackout-lists', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showCustomListManager();
+                } else {
+                    alert('Error creating list: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error creating list: ' + error.message);
+            });
+        }
+
+        function editCustomList(listId, listName, description, dates) {
+            const container = document.getElementById('chartContainer');
+            
+            // Convert dates array to comma-separated string
+            const datesString = Array.isArray(dates) ? dates.join(', ') : dates;
+            
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>📅 Edit Custom Blackout Date List</h5>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="showCustomListManager()">
+                            <i class="fas fa-arrow-left"></i> Back to Lists
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <form id="editListForm">
+                            <input type="hidden" id="editListId" value="${listId}">
+                            
+                            <div class="mb-3">
+                                <label for="editListName" class="form-label">List Name *</label>
+                                <input type="text" class="form-control" id="editListName" required 
+                                       value="${escapeHtml(listName)}" placeholder="e.g., Earnings Season, Holiday Periods">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editListDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="editListDescription" rows="2" 
+                                          placeholder="Optional description of this date list">${escapeHtml(description)}</textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editDatesInput" class="form-label">Dates *</label>
+                                <textarea class="form-control" id="editDatesInput" rows="4" required
+                                          placeholder="Enter dates in YYYY-MM-DD format, separated by commas&#10;Example: 2023-01-15, 2023-02-14, 2023-03-15">${escapeHtml(datesString)}</textarea>
+                                <div class="form-text">Enter dates in YYYY-MM-DD format, separated by commas</div>
+                            </div>
+                            
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Update List
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="showCustomListManager()">
+                                    Cancel
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="loadChart('blackout_dates')">
+                                    <i class="fas fa-arrow-left"></i> Back to Analysis
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            // Handle form submission
+            document.getElementById('editListForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                updateCustomList();
+            });
+        }
+
+        function updateCustomList() {
+            const listId = document.getElementById('editListId').value;
+            const listName = document.getElementById('editListName').value.trim();
+            const description = document.getElementById('editListDescription').value.trim();
+            const datesText = document.getElementById('editDatesInput').value.trim();
+            
+            if (!listName) {
+                alert('Please enter a list name');
+                return;
+            }
+            
+            if (!datesText) {
+                alert('Please enter at least one date');
+                return;
+            }
+            
+            // Parse comma-separated dates
+            const dates = datesText.split(',').map(d => d.trim()).filter(d => d);
+            
+            // Validate date format
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            const invalidDates = dates.filter(date => !dateRegex.test(date));
+            
+            if (invalidDates.length > 0) {
+                alert(`Invalid date format(s): ${invalidDates.join(', ')}\nPlease use YYYY-MM-DD format`);
+                return;
+            }
+            
+            // Remove duplicates and sort
+            const uniqueDates = [...new Set(dates)].sort();
+            
+            const data = {
+                list_name: listName,
+                description: description,
+                dates: uniqueDates
+            };
+            
+            fetch(`/api/custom-blackout-lists/${listId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showCustomListManager();
+                } else {
+                    alert('Error updating list: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error updating list: ' + error.message);
+            });
+        }
+
+        function useCustomList(listName) {
+            // Go back to blackout dates analysis and select this list
+            loadChart('blackout_dates');
+            
+            // Wait for the dropdown to be populated, then select the custom list
+            setTimeout(() => {
+                const select = document.getElementById('dateListSelect');
+                if (select) {
+                    select.value = listName;
+                }
+            }, 500);
+        }
+
+        function deleteCustomList(listId, listName) {
+            if (confirm(`Are you sure you want to delete the list "${listName}"? This action cannot be undone.`)) {
+                fetch(`/api/custom-blackout-lists/${listId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadCustomLists();
+                    } else {
+                        alert('Error deleting list: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting list: ' + error.message);
+                });
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function loadCrossFileCorrelationChart() {
