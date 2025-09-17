@@ -59,5 +59,3 @@ data/guest/
 data/users/
 
 
-# Instance folder (Flask)
-instance/ 
