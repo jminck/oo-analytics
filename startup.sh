@@ -10,8 +10,8 @@ echo "Current working directory: $(pwd)"
 echo "Files in current directory: $(ls -la)"
 
 # Install dependencies first
-echo "Installing Python dependencies..."
-pip install -r requirements.txt
+#echo "Installing Python dependencies..."
+#pip install -r requirements.txt
 
 # Create necessary directories
 echo "Creating necessary directories..."
