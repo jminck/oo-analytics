@@ -26,6 +26,18 @@ from file_manager import FileManager
 from auth import init_auth, auth_bp, guest_mode_required, get_current_data_folder
 from config import Config
 
+def get_current_user_id():
+    """Get the current user ID, handling both authenticated users and guests."""
+    try:
+        if current_user and current_user.is_authenticated:
+            return str(current_user.id)
+        else:
+            # For guests, use the guest_id from session
+            return session.get('guest_id', 'anonymous')
+    except Exception:
+        # Fallback for cases where current_user is not available
+        return session.get('guest_id', 'anonymous')
+
 # Create Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -3072,6 +3084,389 @@ def get_cross_file_correlation():
             'error': f'Cross-file correlation analysis failed: {str(e)}'
         }), 500
 
+def _generate_eom_dates():
+    """Generate end of month dates from 2021 to end of following year"""
+    from datetime import datetime, timedelta
+    import calendar
+    
+    current_year = datetime.now().year
+    end_year = current_year + 1  # End of following year
+    
+    eom_dates = []
+    for year in range(2021, end_year + 1):
+        for month in range(1, 13):
+            # Get the last day of the month
+            last_day = calendar.monthrange(year, month)[1]
+            eom_date = datetime(year, month, last_day)
+            
+            # Skip weekends - if last day is Saturday (5) or Sunday (6), use Friday
+            if eom_date.weekday() == 5:  # Saturday
+                eom_date = eom_date - timedelta(days=1)
+            elif eom_date.weekday() == 6:  # Sunday
+                eom_date = eom_date - timedelta(days=2)
+            
+            eom_dates.append(eom_date.strftime('%Y-%m-%d'))
+    
+    return eom_dates
+
+def _generate_eoq_dates():
+    """Generate end of quarter dates from 2021 to end of following year"""
+    from datetime import datetime, timedelta
+    import calendar
+    
+    current_year = datetime.now().year
+    end_year = current_year + 1  # End of following year
+    
+    eoq_dates = []
+    for year in range(2021, end_year + 1):
+        for month in [3, 6, 9, 12]:  # End of quarters
+            # Get the last day of the month
+            last_day = calendar.monthrange(year, month)[1]
+            eoq_date = datetime(year, month, last_day)
+            
+            # Skip weekends - if last day is Saturday (5) or Sunday (6), use Friday
+            if eoq_date.weekday() == 5:  # Saturday
+                eoq_date = eoq_date - timedelta(days=1)
+            elif eoq_date.weekday() == 6:  # Sunday
+                eoq_date = eoq_date - timedelta(days=2)
+            
+            eoq_dates.append(eoq_date.strftime('%Y-%m-%d'))
+    
+    return eoq_dates
+
+def _generate_fomc_dates():
+    """Generate FOMC meeting dates - static list"""
+    return [
+        '2021-01-27', '2021-03-17', '2021-04-28', '2021-06-16', '2021-07-28', '2021-09-22', '2021-11-03', '2021-12-15',
+        '2022-01-26', '2022-03-16', '2022-05-04', '2022-06-15', '2022-07-27', '2022-09-21', '2022-11-02', '2022-12-14',
+        '2023-01-31', '2023-03-22', '2023-05-03', '2023-06-14', '2023-07-26', '2023-09-20', '2023-11-01', '2023-12-13',
+        '2024-01-31', '2024-03-20', '2024-05-01', '2024-06-12', '2024-07-31', '2024-09-18', '2024-11-07', '2024-12-18',
+        '2025-01-29', '2025-03-19', '2025-05-07', '2025-06-18', '2025-07-30', '2025-09-17', '2025-11-05', '2025-12-17',
+        '2026-01-28', '2026-03-18', '2026-05-06', '2026-06-17', '2026-07-29', '2026-09-16', '2026-11-04', '2026-12-16'
+    ]
+
+def _generate_short_weeks_dates():
+    """Generate stock market holidays from 2020 to end of following year"""
+    from datetime import datetime, timedelta
+    import calendar
+    
+    current_year = datetime.now().year
+    end_year = current_year + 1  # End of following year
+    
+    short_weeks = []
+    
+    for year in range(2020, end_year + 1):
+        # New Year's Day (January 1)
+        short_weeks.append(f'{year}-01-01')
+        
+        # Martin Luther King Jr. Day (3rd Monday in January)
+        mlk_day = _get_nth_weekday(year, 1, 0, 3)  # 3rd Monday
+        short_weeks.append(mlk_day.strftime('%Y-%m-%d'))
+        
+        # Presidents' Day (3rd Monday in February)
+        presidents_day = _get_nth_weekday(year, 2, 0, 3)  # 3rd Monday
+        short_weeks.append(presidents_day.strftime('%Y-%m-%d'))
+        
+        # Good Friday (Friday before Easter - approximate calculation)
+        easter = _calculate_easter(year)
+        good_friday = easter - timedelta(days=2)
+        short_weeks.append(good_friday.strftime('%Y-%m-%d'))
+        
+        # Memorial Day (Last Monday in May)
+        memorial_day = _get_last_weekday(year, 5, 0)  # Last Monday
+        short_weeks.append(memorial_day.strftime('%Y-%m-%d'))
+        
+        # Juneteenth (June 19, since 2021)
+        if year >= 2021:
+            short_weeks.append(f'{year}-06-19')
+        
+        # Independence Day (July 4)
+        short_weeks.append(f'{year}-07-04')
+        
+        # Labor Day (1st Monday in September)
+        labor_day = _get_nth_weekday(year, 9, 0, 1)  # 1st Monday
+        short_weeks.append(labor_day.strftime('%Y-%m-%d'))
+        
+        # Thanksgiving Day (4th Thursday in November)
+        thanksgiving = _get_nth_weekday(year, 11, 3, 4)  # 4th Thursday
+        short_weeks.append(thanksgiving.strftime('%Y-%m-%d'))
+        
+        # Christmas Day (December 25)
+        short_weeks.append(f'{year}-12-25')
+    
+    return short_weeks
+
+def _get_nth_weekday(year, month, weekday, n):
+    """Get the nth weekday of a given month (0=Monday, 6=Sunday)"""
+    from datetime import datetime, timedelta
+    
+    # Find the first day of the month
+    first_day = datetime(year, month, 1)
+    
+    # Find the first occurrence of the target weekday
+    days_ahead = weekday - first_day.weekday()
+    if days_ahead < 0:
+        days_ahead += 7
+    
+    # Get the nth occurrence
+    target_date = first_day + timedelta(days=days_ahead + (n - 1) * 7)
+    
+    return target_date
+
+def _get_last_weekday(year, month, weekday):
+    """Get the last weekday of a given month (0=Monday, 6=Sunday)"""
+    from datetime import datetime, timedelta
+    import calendar
+    
+    # Get the last day of the month
+    last_day = calendar.monthrange(year, month)[1]
+    last_date = datetime(year, month, last_day)
+    
+    # Find the last occurrence of the target weekday
+    days_back = (last_date.weekday() - weekday) % 7
+    target_date = last_date - timedelta(days=days_back)
+    
+    return target_date
+
+def _calculate_easter(year):
+    """Calculate Easter Sunday for a given year (approximate)"""
+    from datetime import datetime, timedelta
+    
+    # Easter calculation using the algorithm
+    a = year % 19
+    b = year // 100
+    c = year % 100
+    d = b // 4
+    e = b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i = c // 4
+    k = c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = ((h + l - 7 * m + 114) % 31) + 1
+    
+    return datetime(year, month, day)
+
+@app.route('/api/custom-blackout-lists', methods=['GET'])
+@guest_mode_required
+def get_custom_blackout_lists():
+    """Get all custom blackout date lists for the current user."""
+    try:
+        user_id = get_current_user_id()
+        db_manager = DatabaseManager()
+        
+        conn = db_manager.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, list_name, description, dates, created_at, updated_at
+            FROM custom_blackout_lists
+            WHERE user_id = ?
+            ORDER BY list_name
+        ''', (user_id,))
+        
+        lists = []
+        for row in cursor.fetchall():
+            import json
+            lists.append({
+                'id': row[0],
+                'list_name': row[1],
+                'description': row[2],
+                'dates': json.loads(row[3]) if row[3] else [],
+                'created_at': row[4],
+                'updated_at': row[5]
+            })
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'lists': lists
+        })
+        
+    except Exception as e:
+        print(f"Error getting custom blackout lists: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/custom-blackout-lists', methods=['POST'])
+@guest_mode_required
+def create_custom_blackout_list():
+    """Create a new custom blackout date list."""
+    try:
+        user_id = get_current_user_id()
+        data = request.get_json()
+        
+        list_name = data.get('list_name', '').strip()
+        description = data.get('description', '').strip()
+        dates = data.get('dates', [])
+        
+        # Validation
+        if not list_name:
+            return jsonify({'success': False, 'error': 'List name is required'}), 400
+        
+        if not isinstance(dates, list):
+            return jsonify({'success': False, 'error': 'Dates must be a list'}), 400
+        
+        # Validate date format
+        from datetime import datetime
+        validated_dates = []
+        for date_str in dates:
+            try:
+                datetime.strptime(date_str, '%Y-%m-%d')
+                validated_dates.append(date_str)
+            except ValueError:
+                return jsonify({'success': False, 'error': f'Invalid date format: {date_str}. Use YYYY-MM-DD'}), 400
+        
+        db_manager = DatabaseManager()
+        conn = db_manager.get_connection()
+        cursor = conn.cursor()
+        
+        # Check if list name already exists for this user
+        cursor.execute('''
+            SELECT id FROM custom_blackout_lists
+            WHERE user_id = ? AND list_name = ?
+        ''', (user_id, list_name))
+        
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'A list with this name already exists'}), 400
+        
+        # Insert new list
+        import json
+        cursor.execute('''
+            INSERT INTO custom_blackout_lists (user_id, list_name, description, dates)
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, list_name, description, json.dumps(validated_dates)))
+        
+        list_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'list_id': list_id,
+            'message': 'Custom blackout list created successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error creating custom blackout list: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/custom-blackout-lists/<int:list_id>', methods=['PUT'])
+@guest_mode_required
+def update_custom_blackout_list(list_id):
+    """Update an existing custom blackout date list."""
+    try:
+        user_id = get_current_user_id()
+        data = request.get_json()
+        
+        list_name = data.get('list_name', '').strip()
+        description = data.get('description', '').strip()
+        dates = data.get('dates', [])
+        
+        # Validation
+        if not list_name:
+            return jsonify({'success': False, 'error': 'List name is required'}), 400
+        
+        if not isinstance(dates, list):
+            return jsonify({'success': False, 'error': 'Dates must be a list'}), 400
+        
+        # Validate date format
+        from datetime import datetime
+        validated_dates = []
+        for date_str in dates:
+            try:
+                datetime.strptime(date_str, '%Y-%m-%d')
+                validated_dates.append(date_str)
+            except ValueError:
+                return jsonify({'success': False, 'error': f'Invalid date format: {date_str}. Use YYYY-MM-DD'}), 400
+        
+        db_manager = DatabaseManager()
+        conn = db_manager.get_connection()
+        cursor = conn.cursor()
+        
+        # Check if list exists and belongs to user
+        cursor.execute('''
+            SELECT id FROM custom_blackout_lists
+            WHERE id = ? AND user_id = ?
+        ''', (list_id, user_id))
+        
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'List not found'}), 404
+        
+        # Check if new name conflicts with existing list
+        cursor.execute('''
+            SELECT id FROM custom_blackout_lists
+            WHERE user_id = ? AND list_name = ? AND id != ?
+        ''', (user_id, list_name, list_id))
+        
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'A list with this name already exists'}), 400
+        
+        # Update list
+        import json
+        cursor.execute('''
+            UPDATE custom_blackout_lists
+            SET list_name = ?, description = ?, dates = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND user_id = ?
+        ''', (list_name, description, json.dumps(validated_dates), list_id, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Custom blackout list updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error updating custom blackout list: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/custom-blackout-lists/<int:list_id>', methods=['DELETE'])
+@guest_mode_required
+def delete_custom_blackout_list(list_id):
+    """Delete a custom blackout date list."""
+    try:
+        user_id = get_current_user_id()
+        db_manager = DatabaseManager()
+        
+        conn = db_manager.get_connection()
+        cursor = conn.cursor()
+        
+        # Check if list exists and belongs to user
+        cursor.execute('''
+            SELECT id FROM custom_blackout_lists
+            WHERE id = ? AND user_id = ?
+        ''', (list_id, user_id))
+        
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'List not found'}), 404
+        
+        # Delete list
+        cursor.execute('''
+            DELETE FROM custom_blackout_lists
+            WHERE id = ? AND user_id = ?
+        ''', (list_id, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Custom blackout list deleted successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error deleting custom blackout list: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/blackout-dates', methods=['POST'])
 @guest_mode_required
 def get_blackout_dates_analysis():
@@ -3079,48 +3474,141 @@ def get_blackout_dates_analysis():
     try:
         data = request.get_json()
         date_list_name = data.get('date_list', 'FOMC Announcements')
+        whitelist_mode = data.get('whitelist_mode', False)
+        max_days = data.get('max_days', 5)
         
         # Check if portfolio has data
         if not portfolio or not portfolio.strategies:
             return jsonify({'success': False, 'error': 'No portfolio data available'})
         
-        # Define blackout date lists
+        # Define built-in blackout date lists
         blackout_date_lists = {
-            'FOMC Announcements': [
-                '2021-01-27', '2021-03-17', '2021-04-28', '2021-06-16', '2021-07-28', '2021-09-22', '2021-11-03', '2021-12-15',
-                '2022-01-26', '2022-03-16', '2022-05-04', '2022-06-15', '2022-07-27', '2022-09-21', '2022-11-02', '2022-12-14',
-                '2023-01-31', '2023-03-22', '2023-05-03', '2023-06-14', '2023-07-26', '2023-09-20', '2023-11-01', '2023-12-13',
-                '2024-01-31', '2024-03-20', '2024-05-01', '2024-06-12', '2024-07-31', '2024-09-18', '2024-11-07', '2024-12-18',
-                '2025-01-29', '2025-03-19', '2025-05-07', '2025-06-18', '2025-07-30', '2025-09-17', '2025-11-05', '2025-12-17'
-            ]
+            'FOMC Announcements': _generate_fomc_dates(),
+            'End of Month (EOM)': _generate_eom_dates(),
+            'End of Quarter (EOQ)': _generate_eoq_dates(),
+            'Short Weeks': _generate_short_weeks_dates()
         }
+        
+        # Add custom blackout date lists for the current user
+        try:
+            user_id = get_current_user_id()
+            db_manager = DatabaseManager()
+            conn = db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT list_name, dates FROM custom_blackout_lists
+                WHERE user_id = ?
+                ORDER BY list_name
+            ''', (user_id,))
+            
+            for row in cursor.fetchall():
+                list_name, dates_json = row
+                import json
+                dates = json.loads(dates_json) if dates_json else []
+                blackout_date_lists[list_name] = dates
+            
+            conn.close()
+        except Exception as e:
+            print(f"Error loading custom blackout lists: {e}")
+            # Continue with built-in lists only
         
         # Get the selected date list
         if date_list_name not in blackout_date_lists:
             return jsonify({'success': False, 'error': f'Date list "{date_list_name}" not found'})
         
-        blackout_dates = set(blackout_date_lists[date_list_name])
+        original_blackout_dates = set(blackout_date_lists[date_list_name])
+        
+        # If whitelist mode is enabled, create a whitelist by removing blackout dates from full date range
+        if whitelist_mode:
+            # Find the date range from the original blackout dates
+            if original_blackout_dates:
+                from datetime import datetime, timedelta
+                import calendar
+                
+                # Get min and max years from the blackout dates
+                years = set()
+                for date_str in original_blackout_dates:
+                    try:
+                        year = int(date_str.split('-')[0])
+                        years.add(year)
+                    except (ValueError, IndexError):
+                        continue
+                
+                if years:
+                    min_year = min(years)
+                    max_year = max(years)
+                    
+                    # Generate all dates from Jan 1 of min_year to Dec 31 of max_year
+                    all_dates = set()
+                    for year in range(min_year, max_year + 1):
+                        for month in range(1, 13):
+                            days_in_month = calendar.monthrange(year, month)[1]
+                            for day in range(1, days_in_month + 1):
+                                date_str = f"{year:04d}-{month:02d}-{day:02d}"
+                                all_dates.add(date_str)
+                    
+                    # Remove blackout dates to create whitelist
+                    blackout_dates = all_dates - original_blackout_dates
+                else:
+                    blackout_dates = original_blackout_dates
+            else:
+                blackout_dates = original_blackout_dates
+        else:
+            blackout_dates = original_blackout_dates
         
         # Analyze each strategy
         strategy_results = []
         
         for strategy in portfolio.strategies.values():
-            # Filter trades that were initiated on blackout dates
+            # Filter trades that were initiated on blackout dates OR had blackout dates during the trade
             blackout_trades = []
             
             for trade in strategy.trades:
-                # Parse the date opened (assuming it's in YYYY-MM-DD format)
                 try:
-                    # Handle different date formats
+                    # Parse the date opened
                     if hasattr(trade.date_opened, 'strftime'):
-                        # It's a datetime object
-                        trade_date = trade.date_opened.strftime('%Y-%m-%d')
+                        trade_date_opened = trade.date_opened.strftime('%Y-%m-%d')
                     else:
-                        # It's a string
-                        trade_date = str(trade.date_opened).split(' ')[0]  # Get just the date part
+                        trade_date_opened = str(trade.date_opened).split(' ')[0]
                     
-                    if trade_date in blackout_dates:
+                    # Parse the date closed (if available)
+                    trade_date_closed = None
+                    if hasattr(trade, 'date_closed') and trade.date_closed:
+                        if hasattr(trade.date_closed, 'strftime'):
+                            trade_date_closed = trade.date_closed.strftime('%Y-%m-%d')
+                        else:
+                            trade_date_closed = str(trade.date_closed).split(' ')[0]
+                    
+                    # Check if trade was initiated on a blackout date
+                    if trade_date_opened in blackout_dates:
                         blackout_trades.append(trade)
+                        continue
+                    
+                    # Check if any blackout date falls between opening and closing dates
+                    if trade_date_closed:
+                        from datetime import datetime, timedelta
+                        try:
+                            opened_dt = datetime.strptime(trade_date_opened, '%Y-%m-%d')
+                            closed_dt = datetime.strptime(trade_date_closed, '%Y-%m-%d')
+                            
+                            # Check if any blackout date falls within the trade duration
+                            # and is within max_days of the close date
+                            for blackout_date in blackout_dates:
+                                try:
+                                    blackout_dt = datetime.strptime(blackout_date, '%Y-%m-%d')
+                                    
+                                    # Check if blackout date is within trade duration
+                                    if opened_dt <= blackout_dt <= closed_dt:
+                                        # Check if blackout date is within max_days of close date
+                                        days_between = (closed_dt - blackout_dt).days
+                                        if days_between <= max_days:
+                                            blackout_trades.append(trade)
+                                            break  # Found a match, no need to check other blackout dates
+                                except ValueError:
+                                    continue  # Skip invalid date formats
+                        except ValueError:
+                            continue  # Skip trades with invalid date formats
                         
                 except Exception as e:
                     continue
@@ -3183,11 +3671,80 @@ def get_blackout_dates_analysis():
                 for j, trade in enumerate(result['trades']):
                     print(f"DEBUG: Trade {j}: type={type(trade)}, keys={list(trade.keys()) if isinstance(trade, dict) else 'not dict'}")
         
+        # Prepare chart data for cumulative P&L over time
+        chart_data = []
+        if strategy_results:
+            # Get all trades from all strategies with closing time info
+            all_trades = []
+            for result in strategy_results:
+                if 'trades' in result:
+                    for trade in result['trades']:
+                        # Get closing time for sorting within each date
+                        closing_time = getattr(trade, 'date_closed', None)
+                        if closing_time:
+                            # Convert to datetime for proper sorting
+                            from datetime import datetime
+                            if isinstance(closing_time, str):
+                                try:
+                                    closing_time = datetime.strptime(closing_time, '%Y-%m-%d %H:%M:%S')
+                                except:
+                                    closing_time = datetime.strptime(closing_time, '%Y-%m-%d')
+                            elif hasattr(closing_time, 'strftime'):
+                                closing_time = closing_time
+                            else:
+                                closing_time = None
+                        
+                        all_trades.append({
+                            'date': trade['date_opened'],
+                            'pnl': trade['pnl'],
+                            'strategy': result['strategy'],
+                            'closing_time': closing_time,
+                            'trade_data': trade  # Keep original trade data
+                        })
+            
+            # Sort trades by date, then by closing time within each date
+            from datetime import datetime
+            all_trades.sort(key=lambda x: (x['date'], x['closing_time'] or datetime.min))
+            
+            # Calculate cumulative P&L for each individual trade
+            cumulative_pnl = 0
+            for trade in all_trades:
+                cumulative_pnl += trade['pnl']
+                chart_data.append({
+                    'date': trade['date'],
+                    'cumulative_pnl': cumulative_pnl,
+                    'strategy': trade['strategy'],
+                    'trade_pnl': trade['pnl'],
+                    'closing_time': trade['closing_time'],
+                    'is_latest_of_day': False  # Will be set below
+                })
+            
+            # Mark the latest trade of each day for line connection
+            from collections import defaultdict
+            daily_trades = defaultdict(list)
+            for i, trade in enumerate(chart_data):
+                daily_trades[trade['date']].append(i)
+            
+            # Mark the last trade of each day (by closing time)
+            from datetime import datetime
+            for date, trade_indices in daily_trades.items():
+                if len(trade_indices) > 1:
+                    # Find the trade with the latest closing time
+                    latest_trade_idx = max(trade_indices, 
+                                         key=lambda i: chart_data[i]['closing_time'] or datetime.min)
+                    chart_data[latest_trade_idx]['is_latest_of_day'] = True
+                else:
+                    # Single trade on this date
+                    chart_data[trade_indices[0]]['is_latest_of_day'] = True
+
         return jsonify({
             'success': True,
             'date_list_name': date_list_name,
+            'whitelist_mode': whitelist_mode,
             'available_lists': list(blackout_date_lists.keys()),
-            'strategy_results': strategy_results
+            'blackout_dates': sorted(list(blackout_dates)),
+            'strategy_results': strategy_results,
+            'chart_data': chart_data
         })
         
     except Exception as e:

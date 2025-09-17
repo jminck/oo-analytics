@@ -59,10 +59,26 @@ class DatabaseManager:
             )
         ''')
         
+        # Custom blackout date lists table
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS custom_blackout_lists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                list_name TEXT NOT NULL,
+                description TEXT,
+                dates TEXT NOT NULL,  -- JSON array of dates
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, list_name)
+            )
+        ''')
+        
         # Create indexes for performance
         conn.execute('CREATE INDEX IF NOT EXISTS idx_trades_strategy ON trades(strategy)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_trades_date ON trades(date_opened)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_trades_pnl ON trades(pnl)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_blackout_user ON custom_blackout_lists(user_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_blackout_name ON custom_blackout_lists(user_id, list_name)')
         
         
         conn.close()
@@ -684,3 +700,50 @@ class Portfolio:
             return 'BEARISH'  # Strategy that loses money when market rises is bearish
         else:
             return 'NEUTRAL'  # Small market movements or mixed signals 
+
+class CustomBlackoutList:
+    """Represents a custom blackout date list created by a user."""
+    
+    def __init__(self, user_id: str, list_name: str, description: str = "", dates: List[str] = None):
+        self.user_id = user_id
+        self.list_name = list_name
+        self.description = description
+        self.dates = dates or []
+        self.created_at = None
+        self.updated_at = None
+    
+    def add_date(self, date: str):
+        """Add a date to the list if it's not already present."""
+        if date not in self.dates:
+            self.dates.append(date)
+    
+    def remove_date(self, date: str):
+        """Remove a date from the list."""
+        if date in self.dates:
+            self.dates.remove(date)
+    
+    def to_dict(self):
+        """Convert to dictionary for JSON serialization."""
+        return {
+            'id': getattr(self, 'id', None),
+            'user_id': self.user_id,
+            'list_name': self.list_name,
+            'description': self.description,
+            'dates': self.dates,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create instance from dictionary."""
+        instance = cls(
+            user_id=data['user_id'],
+            list_name=data['list_name'],
+            description=data.get('description', ''),
+            dates=data.get('dates', [])
+        )
+        instance.id = data.get('id')
+        instance.created_at = data.get('created_at')
+        instance.updated_at = data.get('updated_at')
+        return instance

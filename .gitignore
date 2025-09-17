@@ -55,9 +55,10 @@ Thumbs.db
 
 # Data files (consider moving to Azure Blob Storage)
 data/*.csv
-data/*.db
 data/debug/
-data/
+data/guest/
+data/users/
+
 
 # Instance folder (Flask)
 instance/ 

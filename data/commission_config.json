@@ -1,0 +1,17 @@
+{
+  "spx": {
+    "opening_cost": 1.78,
+    "closing_cost": 0.78,
+    "exercise_fee": 9.0
+  },
+  "qqq": {
+    "opening_cost": 1.0,
+    "closing_cost": 0.0,
+    "exercise_fee": 9.0
+  },
+  "default": {
+    "opening_cost": 1.0,
+    "closing_cost": 0.0,
+    "exercise_fee": 9.0
+  }
+}
