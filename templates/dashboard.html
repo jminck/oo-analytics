@@ -167,6 +167,7 @@
             padding: 1rem 0;
             z-index: 1030;
             position: relative;
+            overflow: visible;
         }
 
         .navbar .container {
@@ -175,6 +176,7 @@
             justify-content: space-between;
             width: 100%;
             max-width: 100%;
+            overflow: visible;
         }
 
         /* Right-aligned user section */
@@ -184,6 +186,8 @@
             gap: 0.75rem;
             margin-left: auto;
             justify-content: flex-end;
+            overflow: visible;
+            position: relative;
         }
 
         .navbar-brand {
@@ -272,6 +276,11 @@
             justify-content: flex-end;
         }
 
+        .dropdown {
+            position: relative;
+            overflow: visible;
+        }
+
         .dropdown-menu {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -281,6 +290,11 @@
             backdrop-filter: blur(20px);
             z-index: 1050 !important;
             position: absolute !important;
+            min-width: 200px;
+            max-width: 300px;
+            overflow: visible;
+            right: 0;
+            left: auto;
         }
 
         .dropdown-item {
