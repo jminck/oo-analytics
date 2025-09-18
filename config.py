@@ -20,8 +20,13 @@ class Config:
     if os.environ.get('DATABASE_URL'):
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     else:
-        # Use absolute path for SQLite in production
-        db_path = os.path.join(BASE_DIR, 'instance', 'portfolio_auth.db')
+        # Use Azure-compatible path for SQLite
+        if os.environ.get('WEBSITES_PORT'):
+            # Azure App Service
+            db_path = '/home/site/wwwroot/instance/portfolio_auth.db'
+        else:
+            # Local development
+            db_path = os.path.join(BASE_DIR, 'instance', 'portfolio_auth.db')
         SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -45,6 +50,13 @@ class Config:
     print(f"DEBUG CONFIG: DISCORD_REDIRECT_URI = {DISCORD_REDIRECT_URI}")
     
     # File Storage
-    DATA_BASE_DIR = os.path.join(BASE_DIR, 'data')
-    GUEST_DATA_DIR = os.path.join(BASE_DIR, 'data', 'guest')
-    USER_DATA_DIR = os.path.join(BASE_DIR, 'data', 'users')
+    if os.environ.get('WEBSITE_SITE_NAME'):
+        # Azure App Service - use persistent paths
+        DATA_BASE_DIR = '/home/site/wwwroot/data'
+        GUEST_DATA_DIR = '/home/site/wwwroot/data/guest'
+        USER_DATA_DIR = '/home/site/wwwroot/data/users'
+    else:
+        # Local development
+        DATA_BASE_DIR = os.path.join(BASE_DIR, 'data')
+        GUEST_DATA_DIR = os.path.join(BASE_DIR, 'data', 'guest')
+        USER_DATA_DIR = os.path.join(BASE_DIR, 'data', 'users')

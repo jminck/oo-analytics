@@ -12,14 +12,22 @@ import numpy as np
 import csv
 import re
 
+# Configure paths for Azure App Service
+if os.environ.get('WEBSITES_PORT'):
+    # Azure App Service - use persistent paths for data
+    DEFAULT_DB_DIR = "/home/site/wwwroot/instance"
+else:
+    # Local development
+    DEFAULT_DB_DIR = "instance"
+
 class DatabaseManager:
     """Handles SQLite database operations."""
     
     def __init__(self, db_path: str = None):
         if db_path is None:
-            # Get the directory where this file is located
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            db_path = os.path.join(base_dir, "data", "portfolio.db")
+            # Use Azure-compatible path
+            os.makedirs(DEFAULT_DB_DIR, exist_ok=True)
+            db_path = os.path.join(DEFAULT_DB_DIR, "portfolio.db")
         self.db_path = db_path
         self.init_database()
     

@@ -8,10 +8,18 @@ import glob
 from datetime import datetime
 from typing import Dict, List, Optional
 
+# Configure paths for Azure App Service
+if os.environ.get('WEBSITES_PORT'):
+    # Azure App Service - use persistent paths for data
+    DEFAULT_DATA_DIR = "/home/site/wwwroot/data"
+else:
+    # Local development
+    DEFAULT_DATA_DIR = "data"
+
 class FileManager:
     """Manages CSV files with friendly naming support and user-specific data folders."""
     
-    def __init__(self, data_dir: str = 'data'):
+    def __init__(self, data_dir: str = DEFAULT_DATA_DIR):
         self.base_data_dir = data_dir
         self.data_dir = data_dir  # This will be updated based on current user
         self.metadata_file = os.path.join(data_dir, 'file_metadata.json')

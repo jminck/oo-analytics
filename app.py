@@ -27,6 +27,23 @@ from auth import init_auth, auth_bp, guest_mode_required, get_current_data_folde
 from config import Config
 from app_insights import app_insights
 
+# Configure paths for Azure App Service
+if os.environ.get('WEBSITE_SITE_NAME'):
+    # Azure App Service - use persistent paths for data
+    DATA_DIR = "/home/site/wwwroot/data"
+    INSTANCE_DIR = "/home/site/wwwroot/instance"
+    LOGS_DIR = "/home/site/wwwroot/logs"
+else:
+    # Local development
+    DATA_DIR = "data"
+    INSTANCE_DIR = "instance"
+    LOGS_DIR = "logs"
+
+# Ensure directories exist
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(INSTANCE_DIR, exist_ok=True)
+os.makedirs(LOGS_DIR, exist_ok=True)
+
 def get_current_user_id():
     """Get the current user ID, handling both authenticated users and guests."""
     try:
