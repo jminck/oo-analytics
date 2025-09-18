@@ -11,7 +11,6 @@ from typing import Optional
 try:
     from opencensus.ext.azure.log_exporter import AzureLogHandler
     from opencensus.ext.azure.trace_exporter import AzureExporter
-    from opencensus.ext.flask.flask_middleware import FlaskMiddleware
     from opencensus.trace.samplers import ProbabilitySampler
     from opencensus.trace.tracer import Tracer
     from opencensus.trace import config_integration
@@ -24,10 +23,6 @@ except ImportError:
             pass
     
     class AzureExporter:
-        def __init__(self, *args, **kwargs):
-            pass
-    
-    class FlaskMiddleware:
         def __init__(self, *args, **kwargs):
             pass
     
@@ -79,13 +74,6 @@ class ApplicationInsightsManager:
                 sampler=ProbabilitySampler(rate=1.0)  # Sample 100% of requests
             )
             
-            # Set up Flask middleware
-            self.middleware = FlaskMiddleware(
-                self.app,
-                exporter=exporter,
-                sampler=ProbabilitySampler(rate=1.0)
-            )
-            
             # Set up logging handler
             handler = AzureLogHandler(
                 connection_string=f'InstrumentationKey={self.instrumentation_key}'
@@ -102,7 +90,7 @@ class ApplicationInsightsManager:
             self.logger.setLevel(logging.INFO)
             
             self.is_enabled = True
-            self.app.logger.info("Application Insights enabled successfully")
+            self.app.logger.info("Application Insights enabled successfully (without Flask middleware)")
             
         except Exception as e:
             self.app.logger.error(f"Failed to set up Application Insights: {e}")

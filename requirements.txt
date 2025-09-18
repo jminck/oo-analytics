@@ -12,8 +12,9 @@ gunicorn==20.1.0
 # Production dependencies
 Werkzeug==2.3.7
 cryptography==41.0.7
-# Azure Application Insights
+# Azure Application Insights - Updated for Flask 2.3.3 compatibility
 opencensus-ext-azure==1.1.13
-opencensus-ext-flask==0.7.4
 opencensus-ext-logging==0.1.0
-opencensus-ext-requests==0.7.3 
+opencensus-ext-requests==0.7.3
+# Note: opencensus-ext-flask removed due to Flask 2.3.3 incompatibility
+# Using manual Flask integration instead 

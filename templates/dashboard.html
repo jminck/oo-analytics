@@ -762,6 +762,29 @@
             padding: 0.5rem 0.75rem; /* Compact padding */
         }
         
+        /* Sticky first column for Strategy Performance table */
+        #strategyTable th:first-child,
+        #strategyTable td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 2; /* Ensure it stays above other scrolling content */
+            background-color: var(--bg-tertiary); /* Match header background */
+            border-right: 1px solid var(--border-color); /* Visual separation */
+        }
+        
+        #strategyTable td:first-child {
+            background-color: var(--bg-card); /* Match row background */
+        }
+        
+        /* Ensure sticky column has proper background in light theme */
+        [data-theme="light"] #strategyTable th:first-child {
+            background-color: var(--bg-tertiary) !important;
+        }
+        
+        [data-theme="light"] #strategyTable td:first-child {
+            background-color: var(--bg-card) !important;
+        }
+        
         /* Table styling for dark theme */
         .table {
             color: var(--text-primary) !important;
@@ -7104,7 +7127,7 @@
                     sortedPairs.forEach(([pair, count]) => {
                         html += `
                             <div class="col-md-6 mb-2">
-                                <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                                <div class="d-flex justify-content-between align-items-center p-2 border rounded strategy-pair-card">
                                     <span class="small">${pair}</span>
                                     <span class="badge badge-danger">${count}</span>
                                 </div>
@@ -7281,6 +7304,7 @@
                 }
             });
             
+            // Filter table rows
             rows.forEach(row => {
                 const trade1Strategy = row.dataset.trade1Strategy;
                 const trade2Strategy = row.dataset.trade2Strategy;
@@ -7292,9 +7316,34 @@
                 }
             });
             
+            // Filter strategy pairs section
+            const strategyPairCards = document.querySelectorAll('.strategy-pair-card');
+            strategyPairCards.forEach(card => {
+                const pairText = card.textContent;
+                // Check if the pair involves the selected strategy
+                if (!strategy || pairText.includes(strategy)) {
+                    card.closest('.col-md-6').style.display = '';
+                } else {
+                    card.closest('.col-md-6').style.display = 'none';
+                }
+            });
+            
+            // Filter individual strategy involvement section
+            document.querySelectorAll('.strategy-clickable').forEach(el => {
+                const strategyName = el.dataset.strategy;
+                if (!strategy || strategyName === strategy) {
+                    el.closest('.col-md-6').style.display = '';
+                } else {
+                    el.closest('.col-md-6').style.display = 'none';
+                }
+            });
+            
             // Update row count display
             const visibleRows = document.querySelectorAll('.conflict-row:not([style*="display: none"])');
-            console.log(`🔧 Filtered to ${visibleRows.length} conflicts for strategy: ${strategy || 'All'}`);
+            const visiblePairs = document.querySelectorAll('.strategy-pair-card').length - 
+                                document.querySelectorAll('.strategy-pair-card').length + 
+                                document.querySelectorAll('.strategy-pair-card:not([style*="display: none"])').length;
+            console.log(`🔧 Filtered to ${visibleRows.length} conflicts and ${visiblePairs} strategy pairs for strategy: ${strategy || 'All'}`);
         }
         
         function clearConflictsFilter() {
@@ -7304,6 +7353,16 @@
             document.querySelectorAll('.strategy-clickable').forEach(el => {
                 el.style.backgroundColor = '';
                 el.style.color = '';
+            });
+            
+            // Show all strategy pairs
+            document.querySelectorAll('.strategy-pair-card').forEach(card => {
+                card.closest('.col-md-6').style.display = '';
+            });
+            
+            // Show all individual strategies
+            document.querySelectorAll('.strategy-clickable').forEach(el => {
+                el.closest('.col-md-6').style.display = '';
             });
         }
         
