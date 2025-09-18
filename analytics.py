@@ -603,8 +603,8 @@ class MonteCarloSimulator:
             num_trades = len(all_trades)
         
         # Extract trade returns for sampling (use aggregate P&L for portfolio-level analysis)
-        # Scale returns based on trade size percentage
-        trade_returns = [trade.pnl * (trade_size_percent / 100.0) for trade in all_trades]
+        # Note: trade_size_percent affects position sizing, not individual trade returns
+        trade_returns = [trade.pnl for trade in all_trades]
         
         # Run simulations
         simulation_results = []
@@ -618,10 +618,12 @@ class MonteCarloSimulator:
         
         for sim_num in range(num_simulations):
             # Randomly sample trades with replacement
-            simulated_pnl = np.random.choice(trade_returns, size=num_trades, replace=True)
+            simulated_trade_pnl = np.random.choice(trade_returns, size=num_trades, replace=True)
             
-            # Calculate cumulative P&L and account balance over time
-            cumulative_pnl = np.cumsum(simulated_pnl)
+            # Calculate account balance over time
+            # Note: Historical trades already represent the actual performance
+            # The trade size percentage is for reference only, not for scaling
+            cumulative_pnl = np.cumsum(simulated_trade_pnl)
             account_balance = initial_balance + cumulative_pnl
             
             # Calculate final balance and max drawdown
@@ -635,7 +637,7 @@ class MonteCarloSimulator:
                 'max_drawdown': max_drawdown,
                 'cumulative_pnl': cumulative_pnl.tolist(),
                 'account_balance': account_balance.tolist(),
-                'simulated_trades': simulated_pnl.tolist()  # Store the actual trade P&L values
+                'simulated_trades': simulated_trade_pnl.tolist()  # Store the actual trade P&L values
             })
             
             final_balances.append(final_balance)
@@ -769,10 +771,16 @@ class MonteCarloSimulator:
             cumulative_pnl = np.cumsum(simulated_pnl)
             final_pnl = cumulative_pnl[-1]
             
+            # Calculate account balance for chart compatibility
+            account_balance = initial_balance + cumulative_pnl
+            
             simulation_results.append({
                 'simulation_id': sim_num + 1,
                 'final_pnl': final_pnl,
+                'final_balance': account_balance[-1],  # For compatibility with portfolio simulation
+                'total_pnl': final_pnl,  # For compatibility with portfolio simulation
                 'cumulative_pnl': cumulative_pnl.tolist(),
+                'account_balance': account_balance.tolist(),  # For chart compatibility
                 'simulated_trades': simulated_pnl.tolist()  # Store individual trade returns
             })
             

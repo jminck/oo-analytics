@@ -1559,6 +1559,74 @@ def available_charts():
         'data': charts
     })
 
+@app.route('/api/monte-carlo/strategy/<path:strategy_name>', methods=['POST'])
+def run_strategy_monte_carlo(strategy_name):
+    """Run Monte Carlo simulation for a specific strategy."""
+    try:
+        # Debug: Print the received strategy name and available strategies
+        print(f"DEBUG: Received strategy name: '{strategy_name}'")
+        print(f"DEBUG: Available strategies: {list(portfolio.strategies.keys())}")
+        
+        # Try to find a matching strategy (case-insensitive and handle encoding issues)
+        matching_strategy = None
+        for available_strategy in portfolio.strategies.keys():
+            print(f"DEBUG: Comparing '{strategy_name}' with '{available_strategy}'")
+            if available_strategy == strategy_name:
+                matching_strategy = available_strategy
+                print(f"DEBUG: Exact match found: '{matching_strategy}'")
+                break
+            # Try case-insensitive match
+            elif available_strategy.lower() == strategy_name.lower():
+                matching_strategy = available_strategy
+                print(f"DEBUG: Case-insensitive match found: '{matching_strategy}'")
+                break
+        
+        if not matching_strategy:
+            return jsonify({
+                'success': False,
+                'error': f'Strategy "{strategy_name}" not found. Available strategies: {list(portfolio.strategies.keys())}'
+            }), 404
+        
+        # Get parameters from request
+        data = request.get_json() or {}
+        num_simulations = data.get('num_simulations', 1000)
+        num_trades = data.get('num_trades', None)  # None = use historical count
+        trade_size_percent = data.get('trade_size_percent', 1.0)  # Default to 1%
+        
+        # Validate parameters
+        if not isinstance(num_simulations, int) or num_simulations < 100 or num_simulations > 10000:
+            return jsonify({
+                'success': False,
+                'error': 'Number of simulations must be between 100 and 10,000'
+            }), 400
+        
+        if num_trades is not None and (not isinstance(num_trades, int) or num_trades < 10):
+            return jsonify({
+                'success': False,
+                'error': 'Number of trades must be at least 10'
+            }), 400
+        
+        if not isinstance(trade_size_percent, (int, float)) or trade_size_percent <= 0 or trade_size_percent > 50:
+            return jsonify({
+                'success': False,
+                'error': 'Trade size percentage must be between 0.1 and 50'
+            }), 400
+        
+        # Run simulation
+        simulator = MonteCarloSimulator(portfolio)
+        results = simulator.run_strategy_specific_simulation(matching_strategy, num_simulations, num_trades, trade_size_percent)
+        
+        return jsonify({
+            'success': True,
+            'data': results
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Strategy Monte Carlo simulation failed: {str(e)}'
+        }), 500
+
 @app.route('/api/charts/monte-carlo/<chart_type>', methods=['POST'])
 def get_monte_carlo_chart(chart_type):
     """Get a Monte Carlo chart with simulation data."""
@@ -2125,56 +2193,6 @@ def run_portfolio_monte_carlo():
         return jsonify({
             'success': False,
             'error': f'Monte Carlo simulation failed: {str(e)}'
-        }), 500
-
-@app.route('/api/monte-carlo/strategy/<strategy_name>', methods=['POST'])
-def run_strategy_monte_carlo(strategy_name):
-    """Run Monte Carlo simulation for a specific strategy."""
-    try:
-        if strategy_name not in portfolio.strategies:
-            return jsonify({
-                'success': False,
-                'error': f'Strategy "{strategy_name}" not found'
-            }), 404
-        
-        # Get parameters from request
-        data = request.get_json() or {}
-        num_simulations = data.get('num_simulations', 1000)
-        num_trades = data.get('num_trades', None)  # None = use historical count
-        trade_size_percent = data.get('trade_size_percent', 1.0)  # Default to 1%
-        
-        # Validate parameters
-        if not isinstance(num_simulations, int) or num_simulations < 100 or num_simulations > 10000:
-            return jsonify({
-                'success': False,
-                'error': 'Number of simulations must be between 100 and 10,000'
-            }), 400
-        
-        if num_trades is not None and (not isinstance(num_trades, int) or num_trades < 10):
-            return jsonify({
-                'success': False,
-                'error': 'Number of trades must be at least 10'
-            }), 400
-        
-        if not isinstance(trade_size_percent, (int, float)) or trade_size_percent <= 0 or trade_size_percent > 50:
-            return jsonify({
-                'success': False,
-                'error': 'Trade size percentage must be between 0.1 and 50'
-            }), 400
-        
-        # Run simulation
-        simulator = MonteCarloSimulator(portfolio)
-        results = simulator.run_strategy_specific_simulation(strategy_name, num_simulations, num_trades, trade_size_percent)
-        
-        return jsonify({
-            'success': True,
-            'data': results
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Strategy Monte Carlo simulation failed: {str(e)}'
         }), 500
 
 @app.route('/api/monte-carlo/all-strategies', methods=['POST'])

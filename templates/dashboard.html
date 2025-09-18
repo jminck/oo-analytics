@@ -4317,19 +4317,23 @@
         }
 
         function loadStrategyOptions() {
-            fetch('/api/strategies')
+            fetch('/api/strategy-details')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.data) {
+                    if (data.success && data.data && data.data.strategies) {
                         const strategySelect = document.getElementById('selectedStrategy');
                         strategySelect.innerHTML = '';
                         
-                        Object.keys(data.data).forEach(strategyName => {
+                        data.data.strategies.forEach(strategyName => {
                             const option = document.createElement('option');
                             option.value = strategyName;
                             option.textContent = strategyName;
                             strategySelect.appendChild(option);
                         });
+                        
+                        console.log('Loaded', data.data.strategies.length, 'strategies for Monte Carlo dropdown');
+                    } else {
+                        console.error('Failed to load strategies:', data.error || 'No strategies found');
                     }
                 })
                 .catch(error => {
@@ -4381,6 +4385,8 @@
                 }
                 apiEndpoint = `/api/monte-carlo/strategy/${encodeURIComponent(selectedStrategy)}`;
                 simulationDescription = `Running ${numSimulations.toLocaleString()} simulations for strategy: ${selectedStrategy}`;
+                console.log('Single strategy simulation - Strategy:', selectedStrategy, 'Endpoint:', apiEndpoint);
+                console.log('URL encoded strategy:', encodeURIComponent(selectedStrategy));
             } else if (simulationType === 'all_strategies') {
                 apiEndpoint = '/api/monte-carlo/all-strategies';
                 simulationDescription = `Running ${numSimulations.toLocaleString()} simulations for each strategy individually...`;
@@ -4395,7 +4401,13 @@
                 },
                 body: JSON.stringify(requestBody)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status, 'URL:', apiEndpoint);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 runBtn.disabled = false;
                 
@@ -4413,9 +4425,12 @@
                     
                     // Show chart section and simulation details (only for portfolio and single strategy)
                     if (simulationType !== 'all_strategies') {
-                    document.getElementById('monteCarloChartsSection').style.display = 'block';
-                    loadMonteCarloChartButtons(); // Load the Monte Carlo chart buttons
-                    showSimulationDetailsSection();
+                        document.getElementById('monteCarloChartsSection').style.display = 'block';
+                        loadMonteCarloChartButtons(); // Load the Monte Carlo chart buttons
+                        showSimulationDetailsSection();
+                    } else {
+                        // Hide chart section for all_strategies since it has different data structure
+                        document.getElementById('monteCarloChartsSection').style.display = 'none';
                     }
                     
                     setTimeout(() => {
@@ -4430,6 +4445,11 @@
             .catch(error => {
                 runBtn.disabled = false;
                 console.error('Monte Carlo simulation error:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    endpoint: apiEndpoint
+                });
                 statusDiv.innerHTML = '<small class="text-danger">❌ Simulation failed</small>';
                 resultsDiv.className = 'alert alert-danger';
                 resultsDiv.innerHTML = `Error: ${error.message}`;
@@ -4593,7 +4613,7 @@
                         • <span class="custom-tooltip" data-tooltip="Number of trades randomly sampled in each simulation run">${summary.num_trades_per_sim.toLocaleString()} trades per simulation</span><br>
                         • <span class="custom-tooltip" data-tooltip="Percentage of account balance risked per trade (affects position sizing and leverage)">Trade size: ${tradeSizePercent}% of account balance per trade</span><br>
                         • <span class="custom-tooltip" data-tooltip="Initial account balance used as starting point for all simulations">Starting balance: $${summary.initial_balance.toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Actual final balance achieved in your historical trading data">Historical final balance: $${summary.historical_final_balance.toLocaleString()}</span>
+                        • <span class="custom-tooltip" data-tooltip="Actual final balance achieved in your historical trading data">Historical final balance: $${(summary.historical_final_balance || summary.historical_pnl || 0).toLocaleString()}</span>
                     </div>
                     <div class="col-md-6">
                         <strong>Outcome Probabilities:</strong><br>
@@ -4606,16 +4626,16 @@
                 <div class="row">
                     <div class="col-md-6">
                         <strong>Final Balance Statistics:</strong><br>
-                        • <span class="custom-tooltip" data-tooltip="Average final account balance across all simulation runs">Mean: $${balanceStats.mean.toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Middle value when all final balances are sorted (50% above, 50% below)">Median: $${balanceStats.median.toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="95% of simulations achieved this balance or lower (optimistic scenario)">Best case (95th percentile): $${balanceStats.percentiles.p95.toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="5% of simulations achieved this balance or lower (pessimistic scenario)">Worst case (5th percentile): $${balanceStats.percentiles.p5.toLocaleString()}</span>
+                        • <span class="custom-tooltip" data-tooltip="Average final account balance across all simulation runs">Mean: $${(balanceStats.mean || 0).toLocaleString()}</span><br>
+                        • <span class="custom-tooltip" data-tooltip="Middle value when all final balances are sorted (50% above, 50% below)">Median: $${(balanceStats.median || 0).toLocaleString()}</span><br>
+                        • <span class="custom-tooltip" data-tooltip="95% of simulations achieved this balance or lower (optimistic scenario)">Best case (95th percentile): $${(balanceStats.percentiles?.p95 || 0).toLocaleString()}</span><br>
+                        • <span class="custom-tooltip" data-tooltip="5% of simulations achieved this balance or lower (pessimistic scenario)">Worst case (5th percentile): $${(balanceStats.percentiles?.p5 || 0).toLocaleString()}</span>
                     </div>
                     <div class="col-md-6">
                         <strong>Risk Metrics:</strong><br>
-                        • <span class="custom-tooltip" data-tooltip="Average maximum drawdown (peak-to-trough decline) across all simulations">Average max drawdown: $${Math.abs(drawdownStats.mean).toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Worst maximum drawdown experienced in any single simulation">Worst case drawdown: $${Math.abs(drawdownStats.max).toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Standard deviation of final balances - measures consistency of outcomes">Standard deviation: $${balanceStats.std.toLocaleString()}</span>
+                        • <span class="custom-tooltip" data-tooltip="Average maximum drawdown (peak-to-trough decline) across all simulations">Average max drawdown: $${Math.abs(drawdownStats.mean || 0).toLocaleString()}</span><br>
+                        • <span class="custom-tooltip" data-tooltip="Worst maximum drawdown experienced in any single simulation">Worst case drawdown: $${Math.abs(drawdownStats.max || 0).toLocaleString()}</span><br>
+                        • <span class="custom-tooltip" data-tooltip="Standard deviation of final balances - measures consistency of outcomes">Standard deviation: $${(balanceStats.std || 0).toLocaleString()}</span>
                     </div>
                 </div>
                 <hr>
@@ -5052,7 +5072,7 @@
                 currentSimulationData.simulation_results.forEach(sim => {
                     const option = document.createElement('option');
                     option.value = sim.simulation_id;
-                    option.textContent = `Simulation #${sim.simulation_id} (Final: $${sim.final_balance.toLocaleString()}, P&L: $${sim.total_pnl.toLocaleString()})`;
+                    option.textContent = `Simulation #${sim.simulation_id} (Final: $${(sim.final_balance || sim.final_pnl || 0).toLocaleString()}, P&L: $${(sim.total_pnl || sim.final_pnl || 0).toLocaleString()})`;
                     select.appendChild(option);
                 });
             }
@@ -5119,15 +5139,15 @@
                         • Total Trades: ${summary.total_trades}<br>
                         • Winning Trades: ${summary.winning_trades} (${summary.win_rate.toFixed(1)}%)<br>
                         • Losing Trades: ${summary.losing_trades}<br>
-                        • Final P&L: $${summary.total_pnl.toLocaleString()}<br>
-                        • Final Balance: $${summary.final_balance.toLocaleString()}<br>
-                        • Max Drawdown: $${Math.abs(summary.max_drawdown).toLocaleString()}
+                        • Final P&L: $${(summary.total_pnl || 0).toLocaleString()}<br>
+                        • Final Balance: $${(summary.final_balance || 0).toLocaleString()}<br>
+                        • Max Drawdown: $${Math.abs(summary.max_drawdown || 0).toLocaleString()}
                     </div>
                     <div class="col-md-6">
                         <strong>How This Simulation Was Created:</strong><br>
                         • Randomly selected ${summary.total_trades} trades from your ${comparison.historical_trade_count} historical trades<br>
-                        • Historical P&L range: $${comparison.historical_pnl_range.min.toLocaleString()} to $${comparison.historical_pnl_range.max.toLocaleString()}<br>
-                        • This simulation P&L range: $${comparison.simulated_pnl_range.min.toLocaleString()} to $${comparison.simulated_pnl_range.max.toLocaleString()}<br>
+                        • Historical P&L range: $${(comparison.historical_pnl_range?.min || 0).toLocaleString()} to $${(comparison.historical_pnl_range?.max || 0).toLocaleString()}<br>
+                        • This simulation P&L range: $${(comparison.simulated_pnl_range?.min || 0).toLocaleString()} to $${(comparison.simulated_pnl_range?.max || 0).toLocaleString()}<br>
                         <small class="text-muted">Each trade below was randomly picked from your actual trading history</small>
                     </div>
                 </div>
