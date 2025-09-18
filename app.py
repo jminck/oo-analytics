@@ -3500,6 +3500,53 @@ def delete_custom_blackout_list(list_id):
         print(f"Error deleting custom blackout list: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/blackout-date-lists', methods=['GET'])
+@guest_mode_required
+def get_blackout_date_lists():
+    """Get available blackout date lists and their dates"""
+    try:
+        # Define built-in blackout date lists
+        blackout_date_lists = {
+            'FOMC Announcements': _generate_fomc_dates(),
+            'End of Month (EOM)': _generate_eom_dates(),
+            'End of Quarter (EOQ)': _generate_eoq_dates(),
+            'Short Weeks': _generate_short_weeks_dates()
+        }
+        
+        # Add custom blackout date lists for the current user
+        try:
+            user_id = get_current_user_id()
+            db_manager = DatabaseManager()
+            conn = db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT list_name, dates_json 
+                FROM custom_blackout_lists 
+                WHERE user_id = ?
+            ''', (user_id,))
+            
+            for row in cursor.fetchall():
+                list_name, dates_json = row
+                import json
+                dates = json.loads(dates_json) if dates_json else []
+                blackout_date_lists[list_name] = dates
+            
+            conn.close()
+        except Exception as e:
+            print(f"Error loading custom blackout lists: {e}")
+            # Continue with built-in lists only
+        
+        return jsonify({
+            'success': True,
+            'available_lists': list(blackout_date_lists.keys()),
+            'date_lists': {name: dates for name, dates in blackout_date_lists.items()}
+        })
+        
+    except Exception as e:
+        print(f"Error in get_blackout_date_lists: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/blackout-dates', methods=['POST'])
 @guest_mode_required
 def get_blackout_dates_analysis():
