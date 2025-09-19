@@ -22,8 +22,10 @@ class Config:
     else:
         # Use Azure-compatible path for SQLite
         if os.environ.get('WEBSITES_PORT'):
-            # Azure App Service
+            # Azure App Service - use persistent directory
             db_path = '/home/site/wwwroot/instance/portfolio_auth.db'
+            # Ensure the directory exists and is writable
+            os.makedirs('/home/site/wwwroot/instance', exist_ok=True)
         else:
             # Local development
             db_path = os.path.join(BASE_DIR, 'instance', 'portfolio_auth.db')

@@ -369,8 +369,9 @@ class Strategy:
         win_rate = (wins_count / len(self.trades)) * 100 if self.trades else 0
         profit_factor = avg_win / avg_loss if avg_loss > 0 else 0
         
-        # Calculate expectancy per lot
-        expectancy_per_lot = (avg_win_per_lot * (wins_count / len(self.trades))) - (avg_loss_per_lot * (losses_count / len(self.trades))) if self.trades else 0
+        # Calculate expectancy per lot - use the same calculation as the Strategy property
+        # Use the Strategy's expectancy_per_lot property to ensure consistency
+        expectancy_per_lot = self.expectancy_per_lot
         
         # Calculate margin percentage and efficiency from trades
         margin_percentage = 0.0
@@ -378,15 +379,33 @@ class Strategy:
         if self.trades:
             # Calculate average margin per contract for efficiency calculation
             margin_values = []
+            recent_margins = []  # For 90-day calculation
+            
+            # Find the most recent trade date to calculate 90-day window
+            from datetime import datetime, timedelta
+            all_trade_dates = [trade.date_opened for trade in self.trades if trade.date_opened]
+            if all_trade_dates:
+                most_recent_date = max(all_trade_dates)
+                cutoff_date = most_recent_date - timedelta(days=90)
+            else:
+                cutoff_date = None
+            
             for trade in self.trades:
                 margin_req = getattr(trade, 'margin_req', 0)
                 contracts = getattr(trade, 'contracts', 1)
                 if margin_req > 0 and contracts > 0:
                     margin_per_contract = margin_req / contracts
                     margin_values.append(margin_per_contract)
+                    
+                    # Check if this trade is within the last 90 days
+                    if cutoff_date and trade.date_opened and trade.date_opened >= cutoff_date:
+                        recent_margins.append(margin_per_contract)
             
             if margin_values:
                 avg_margin_per_contract = sum(margin_values) / len(margin_values)
+                
+                # Calculate 90-day average (same logic as Margin Analysis)
+                avg_90_days = sum(recent_margins) / len(recent_margins) if recent_margins else 0
                 
                 # Calculate margin percentage using first trade: Margin Req. / (Funds at Close - P/L)
                 first_trade = self.trades[0]
@@ -399,8 +418,10 @@ class Strategy:
                     margin_percentage = (first_trade_margin_req / initial_balance) * 100
                 
                 # Calculate efficiency: (expectancy / avg margin) * win rate
-                if avg_margin_per_contract > 0:
-                    efficiency = (expectancy_per_lot / avg_margin_per_contract) * (win_rate / 100)
+                # Use 90-day average margin if available, otherwise use overall average (same as Margin Analysis)
+                margin_for_efficiency = avg_90_days if avg_90_days > 0 else avg_margin_per_contract
+                if margin_for_efficiency > 0:
+                    efficiency = (expectancy_per_lot / margin_for_efficiency) * (self.win_rate / 100)
 
         result = {
             'name': self.name,

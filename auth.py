@@ -109,6 +109,10 @@ def init_auth(app):
     else:
         print("WARNING: Google OAuth credentials not found - Google login will not work")
     
+    # Ensure database exists from template before creating tables
+    from db_template import ensure_auth_database
+    ensure_auth_database()
+    
     # Create tables
     with app.app_context():
         db.create_all()

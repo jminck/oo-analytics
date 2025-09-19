@@ -1560,6 +1560,8 @@ class ChartFactory:
             'margin_analysis': 'Margin requirements analysis',
             'daily_margin_analysis': 'Daily margin usage analysis',
             'monte_carlo': 'Monte Carlo simulation analysis',
+            'blackout_dates': 'Blackout dates analysis',
+            'price_movement': 'Price movement analysis',
             'separator': '--- Cross-File Analysis ---',
             'cross_file_correlation': 'Cross-file strategy correlation analysis',
             'files_overview': 'Uploaded files overview and management'

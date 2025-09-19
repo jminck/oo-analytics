@@ -95,7 +95,7 @@
             min-height: 100vh;
             line-height: 1.6;
         }
-        
+
         /* Light theme background */
         [data-theme="light"] body {
             background: var(--bg-primary);
@@ -1399,6 +1399,25 @@
             border-radius: 0.375rem;
         }
 
+        /* Price Movement Range Slider */
+        .range-slider-container {
+            position: relative;
+            margin: 10px 0;
+        }
+        
+        .range-slider-container input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .range-slider-container input[type="range"]:first-child {
+            margin-bottom: 0;
+        }
+        
+        .range-slider-container input[type="range"]:last-child {
+            margin-top: 0;
+        }
+
         /* Portfolio Balance Analysis & Position Sizing text visibility */
         .card h6,
         .card h5,
@@ -1840,6 +1859,30 @@
                 padding: 0.5rem 0.25rem;
             }
         }
+
+        /* Wide tooltip styling for Bootstrap tooltips */
+        .wide-tooltip {
+            max-width: 500px !important;
+            text-align: left !important;
+        }
+        
+        .wide-tooltip .tooltip-inner {
+            max-width: 500px !important;
+            text-align: left !important;
+            white-space: normal !important;
+        }
+
+        /* Fix text color in blackout dates textarea */
+        #dateListDisplay {
+            color: #000000 !important;
+            background-color: #f8f9fa !important;
+        }
+        
+        /* Ensure text is visible in both light and dark themes */
+        [data-theme="dark"] #dateListDisplay {
+            color: #000000 !important;
+            background-color: #f8f9fa !important;
+        }
     </style>
 </head>
 <body>
@@ -1863,6 +1906,10 @@
                     <i class="fas fa-moon" id="themeIcon"></i>
                     <span id="themeText">Dark</span>
                 </button>
+                <a href="https://github.com/jminck/oo-analytics/issues" target="_blank" class="btn btn-outline-secondary" title="Report a bug or issue">
+                    <i class="fab fa-github"></i>
+                    <span>Bug/Suggestion?</span>
+                </a>
                 <div class="dropdown">
                     <button class="btn btn-outline-primary dropdown-toggle" type="button" id="authDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user"></i>
@@ -1948,98 +1995,98 @@
 
         <!-- Portfolio Overview Metrics -->
         <div class="mb-4">
-            <h2 class="section-title">
-                <i class="fas fa-chart-area"></i>
-                Portfolio Overview
-            </h2>
+                <h2 class="section-title">
+                    <i class="fas fa-chart-area"></i>
+                    Portfolio Overview
+                </h2>
             <div class="portfolio-overview-container">
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
-                            <div class="metric-title">Starting Capital</div>
-                            <div class="metric-value" id="startingCapital">$0</div>
-                            <div class="metric-subtitle" id="startDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
-                        </div>
+                <div class="card metric-card">
+                    <div class="card-body text-center">
+                        <div class="metric-title">Starting Capital</div>
+                        <div class="metric-value" id="startingCapital">$0</div>
+                        <div class="metric-subtitle" id="startDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
                     </div>
                 </div>
+            </div>
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
-                            <div class="metric-title">Ending Capital</div>
-                            <div class="metric-value" id="endingCapital">$0</div>
-                            <div class="metric-subtitle" id="endDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
-                        </div>
+                <div class="card metric-card">
+                    <div class="card-body text-center">
+                        <div class="metric-title">Ending Capital</div>
+                        <div class="metric-value" id="endingCapital">$0</div>
+                        <div class="metric-subtitle" id="endDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
                     </div>
                 </div>
+            </div>
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
-                            <div class="metric-title">Total P&L</div>
-                            <div class="metric-value" id="totalPnL">$0</div>
-                        </div>
+                <div class="card metric-card">
+                    <div class="card-body text-center">
+                        <div class="metric-title">Total P&L</div>
+                        <div class="metric-value" id="totalPnL">$0</div>
                     </div>
                 </div>
+            </div>
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
+                <div class="card metric-card">
+                    <div class="card-body text-center">
                             <div class="metric-title">Max Drawdown</div>
                             <div class="metric-value" id="maxDrawdown">$0</div>
-                        </div>
                     </div>
                 </div>
+            </div>
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
+                <div class="card metric-card">
+                    <div class="card-body text-center">
                             <div class="metric-title">Max Drawdown %</div>
                             <div class="metric-value" id="maxDrawdownPct">0%</div>
-                        </div>
                     </div>
                 </div>
+            </div>
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
+                <div class="card metric-card">
+                    <div class="card-body text-center">
                             <div class="metric-title">CAGR</div>
                             <div class="metric-value" id="cagr">0%</div>
-                        </div>
                     </div>
                 </div>
+            </div>
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
+                <div class="card metric-card">
+                    <div class="card-body text-center">
                             <div class="metric-title">MAR</div>
                             <div class="metric-value" id="mar">0</div>
-                        </div>
                     </div>
                 </div>
+            </div>
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
+                <div class="card metric-card">
+                    <div class="card-body text-center">
                             <div class="metric-title">Total Trades</div>
                             <div class="metric-value" id="totalTrades">0</div>
-                        </div>
                     </div>
                 </div>
+            </div>
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
+                <div class="card metric-card">
+                    <div class="card-body text-center">
                             <div class="metric-title">Strategies</div>
                             <div class="metric-value" id="strategyCount">0</div>
-                        </div>
                     </div>
                 </div>
+            </div>
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
-                            <div class="metric-title">Avg Days to New High</div>
-                            <div class="metric-value" id="avgDaysToNewHigh">N/A</div>
-                        </div>
+                <div class="card metric-card">
+                    <div class="card-body text-center">
+                        <div class="metric-title">Avg Days to New High</div>
+                        <div class="metric-value" id="avgDaysToNewHigh">N/A</div>
                     </div>
                 </div>
+            </div>
                 <div class="metric-card-wrapper">
-                    <div class="card metric-card">
-                        <div class="card-body text-center">
-                            <div class="metric-title">Longest Days to New High</div>
-                            <div class="metric-value" id="longestDaysSinceToNewHigh">N/A</div>
+                <div class="card metric-card">
+                    <div class="card-body text-center">
+                        <div class="metric-title">Longest Days to New High</div>
+                        <div class="metric-value" id="longestDaysSinceToNewHigh">N/A</div>
                         </div>
                     </div>
                 </div>
@@ -2069,11 +2116,11 @@
                     </div>
                     <div class="card-body p-1">
                         <div id="chartButtons" class="d-grid gap-1">
-                            <!-- Chart buttons will be populated by JavaScript -->
-                        </div>
+                        <!-- Chart buttons will be populated by JavaScript -->
+                    </div>
+                    </div>
                     </div>
                 </div>
-            </div>
             
             <!-- Right Side - Chart Container (Flexible) -->
             <div class="flex-grow-1" style="min-width: 0; overflow-x: hidden;">
@@ -2135,6 +2182,22 @@
                             <h3 class="section-title">
                                 <i class="fas fa-balance-scale"></i>
                                 Portfolio Balance Analysis
+                                <i class="fas fa-info-circle ms-2" 
+                                   data-bs-toggle="tooltip" 
+                                   data-bs-placement="top" 
+                                   data-bs-html="true"
+                                   data-bs-custom-class="wide-tooltip"
+                                   title="<div style='text-align: left; max-width: 500px;'><strong>Strategy Classification Logic:</strong><br><br>
+                                   <strong>BULLISH Strategies:</strong><br>
+                                   • Market goes UP (+0.5%+) AND strategy is PROFITABLE<br>
+                                   • Market goes DOWN (-0.5%+) AND strategy LOSES money<br><br>
+                                   <strong>BEARISH Strategies:</strong><br>
+                                   • Market goes DOWN (-0.5%+) AND strategy is PROFITABLE<br>
+                                   • Market goes UP (+0.5%+) AND strategy LOSES money<br><br>
+                                   <strong>NEUTRAL Strategies:</strong><br>
+                                   • Small market movements (-0.5% to +0.5%)<br>
+                                   • Mixed signals or no clear market correlation<br><br>
+                                   <em>Classification based on opening/closing prices and P&L for each trade.</em></div>"></i>
                             </h3>
                             <div class="card">
                                 <div class="card-body">
@@ -2152,7 +2215,7 @@
                             <div class="card">
                                 <div class="card-body">
                                     <div id="positionSizing">
-                                        <p class="text-muted">AI-powered position sizing recommendations will appear here</p>
+                                        <p class="text-muted">Position sizing recommendations based on strategy performance and risk analysis will appear here</p>
                                     </div>
                                 </div>
                             </div>
@@ -2273,6 +2336,7 @@
             loadCurrentFilename();
             
             console.log('=== PAGE INITIALIZATION COMPLETED ===');
+            
             
             // Ensure chart buttons are loaded
             setTimeout(() => {
@@ -3315,6 +3379,11 @@
                         availableCharts['blackout_dates'] = 'Blackout dates analysis';
                     }
                     
+                    // Ensure price_movement is available
+                    if (!availableCharts.price_movement) {
+                        availableCharts['price_movement'] = 'Price movement analysis';
+                    }
+                    
                     // Add separator to availableCharts for rendering (but it won't be clickable)
                     availableCharts['separator'] = '--- Cross-File Analysis ---';
                     
@@ -3373,6 +3442,7 @@
                 'daily_margin_analysis': 'Daily margin usage analysis',
                 'monte_carlo': 'Monte Carlo simulation analysis',
                 'blackout_dates': 'Blackout dates analysis',
+                'price_movement': 'Price movement analysis',
                 'cross_file_correlation': 'Analyze strategies across multiple uploaded files'
             };
             renderChartButtons();
@@ -3409,6 +3479,7 @@
                     ['daily_margin_analysis', 'Daily margin usage analysis'],
                     ['monte_carlo', 'Monte Carlo simulation analysis'],
                     ['blackout_dates', 'Blackout dates analysis'],
+                    ['price_movement', 'Price movement analysis'],
                     ['separator', '--- Cross-File Analysis ---'],
                     ['cross_file_correlation', 'Analyze strategies across multiple uploaded files'],
                     ['files_overview', 'Uploaded files overview and management']
@@ -3438,6 +3509,7 @@
                 'daily_margin_analysis',
                 'monte_carlo',
                 'blackout_dates',
+                'price_movement',
                 'separator',
                 'cross_file_correlation',
                 'files_overview'
@@ -3511,6 +3583,7 @@
                 'commission_analysis': '💳 Commission Analysis',
                 'conflicting_legs': '⚠️ Conflicting Legs',
                 'blackout_dates': '🚫 Blackout Dates',
+                'price_movement': '📈 Price Movement',
                 'separator': '--- Cross-File Analysis ---',
                 'cross_file_correlation': '🔗 Cross-File Correlation',
                 'files_overview': '📁 Uploaded Files Overview'
@@ -3532,6 +3605,7 @@
            console.log('chartType length:', chartType.length);
            console.log('chartType === "strategy_detail":', chartType === 'strategy_detail');
            console.log('chartType.trim() === "strategy_detail":', chartType.trim() === 'strategy_detail');
+           console.log('🔧 DEBUG: chartType === "blackout_dates":', chartType === 'blackout_dates');
            const container = document.getElementById('chartContainer');
            const loading = document.getElementById('chartLoading');
            const overviewContent = document.getElementById('overviewContent');
@@ -3774,7 +3848,20 @@
             }
             
             if (chartType === 'blackout_dates') {
-                loadBlackoutDatesChart();
+                console.log('🔧 BLACKOUT DATES CONDITION REACHED');
+                console.log('🔧 About to call loadBlackoutDatesChart()');
+                console.log('🔧 Function exists?', typeof loadBlackoutDatesChart);
+                try {
+                    loadBlackoutDatesChart();
+                    console.log('🔧 loadBlackoutDatesChart() completed successfully');
+                } catch (error) {
+                    console.error('🔧 Error calling loadBlackoutDatesChart():', error);
+                }
+                return;
+            }
+            
+            if (chartType === 'price_movement') {
+                loadPriceMovementChart();
                 return;
             }
             
@@ -4425,9 +4512,9 @@
                     
                     // Show chart section and simulation details (only for portfolio and single strategy)
                     if (simulationType !== 'all_strategies') {
-                        document.getElementById('monteCarloChartsSection').style.display = 'block';
-                        loadMonteCarloChartButtons(); // Load the Monte Carlo chart buttons
-                        showSimulationDetailsSection();
+                    document.getElementById('monteCarloChartsSection').style.display = 'block';
+                    loadMonteCarloChartButtons(); // Load the Monte Carlo chart buttons
+                    showSimulationDetailsSection();
                     } else {
                         // Hide chart section for all_strategies since it has different data structure
                         document.getElementById('monteCarloChartsSection').style.display = 'none';
@@ -6051,22 +6138,25 @@
                         if (tooltipText && !tooltip) {
                             tooltip = document.createElement('div');
                             tooltip.className = 'js-tooltip';
-                            tooltip.textContent = tooltipText;
-                            tooltip.style.cssText = `
-                                position: fixed;
-                                background: #000;
-                                color: #fff;
-                                padding: 12px 16px;
-                                border-radius: 8px;
-                                font-size: 16px;
-                                font-weight: bold;
-                                z-index: 99999;
-                                max-width: 280px;
-                                text-align: center;
-                                box-shadow: 0 4px 12px rgba(0,0,0,0.8);
-                                border: 2px solid #fff;
-                                pointer-events: none;
-                            `;
+                        // Handle multi-line text by converting line breaks to <br> tags
+                        const formattedText = tooltipText.replace(/\n/g, '<br>');
+                        tooltip.innerHTML = formattedText;
+                        tooltip.style.cssText = `
+                            position: fixed;
+                            background: #000;
+                            color: #fff;
+                            padding: 12px 16px;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            font-weight: normal;
+                            z-index: 99999;
+                            max-width: 400px;
+                            text-align: left;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+                            border: 2px solid #fff;
+                            pointer-events: none;
+                            line-height: 1.4;
+                        `;
                             
                             document.body.appendChild(tooltip);
                             
@@ -6088,11 +6178,14 @@
 
         // Shared function to initialize custom tooltips for all tables
         function initializeCustomTooltips() {
+            console.log('🔧 initializeCustomTooltips() called');
             // Remove any existing tooltips first
             document.querySelectorAll('.js-tooltip').forEach(tip => tip.remove());
             
             const tooltipElements = document.querySelectorAll('.custom-tooltip');
-            tooltipElements.forEach(element => {
+            console.log('🔧 Found', tooltipElements.length, 'custom tooltip elements');
+            tooltipElements.forEach((element, index) => {
+                console.log('🔧 Processing tooltip element', index, ':', element);
                 // Remove existing event listeners by cloning the element
                 const newElement = element.cloneNode(true);
                 element.parentNode.replaceChild(newElement, element);
@@ -6105,23 +6198,28 @@
                     
                     const tooltipText = newElement.getAttribute('data-tooltip');
                     if (tooltipText && !tooltip) {
+                        console.log('Tooltip text:', tooltipText);
                         tooltip = document.createElement('div');
                         tooltip.className = 'js-tooltip';
-                        tooltip.textContent = tooltipText;
+                        // Handle multi-line text by converting line breaks to <br> tags
+                        const formattedText = tooltipText.replace(/\n/g, '<br>');
+                        console.log('Formatted text:', formattedText);
+                        tooltip.innerHTML = formattedText;
                         tooltip.style.cssText = `
                             position: fixed;
                             background: #000;
                             color: #fff;
                             padding: 12px 16px;
                             border-radius: 8px;
-                            font-size: 16px;
-                            font-weight: bold;
+                            font-size: 14px;
+                            font-weight: normal;
                             z-index: 99999;
-                            max-width: 280px;
-                            text-align: center;
+                            max-width: 400px;
+                            text-align: left;
                             box-shadow: 0 4px 12px rgba(0,0,0,0.8);
                             border: 2px solid #fff;
                             pointer-events: none;
+                            line-height: 1.4;
                         `;
                         
                         document.body.appendChild(tooltip);
@@ -7159,9 +7257,16 @@
                     `;
                     
                     sortedPairs.forEach(([pair, count]) => {
+                        // Extract first strategy from pair (before the " & " separator)
+                        const firstStrategy = pair.split(' & ')[0];
                         html += `
                             <div class="col-md-6 mb-2">
-                                <div class="d-flex justify-content-between align-items-center p-2 border rounded strategy-pair-card">
+                                <div class="d-flex justify-content-between align-items-center p-2 border rounded strategy-pair-card" 
+                                     style="cursor: pointer; transition: background-color 0.2s;" 
+                                     onmouseover="this.style.backgroundColor='var(--bg-elevated)'"
+                                     onmouseout="if (!this.style.backgroundColor.includes('var(--primary-color)')) this.style.backgroundColor=''"
+                                     onclick="filterConflictsByStrategy('${firstStrategy.replace(/'/g, "\\'")}')"
+                                     title="Click to filter by: ${firstStrategy}">
                                     <span class="small">${pair}</span>
                                     <span class="badge badge-danger">${count}</span>
                                 </div>
@@ -7338,6 +7443,19 @@
                 }
             });
             
+            // Update strategy pair cards highlighting
+            document.querySelectorAll('.strategy-pair-card').forEach(card => {
+                const pairText = card.textContent;
+                const firstStrategy = pairText.split(' & ')[0].trim();
+                if (strategy && firstStrategy === strategy) {
+                    card.style.backgroundColor = 'var(--primary-color)';
+                    card.style.color = 'white';
+                } else {
+                    card.style.backgroundColor = '';
+                    card.style.color = '';
+                }
+            });
+            
             // Filter table rows
             rows.forEach(row => {
                 const trade1Strategy = row.dataset.trade1Strategy;
@@ -7389,9 +7507,11 @@
                 el.style.color = '';
             });
             
-            // Show all strategy pairs
+            // Show all strategy pairs and clear highlighting
             document.querySelectorAll('.strategy-pair-card').forEach(card => {
                 card.closest('.col-md-6').style.display = '';
+                card.style.backgroundColor = '';
+                card.style.color = '';
             });
             
             // Show all individual strategies
@@ -8963,6 +9083,8 @@
         }
 
         function loadBlackoutDatesChart() {
+            console.log('🔧 loadBlackoutDatesChart() called - FUNCTION START');
+            console.log('🔧 loadBlackoutDatesChart() called');
             const container = document.getElementById('chartContainer');
             const loading = document.getElementById('chartLoading');
             
@@ -9005,7 +9127,10 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="maxDaysInput" class="form-label">Max Days Between Blackout Date and Close Date:</label>
+                            <label for="maxDaysInput" class="form-label">
+                                Max Days Between Blackout Date and Close Date:
+                                <i class="fas fa-info-circle ms-2" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-custom-class="wide-tooltip" title="<div style='text-align: left; max-width: 500px;'><strong>Multi-Day Trade Analysis:</strong><br><br>This setting controls how multi-day trades are analyzed when a blackout date falls between the opening and closing dates.<br><br><strong>Example:</strong><br>• Trade opens: 2021-01-25<br>• Blackout date: 2021-01-27 (FOMC)<br>• Trade closes: 2021-01-29<br><br>If 'Max Days' is set to 5, this trade will be included because the blackout date (Jan 27) is within 5 days of the close date (Jan 29).<br><br><strong>Purpose:</strong> Captures trades that were influenced by blackout events even if they weren't initiated on the exact blackout date.</div>"></i>
+                            </label>
                             <input type="number" class="form-control" id="maxDaysInput" value="5" min="1" max="30" style="width: 100px;">
                             <small class="form-text text-muted">For multi-day trades, maximum days between blackout date and trade close date (default: 5)</small>
                         </div>
@@ -9013,7 +9138,7 @@
                         
                         <div class="mb-3">
                             <label for="dateListDisplay" class="form-label" id="dateListDisplayLabel">Selected Dates:</label>
-                            <textarea class="form-control" id="dateListDisplay" rows="4" readonly style="font-family: monospace; font-size: 12px; background-color: #f8f9fa; color: #000000 !important;"></textarea>
+                            <textarea class="form-control" id="dateListDisplay" rows="4" readonly style="font-family: monospace; font-size: 12px; background-color: #f8f9fa; color: #000000 !important; border: 1px solid #dee2e6;"></textarea>
                             <small class="form-text text-muted" id="dateListDisplayHelp">This shows the dates included in the selected blackout list.</small>
                         </div>
                         
@@ -9043,6 +9168,27 @@
             // Initialize date list display and button text
             updateDateListDisplay();
             updateAnalyzeButton();
+            
+            console.log('🔧 About to set timeout for tooltip initialization');
+            // Initialize custom tooltips for the dynamically added content
+            setTimeout(() => {
+                console.log('🔧 Initializing custom tooltips for blackout dates section...');
+                
+                // Check if tooltip element exists
+                const tooltipElement = document.querySelector('.custom-tooltip');
+                console.log('🔧 Found tooltip element:', tooltipElement);
+                if (tooltipElement) {
+                    console.log('🔧 Tooltip element data-tooltip:', tooltipElement.getAttribute('data-tooltip'));
+                }
+                
+                console.log('🔧 About to call initializeCustomTooltips()');
+                try {
+                    initializeCustomTooltips();
+                    console.log('🔧 initializeCustomTooltips() completed successfully');
+                } catch (error) {
+                    console.error('🔧 Error calling initializeCustomTooltips():', error);
+                }
+            }, 100);
         }
 
         function runBlackoutDatesAnalysis() {
@@ -9852,6 +9998,536 @@
             }, 500);
         }
 
+        function loadPriceMovementChart() {
+            const container = document.getElementById('chartContainer');
+            const loading = document.getElementById('chartLoading');
+            
+            // Show loading
+            loading.style.display = 'block';
+            container.innerHTML = '';
+            
+            // Fetch price movement data to get min/max values
+            fetch('/api/price-movement/range')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const { min_movement, max_movement } = data.data;
+                        
+                           // Round the min and max values to one decimal place
+                           const roundedMin = Math.round(min_movement * 10) / 10;
+                           const roundedMax = Math.round(max_movement * 10) / 10;
+                           
+                           // Create the UI
+                           container.innerHTML = `
+                               <div class="card">
+                                   <div class="card-header">
+                                       <h5>📈 Price Movement Analysis</h5>
+                                   </div>
+                                   <div class="card-body">
+                                       <div class="alert alert-info mb-4">
+                                           <h6><i class="fas fa-info-circle"></i> What is Price Movement Analysis?</h6>
+                                           <p class="mb-2">This tool analyzes trading performance based on the percentage price movement of the underlying symbol between trade opening and closing times. Filter trades by price movement range to see how your strategies perform in different market conditions.</p>
+                                           <p class="mb-0"><strong>Range:</strong> ${roundedMin}% to ${roundedMax}%</p>
+                                       </div>
+
+                                       <div class="row mb-4">
+                                           <div class="col-md-8">
+                                               <label for="priceMovementRange" class="form-label">
+                                                   Price Movement Range (%):
+                                                   <span id="priceMovementRangeValue">-1% to 1%</span>
+                                               </label>
+                                               <div class="range-slider-container">
+                                                   <input type="range" class="form-range" id="priceMovementMin"
+                                                          min="${roundedMin}" max="${roundedMax}"
+                                                          value="${Math.max(roundedMin, -1.0)}" step="0.1">
+                                                   <input type="range" class="form-range" id="priceMovementMax"
+                                                          min="${roundedMin}" max="${roundedMax}"
+                                                          value="${Math.min(roundedMax, 1.0)}" step="0.1">
+                                               </div>
+                                               <div class="d-flex justify-content-between">
+                                                   <small class="text-muted">${roundedMin}%</small>
+                                                   <small class="text-muted">${roundedMax}%</small>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-4">
+                                               <button class="btn btn-primary" id="analyzePriceMovementBtn" onclick="runPriceMovementAnalysis()">
+                                                   <i class="fas fa-chart-bar"></i> Analyze Price Movement
+                                               </button>
+                                           </div>
+                                       </div>
+
+                                       <div id="priceMovementResults" style="display: none;">
+                                           <!-- Results will be populated here -->
+                                       </div>
+                                   </div>
+                               </div>
+                           `;
+                        
+                        // Set up range slider event listeners
+                        setupPriceMovementRangeSlider();
+                        
+                    } else {
+                        container.innerHTML = `
+                            <div class="alert alert-danger">
+                                <h5>Error Loading Price Movement Data</h5>
+                                <p>${data.error || 'Failed to load price movement range data.'}</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading price movement data:', error);
+                    container.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5>Error Loading Price Movement Data</h5>
+                            <p>Failed to load price movement data: ${error.message}</p>
+                        </div>
+                    `;
+                })
+                .finally(() => {
+                    loading.style.display = 'none';
+                });
+        }
+
+        function setupPriceMovementRangeSlider() {
+            const minSlider = document.getElementById('priceMovementMin');
+            const maxSlider = document.getElementById('priceMovementMax');
+            const valueDisplay = document.getElementById('priceMovementRangeValue');
+            
+            function updateDisplay() {
+                const minVal = parseFloat(minSlider.value);
+                const maxVal = parseFloat(maxSlider.value);
+                valueDisplay.textContent = `${minVal.toFixed(2)}% to ${maxVal.toFixed(2)}%`;
+            }
+            
+            function updateSliders() {
+                const minVal = parseFloat(minSlider.value);
+                const maxVal = parseFloat(maxSlider.value);
+                
+                // Ensure min doesn't exceed max
+                if (minVal > maxVal) {
+                    minSlider.value = maxVal;
+                }
+                // Ensure max doesn't go below min
+                if (maxVal < minVal) {
+                    maxSlider.value = minVal;
+                }
+                
+                updateDisplay();
+            }
+            
+            minSlider.addEventListener('input', updateSliders);
+            maxSlider.addEventListener('input', updateSliders);
+            
+            // Initial display
+            updateDisplay();
+        }
+
+        function runPriceMovementAnalysis() {
+            const minMovement = parseFloat(document.getElementById('priceMovementMin').value);
+            const maxMovement = parseFloat(document.getElementById('priceMovementMax').value);
+            const resultsDiv = document.getElementById('priceMovementResults');
+            
+            // Show loading
+            resultsDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Analyzing price movement data...</p>
+                </div>
+            `;
+            resultsDiv.style.display = 'block';
+            
+            // Fetch analysis results
+            fetch('/api/price-movement/analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    min_movement: minMovement,
+                    max_movement: maxMovement
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayPriceMovementResults(data.data);
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5>Analysis Error</h5>
+                            <p>${data.error || 'Failed to analyze price movement data.'}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error analyzing price movement:', error);
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5>Analysis Error</h5>
+                        <p>Failed to analyze price movement data: ${error.message}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function displayPriceMovementResults(data) {
+            const resultsDiv = document.getElementById('priceMovementResults');
+            
+            if (!data.strategies || data.strategies.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-warning">
+                        <h5>No Trades Found</h5>
+                        <p>No trades found within the specified price movement range.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create summary table
+            let tableHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h6>Strategy Performance by Price Movement Range</h6>
+                        <small class="text-muted">Range: ${data.min_movement.toFixed(2)}% to ${data.max_movement.toFixed(2)}%</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="priceMovementSummaryTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="sortable" data-column="0" data-type="text">Strategy <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="1" data-type="number">Trade Count <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="2" data-type="currency">Total P&L <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="3" data-type="currency">Avg P&L <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="4" data-type="currency">Avg P&L/Lot <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="5" data-type="number">Win Rate <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="6" data-type="currency">Avg Win <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="7" data-type="currency">Avg Loss <i class="fas fa-sort"></i></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+            `;
+            
+            data.strategies.forEach(strategy => {
+                const winRate = strategy.trade_count > 0 ? (strategy.wins / strategy.trade_count * 100).toFixed(1) : '0.0';
+                const avgPnlPerLot = strategy.avg_pnl_per_lot || 0;
+                tableHTML += `
+                    <tr>
+                        <td><strong>${strategy.name}</strong></td>
+                        <td>${strategy.trade_count}</td>
+                        <td class="${strategy.total_pnl >= 0 ? 'text-success' : 'text-danger'}">
+                            $${strategy.total_pnl.toLocaleString()}
+                        </td>
+                        <td class="${strategy.avg_pnl >= 0 ? 'text-success' : 'text-danger'}">
+                            $${strategy.avg_pnl.toLocaleString()}
+                        </td>
+                        <td class="${avgPnlPerLot >= 0 ? 'text-success' : 'text-danger'}">
+                            $${avgPnlPerLot.toLocaleString()}
+                        </td>
+                        <td>${winRate}%</td>
+                        <td class="text-success">$${strategy.avg_win.toLocaleString()}</td>
+                        <td class="text-danger">$${strategy.avg_loss.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+            
+            // Add totals row
+            const totalTrades = data.strategies.reduce((sum, s) => sum + s.trade_count, 0);
+            const totalPnl = data.strategies.reduce((sum, s) => sum + s.total_pnl, 0);
+            const totalWins = data.strategies.reduce((sum, s) => sum + s.wins, 0);
+            const overallWinRate = totalTrades > 0 ? (totalWins / totalTrades * 100).toFixed(1) : '0.0';
+            
+            // Calculate total contracts for avg P&L/lot calculation
+            const totalContracts = data.strategies.reduce((sum, s) => sum + (s.total_contracts || 0), 0);
+            const avgPnlPerLot = totalContracts > 0 ? totalPnl / totalContracts : 0;
+            
+            tableHTML += `
+                                </tbody>
+                                <tfoot class="table-secondary">
+                                    <tr>
+                                        <td><strong>Total</strong></td>
+                                        <td><strong>${totalTrades}</strong></td>
+                                        <td class="${totalPnl >= 0 ? 'text-success' : 'text-danger'}">
+                                            <strong>$${totalPnl.toLocaleString()}</strong>
+                                        </td>
+                                        <td class="${totalPnl >= 0 ? 'text-success' : 'text-danger'}">
+                                            <strong>$${totalTrades > 0 ? (totalPnl / totalTrades).toLocaleString() : '0'}</strong>
+                                        </td>
+                                        <td class="${avgPnlPerLot >= 0 ? 'text-success' : 'text-danger'}">
+                                            <strong>$${avgPnlPerLot.toLocaleString()}</strong>
+                                        </td>
+                                        <td><strong>${overallWinRate}%</strong></td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add individual trades table
+            tableHTML += `
+                <div class="card mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6>Individual Trades in Price Movement Range</h6>
+                            <small class="text-muted">Range: ${data.min_movement.toFixed(2)}% to ${data.max_movement.toFixed(2)}%</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="strategyFilter" class="form-label mb-0 small">Filter by Strategy:</label>
+                            <select class="form-select form-select-sm" id="strategyFilter" style="width: auto; min-width: 150px;" onchange="filterTradesByStrategy()">
+                                <option value="">All Strategies</option>
+                                ${data.strategies.map(strategy => `
+                                    <option value="${strategy.name}">${strategy.name}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="priceMovementTradesTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="sortable" data-column="0" data-type="text">Strategy <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="1" data-type="date">Date Opened <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="2" data-type="time">Time Opened <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="3" data-type="date">Date Closed <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="4" data-type="time">Time Closed <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="5" data-type="currency">Opening Price <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="6" data-type="currency">Closing Price <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="7" data-type="number">Price Movement % <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="8" data-type="currency">P&L <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="9" data-type="number">Contracts <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-column="10" data-type="currency">P&L/Lot <i class="fas fa-sort"></i></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="priceMovementTradesTableBody">
+                                    <!-- Individual trades will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = tableHTML;
+            
+            // Make the summary table sortable
+            makeTableSortable('priceMovementSummaryTable');
+            
+            // Load individual trades data
+            loadIndividualTradesForPriceMovement(data.min_movement, data.max_movement);
+        }
+
+        function loadIndividualTradesForPriceMovement(minMovement, maxMovement) {
+            const tbody = document.getElementById('priceMovementTradesTableBody');
+            if (!tbody) return;
+            
+            // Show loading
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="11" class="text-center">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        Loading individual trades...
+                    </td>
+                </tr>
+            `;
+            
+            // Fetch individual trades data
+            fetch('/api/price-movement/trades', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    min_movement: minMovement,
+                    max_movement: maxMovement
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.trades) {
+                    displayIndividualTrades(data.data.trades);
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="11" class="text-center text-muted">
+                                ${data.error || 'No individual trades data available'}
+                            </td>
+                        </tr>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading individual trades:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="text-center text-danger">
+                            Error loading individual trades: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Global variable to store all trades for filtering
+        let allPriceMovementTrades = [];
+
+        function displayIndividualTrades(trades) {
+            const tbody = document.getElementById('priceMovementTradesTableBody');
+            if (!tbody) return;
+            
+            // Store all trades globally for filtering
+            allPriceMovementTrades = trades || [];
+            
+            if (!trades || trades.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="text-center text-muted">
+                            No individual trades found in this price movement range
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Sort trades by date closed (most recent first)
+            trades.sort((a, b) => new Date(b.date_closed) - new Date(a.date_closed));
+            
+            renderTradesTable(trades);
+            
+            // Make the table sortable
+            makeTableSortable('priceMovementTradesTable');
+        }
+
+        function renderTradesTable(trades) {
+            const tbody = document.getElementById('priceMovementTradesTableBody');
+            if (!tbody) return;
+            
+            let tableHTML = '';
+            trades.forEach(trade => {
+                const pnlClass = trade.pnl >= 0 ? 'text-success' : 'text-danger';
+                const movementClass = trade.price_movement >= 0 ? 'text-success' : 'text-danger';
+                
+                tableHTML += `
+                    <tr>
+                        <td><strong>${trade.strategy_name}</strong></td>
+                        <td>${trade.date_opened}</td>
+                        <td>${trade.time_opened || 'N/A'}</td>
+                        <td>${trade.date_closed}</td>
+                        <td>${trade.time_closed || 'N/A'}</td>
+                        <td>$${trade.opening_price.toFixed(2)}</td>
+                        <td>$${trade.closing_price.toFixed(2)}</td>
+                        <td class="${movementClass}">
+                            <strong>${trade.price_movement >= 0 ? '+' : ''}${trade.price_movement.toFixed(2)}%</strong>
+                        </td>
+                        <td class="${pnlClass}">
+                            <strong>$${trade.pnl.toLocaleString()}</strong>
+                        </td>
+                        <td>${trade.contracts}</td>
+                        <td class="${pnlClass}">
+                            <strong>$${trade.pnl_per_lot.toLocaleString()}</strong>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = tableHTML;
+        }
+
+        function filterTradesByStrategy() {
+            const strategyFilter = document.getElementById('strategyFilter');
+            const selectedStrategy = strategyFilter ? strategyFilter.value : '';
+            
+            if (!selectedStrategy) {
+                // Show all trades
+                renderTradesTable(allPriceMovementTrades);
+            } else {
+                // Filter trades by selected strategy
+                const filteredTrades = allPriceMovementTrades.filter(trade => 
+                    trade.strategy_name === selectedStrategy
+                );
+                renderTradesTable(filteredTrades);
+            }
+        }
+
+        function makeTableSortable(tableId) {
+            const table = document.getElementById(tableId);
+            if (!table) return;
+            
+            const headers = table.querySelectorAll('thead th');
+            headers.forEach((header, index) => {
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', () => {
+                    sortTable(table, index);
+                });
+            });
+        }
+
+        function sortTable(table, columnIndex) {
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const header = table.querySelector(`thead th[data-column="${columnIndex}"]`);
+            const dataType = header ? header.getAttribute('data-type') : 'text';
+            
+            const isAscending = table.getAttribute('data-sort-direction') !== 'asc';
+            table.setAttribute('data-sort-direction', isAscending ? 'asc' : 'desc');
+            
+            rows.sort((a, b) => {
+                const aVal = a.cells[columnIndex].textContent.trim();
+                const bVal = b.cells[columnIndex].textContent.trim();
+                
+                // Handle different data types
+                switch (dataType) {
+                    case 'number':
+                    case 'currency':
+                        const aNum = parseFloat(aVal.replace(/[$,%]/g, ''));
+                        const bNum = parseFloat(bVal.replace(/[$,%]/g, ''));
+                        return isAscending ? aNum - bNum : bNum - aNum;
+                    
+                    case 'date':
+                        const aDate = new Date(aVal);
+                        const bDate = new Date(bVal);
+                        return isAscending ? aDate - bDate : bDate - aDate;
+                    
+                    case 'time':
+                        // Handle time format (HH:MM:SS)
+                        const aTime = aVal === 'N/A' ? '00:00:00' : aVal;
+                        const bTime = bVal === 'N/A' ? '00:00:00' : bVal;
+                        return isAscending ? aTime.localeCompare(bTime) : bTime.localeCompare(aTime);
+                    
+                    case 'text':
+                    default:
+                        return isAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+            });
+            
+            // Clear tbody and re-append sorted rows
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+            
+            // Update sort icons
+            const headers = table.querySelectorAll('thead th');
+            headers.forEach((h, index) => {
+                const icon = h.querySelector('i');
+                if (icon) {
+                    if (index === columnIndex) {
+                        icon.className = isAscending ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                    } else {
+                        icon.className = 'fas fa-sort';
+                    }
+                }
+            });
+        }
+
         function deleteCustomList(listId, listName) {
             if (confirm(`Are you sure you want to delete the list "${listName}"? This action cannot be undone.`)) {
                 fetch(`/api/custom-blackout-lists/${listId}`, {
@@ -10166,6 +10842,22 @@
                 resultsDiv.style.display = 'block';
             });
         }
+
+        // Initialize Bootstrap tooltips on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 DOMContentLoaded - Initializing Bootstrap tooltips...');
+            // Initialize all Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            console.log('🔧 Found', tooltipTriggerList.length, 'Bootstrap tooltip elements on page load');
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                console.log('🔧 Initializing tooltip for:', tooltipTriggerEl);
+                return new bootstrap.Tooltip(tooltipTriggerEl, {
+                    html: true,
+                    sanitize: false
+                });
+            });
+            console.log('🔧 Initialized', tooltipList.length, 'Bootstrap tooltips on page load');
+        });
 
     </script>
 </body>

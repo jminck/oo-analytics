@@ -28,7 +28,7 @@ from config import Config
 from app_insights import app_insights
 
 # Configure paths for Azure App Service
-if os.environ.get('WEBSITE_SITE_NAME'):
+if os.environ.get('WEBSITES_PORT'):
     # Azure App Service - use persistent paths for data
     DATA_DIR = "/home/site/wwwroot/data"
     INSTANCE_DIR = "/home/site/wwwroot/instance"
@@ -3865,6 +3865,140 @@ def get_blackout_dates_analysis():
     except Exception as e:
         print(f"Error in blackout dates analysis: {e}")
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/price-movement/range')
+@guest_mode_required
+def get_price_movement_range():
+    """Get the min and max price movement percentages across all trades."""
+    try:
+        from analytics import PriceMovementAnalyzer
+        
+        if not portfolio.strategies:
+            return jsonify({
+                'success': False,
+                'error': 'No portfolio data found'
+            })
+        
+        analyzer = PriceMovementAnalyzer(portfolio)
+        result = analyzer.calculate_price_movement_range()
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error getting price movement range: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/price-movement/analysis', methods=['POST'])
+@guest_mode_required
+def analyze_price_movement():
+    """Analyze strategy performance for trades within the specified price movement range."""
+    try:
+        from analytics import PriceMovementAnalyzer
+        
+        data = request.get_json()
+        min_movement = float(data.get('min_movement', -5.0))
+        max_movement = float(data.get('max_movement', 5.0))
+        
+        if not portfolio.strategies:
+            return jsonify({
+                'success': False,
+                'error': 'No portfolio data found'
+            })
+        
+        analyzer = PriceMovementAnalyzer(portfolio)
+        result = analyzer.analyze_price_movement_performance(min_movement, max_movement)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error analyzing price movement: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/price-movement/trades', methods=['POST'])
+@guest_mode_required
+def get_price_movement_trades():
+    """Get individual trades within the specified price movement range."""
+    try:
+        from analytics import PriceMovementAnalyzer
+        
+        data = request.get_json()
+        min_movement = float(data.get('min_movement', -5.0))
+        max_movement = float(data.get('max_movement', 5.0))
+        
+        if not portfolio.strategies:
+            return jsonify({
+                'success': False,
+                'error': 'No portfolio data found'
+            })
+        
+        # Get all trades within the price movement range
+        all_trades = []
+        for strategy in portfolio.strategies.values():
+            for trade in strategy.trades:
+                if hasattr(trade, 'opening_price') and hasattr(trade, 'closing_price') and trade.opening_price and trade.closing_price:
+                    if trade.opening_price > 0:
+                        movement = ((trade.closing_price - trade.opening_price) / trade.opening_price) * 100
+                        if min_movement <= movement <= max_movement:
+                            # Handle date and time formatting
+                            date_opened_str = trade.date_opened.strftime('%Y-%m-%d') if hasattr(trade.date_opened, 'strftime') else str(trade.date_opened).split(' ')[0]
+                            date_closed_str = trade.date_closed.strftime('%Y-%m-%d') if hasattr(trade.date_closed, 'strftime') else str(trade.date_closed).split(' ')[0]
+                            
+                            # Handle time formatting - check if time is embedded in date string
+                            time_opened_str = None
+                            time_closed_str = None
+                            
+                            # Check if time is in the date_opened string
+                            if hasattr(trade, 'date_opened') and trade.date_opened:
+                                date_opened_full = str(trade.date_opened)
+                                if ' ' in date_opened_full and len(date_opened_full.split(' ')) > 1:
+                                    time_opened_str = date_opened_full.split(' ')[1]
+                                elif hasattr(trade, 'time_opened') and trade.time_opened:
+                                    time_opened_str = str(trade.time_opened)
+                            
+                            # Check if time is in the date_closed string
+                            if hasattr(trade, 'date_closed') and trade.date_closed:
+                                date_closed_full = str(trade.date_closed)
+                                if ' ' in date_closed_full and len(date_closed_full.split(' ')) > 1:
+                                    time_closed_str = date_closed_full.split(' ')[1]
+                                elif hasattr(trade, 'time_closed') and trade.time_closed:
+                                    time_closed_str = str(trade.time_closed)
+                            
+                            all_trades.append({
+                                'strategy_name': strategy.name,
+                                'date_opened': date_opened_str,
+                                'time_opened': time_opened_str,
+                                'date_closed': date_closed_str,
+                                'time_closed': time_closed_str,
+                                'opening_price': float(trade.opening_price),
+                                'closing_price': float(trade.closing_price),
+                                'price_movement': round(movement, 2),
+                                'pnl': float(trade.pnl),
+                                'contracts': int(getattr(trade, 'contracts', 1)),
+                                'pnl_per_lot': float(trade.pnl / getattr(trade, 'contracts', 1))
+                            })
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'trades': all_trades,
+                'min_movement': min_movement,
+                'max_movement': max_movement,
+                'total_trades': len(all_trades)
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error getting price movement trades: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
 @app.route('/api/files/overview')
 def get_files_overview():

@@ -1921,4 +1921,149 @@ class CrossFileAnalyzer:
             return {
                 'success': False,
                 'error': f'Cross-file correlation analysis failed: {str(e)}'
+            }
+
+
+class PriceMovementAnalyzer:
+    """Handles price movement analysis for filtering trades by underlying price changes."""
+    
+    def __init__(self, portfolio: Portfolio):
+        self.portfolio = portfolio
+    
+    def calculate_price_movement_range(self) -> Dict:
+        """Calculate the min and max price movement percentages across all trades."""
+        try:
+            all_trades = []
+            for strategy in self.portfolio.strategies.values():
+                all_trades.extend(strategy.trades)
+            
+            if not all_trades:
+                return {
+                    'success': False,
+                    'error': 'No trades found in portfolio'
+                }
+            
+            movements = []
+            for trade in all_trades:
+                if hasattr(trade, 'opening_price') and hasattr(trade, 'closing_price') and trade.opening_price and trade.closing_price:
+                    if trade.opening_price > 0:
+                        movement = ((trade.closing_price - trade.opening_price) / trade.opening_price) * 100
+                        movements.append(movement)
+            
+            if not movements:
+                return {
+                    'success': False,
+                    'error': 'No trades with valid price data found'
+                }
+            
+            return {
+                'success': True,
+                'data': {
+                    'min_movement': round(min(movements), 2),
+                    'max_movement': round(max(movements), 2),
+                    'trade_count': len(movements)
+                }
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Failed to calculate price movement range: {str(e)}'
+            }
+    
+    def analyze_price_movement_performance(self, min_movement: float, max_movement: float) -> Dict:
+        """Analyze strategy performance for trades within the specified price movement range."""
+        try:
+            all_trades = []
+            for strategy in self.portfolio.strategies.values():
+                for trade in strategy.trades:
+                    if hasattr(trade, 'opening_price') and hasattr(trade, 'closing_price') and trade.opening_price and trade.closing_price:
+                        if trade.opening_price > 0:
+                            movement = ((trade.closing_price - trade.opening_price) / trade.opening_price) * 100
+                            if min_movement <= movement <= max_movement:
+                                all_trades.append({
+                                    'trade': trade,
+                                    'strategy_name': strategy.name,
+                                    'movement': movement
+                                })
+            
+            if not all_trades:
+                return {
+                    'success': True,
+                    'data': {
+                        'strategies': [],
+                        'min_movement': min_movement,
+                        'max_movement': max_movement,
+                        'total_trades': 0
+                    }
+                }
+            
+            # Group trades by strategy
+            strategy_data = {}
+            for trade_data in all_trades:
+                strategy_name = trade_data['strategy_name']
+                trade = trade_data['trade']
+                
+                if strategy_name not in strategy_data:
+                    strategy_data[strategy_name] = {
+                        'name': strategy_name,
+                        'trades': [],
+                        'total_pnl': 0,
+                        'total_contracts': 0,
+                        'wins': 0,
+                        'losses': 0,
+                        'win_amounts': [],
+                        'loss_amounts': []
+                    }
+                
+                strategy_data[strategy_name]['trades'].append(trade)
+                strategy_data[strategy_name]['total_pnl'] += trade.pnl
+                strategy_data[strategy_name]['total_contracts'] += getattr(trade, 'contracts', 1)
+                
+                if trade.pnl > 0:
+                    strategy_data[strategy_name]['wins'] += 1
+                    strategy_data[strategy_name]['win_amounts'].append(trade.pnl)
+                else:
+                    strategy_data[strategy_name]['losses'] += 1
+                    strategy_data[strategy_name]['loss_amounts'].append(trade.pnl)
+            
+            # Calculate summary statistics for each strategy
+            strategies = []
+            for strategy_name, data in strategy_data.items():
+                trade_count = len(data['trades'])
+                avg_pnl = data['total_pnl'] / trade_count if trade_count > 0 else 0
+                avg_pnl_per_lot = data['total_pnl'] / data['total_contracts'] if data['total_contracts'] > 0 else 0
+                avg_win = np.mean(data['win_amounts']) if data['win_amounts'] else 0
+                avg_loss = np.mean(data['loss_amounts']) if data['loss_amounts'] else 0
+                
+                strategies.append({
+                    'name': strategy_name,
+                    'trade_count': trade_count,
+                    'total_pnl': round(data['total_pnl'], 2),
+                    'avg_pnl': round(avg_pnl, 2),
+                    'avg_pnl_per_lot': round(avg_pnl_per_lot, 2),
+                    'total_contracts': data['total_contracts'],
+                    'wins': data['wins'],
+                    'losses': data['losses'],
+                    'avg_win': round(avg_win, 2),
+                    'avg_loss': round(avg_loss, 2)
+                })
+            
+            # Sort by total P&L descending
+            strategies.sort(key=lambda x: x['total_pnl'], reverse=True)
+            
+            return {
+                'success': True,
+                'data': {
+                    'strategies': strategies,
+                    'min_movement': min_movement,
+                    'max_movement': max_movement,
+                    'total_trades': len(all_trades)
+                }
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Failed to analyze price movement performance: {str(e)}'
             } 
