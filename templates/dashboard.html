@@ -499,7 +499,9 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            align-items: center;
             height: 100%;
+            text-align: center;
         }
         
         .metric-value {
@@ -665,28 +667,68 @@
             border-color: var(--primary-color);
         }
         
+        /* Ensure body and html can expand vertically */
+        html, body {
+            height: auto !important;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Main container auto-sizing */
+        .container {
+            min-height: auto !important;
+            height: auto !important;
+        }
+
         /* Chart Container */
         .chart-container {
-            min-height: 800px;
+            min-height: 800px; /* Increased from 600px to give more vertical space */
             height: auto;
+            max-height: none;
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             border-radius: 16px;
-            padding: 1.5rem;
+            padding: 1rem;
             border: 1px solid var(--glass-border);
             position: relative;
-            overflow: hidden;
+            overflow: visible;
         }
 
         /* Ensure charts fit properly within their containers */
         .chart-container .js-plotly-plot {
             width: 100% !important;
-            height: 100% !important;
+            height: auto !important; /* Changed from 100% to auto */
         }
 
         .chart-container .plotly-graph-div {
             width: 100% !important;
-            height: 100% !important;
+            height: auto !important; /* Changed from 100% to auto */
+        }
+
+        /* Force chart containers to fill available space */
+        #drawdownChart {
+            width: 100% !important;
+            height: auto !important; /* Changed from 100% to auto */
+        }
+
+        #drawdownChart .js-plotly-plot {
+            width: 100% !important;
+            height: auto !important; /* Changed from 100% to auto */
+        }
+
+        /* Ensure content within chart containers can expand */
+        .chart-container .card,
+        .chart-container .card-body,
+        .chart-container .row,
+        .chart-container .col-md-6,
+        .chart-container .col-md-12 {
+            overflow: visible !important;
+        }
+
+        /* Prevent content cutoff in chart containers */
+        .chart-container .table-responsive {
+            overflow-x: auto;
+            overflow-y: visible;
         }
 
         /* Responsive chart sizing */
@@ -697,13 +739,13 @@
         /* Ensure charts resize on window resize */
         @media (max-width: 1200px) {
             .chart-container {
-                min-height: 700px;
+                min-height: 750px; /* Increased from 700px */
             }
         }
 
         @media (max-width: 768px) {
             .chart-container {
-                min-height: 600px;
+                min-height: 650px; /* Increased from 600px */
             }
         }
 
@@ -908,6 +950,7 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            align-items: center;
             height: 100%;
         }
         
@@ -1506,15 +1549,6 @@
             color: #ffffff !important;
         }
 
-        /* Position sizing specific */
-        [data-theme="dark"] #positionSizing,
-        [data-theme="dark"] #positionSizing p,
-        [data-theme="dark"] #positionSizing div,
-        [data-theme="dark"] #positionSizing h6,
-        [data-theme="dark"] #positionSizing strong,
-        [data-theme="dark"] #positionSizing small {
-            color: #ffffff !important;
-        }
 
         /* Trade summary specific */
         [data-theme="dark"] #tradeSummary,
@@ -1973,6 +2007,14 @@
                     <small class="text-muted">Used to calculate portfolio values for real trade logs. Default: 100,000</small>
                 </div>
                 <button class="btn btn-primary mt-2" id="uploadFileBtn" style="display:none;">Upload</button>
+                
+                <!-- Load Sample Data Button -->
+                <div class="mt-3">
+                    <button class="btn btn-outline-info" id="loadSampleDataBtn" onclick="loadSamplePortfolioData()">
+                        <i class="fas fa-download"></i> Load Sample Portfolio Data
+                    </button>
+                    <small class="text-muted d-block mt-1">Load Example-Portfolio.csv for testing and demonstration</small>
+                </div>
             </div>
             <div class="col-md-6 mb-3">
                 <h5>Load Previous File</h5>
@@ -2176,9 +2218,9 @@
                     </div>
 
 
-                    <!-- Portfolio Balance Analysis and Position Sizing -->
+                    <!-- Portfolio Balance Analysis -->
                     <div class="row mb-4">
-                        <div class="col-md-8">
+                        <div class="col-md-12">
                             <h3 class="section-title">
                                 <i class="fas fa-balance-scale"></i>
                                 Portfolio Balance Analysis
@@ -2203,19 +2245,6 @@
                                 <div class="card-body">
                                     <div id="balanceAnalysis">
                                         <p class="text-muted">Upload data to see portfolio balance across bullish/bearish/neutral strategies</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <h3 class="section-title">
-                                <i class="fas fa-crosshairs"></i>
-                                Position Sizing
-                            </h3>
-                            <div class="card">
-                                <div class="card-body">
-                                    <div id="positionSizing">
-                                        <p class="text-muted">Position sizing recommendations based on strategy performance and risk analysis will appear here</p>
                                     </div>
                                 </div>
                             </div>
@@ -2538,6 +2567,60 @@
                 showAlert(`Upload error: ${error.message}`, 'danger');
             });
         }
+
+        function loadSamplePortfolioData() {
+            // Track sample data load attempt
+            if (window.appInsights) {
+                window.appInsights.trackEvent('frontend_sample_data_load_attempted');
+            }
+            
+            showAlert('Loading sample portfolio data...', 'info');
+            
+            fetch('/api/load-sample-data', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Track successful sample data load
+                    if (window.appInsights) {
+                        window.appInsights.trackEvent('frontend_sample_data_load_success', {
+                            tradesCount: data.data.trades_count,
+                            strategiesCount: data.data.strategies_count
+                        });
+                    }
+                    
+                    const displayName = data.data.friendly_name || 'Example Portfolio';
+                    showAlert(`Success! Loaded ${data.data.trades_count} trades from ${data.data.strategies_count} strategies as "${displayName}"`, 'success');
+                    
+                    // Update filename display
+                    updateFilenameDisplay(data.data.filename || 'Example-Portfolio.csv');
+                    
+                    // Reload portfolio data and charts
+                    loadPortfolioData();
+                    loadSavedFilesList();
+                    loadFilesOverview();
+                } else {
+                    // Track sample data load failure
+                    if (window.appInsights) {
+                        window.appInsights.trackEvent('frontend_sample_data_load_failed', {
+                            error: data.error
+                        });
+                    }
+                    showAlert(`Failed to load sample data: ${data.error}`, 'danger');
+                }
+            })
+            .catch(error => {
+                // Track sample data load error
+                if (window.appInsights) {
+                    window.appInsights.trackEvent('frontend_sample_data_load_error', {
+                        error: error.message
+                    });
+                }
+                showAlert(`Error loading sample data: ${error.message}`, 'danger');
+            });
+        }
+        
 
         // Saved files functionality
         function setupSavedFiles() {
@@ -3909,21 +3992,31 @@
                     console.log('Chart data to parse:', data.chart);
                     const chartData = JSON.parse(data.chart);
                     console.log('Parsed chart data:', chartData);
-                    Plotly.newPlot('chartContainer', chartData.data, chartData.layout, {
-                        responsive: true,
-                        displayModeBar: true,
-                        displaylogo: false,
-                        useResizeHandler: true
-                    }).then(() => {
-                        // Ensure chart is properly sized after rendering
-                        const container = document.getElementById('chartContainer');
-                        if (container) {
-                            Plotly.relayout('chartContainer', {
-                                width: container.clientWidth - 60,
-                                height: container.clientHeight - 60
-                            });
-                        }
-                    });
+                    
+                    // Check if this is a drawdown chart with strategy stats
+                    if (data.type === 'drawdown' && data.strategy_stats) {
+                        renderDrawdownChartWithStats(chartData, data.strategy_stats);
+                    } else if (data.type === 'portfolio_balance') {
+                        // Special rendering for portfolio balance with explanation pane
+                        renderPortfolioBalanceChart(chartData);
+                    } else {
+                        // Regular chart rendering
+                        Plotly.newPlot('chartContainer', chartData.data, chartData.layout, {
+                            responsive: true,
+                            displayModeBar: true,
+                            displaylogo: false,
+                            useResizeHandler: true
+                        }).then(() => {
+                            // Ensure chart is properly sized after rendering
+                            const container = document.getElementById('chartContainer');
+                            if (container) {
+                                Plotly.relayout('chartContainer', {
+                                    width: container.clientWidth - 60,
+                                    height: container.clientHeight - 60
+                                });
+                            }
+                        });
+                    }
                 } else {
                     console.error('Unexpected response format:', data);
                     container.innerHTML = '<div class="alert alert-danger">Unexpected response format from chart API</div>';
@@ -3934,6 +4027,100 @@
                 console.error('Error loading chart:', error);
                 container.innerHTML = '<div class="alert alert-danger">Error loading chart</div>';
             });
+        }
+
+        function renderDrawdownChartWithStats(chartData, strategyStats) {
+            const container = document.getElementById('chartContainer');
+            
+            // Create HTML with chart and strategy breakdown
+            let html = `
+                <div class="row" style="height: calc(100% - 200px);">
+                    <div class="col-md-12" style="height: 100%;">
+                        <div id="drawdownChart" style="height: 100%; width: 100%;"></div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> How to Use This Chart:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Portfolio Lines:</strong> Blue line shows total account value, red area shows portfolio drawdown %</li>
+                                <li><strong>Strategy P&L Lines:</strong> Click legend to show individual strategy cumulative P&L (dotted lines)</li>
+                                <li><strong>Strategy Drawdown:</strong> Each strategy has a drawdown % line (dashed lines) calculated against "Funds at Close"</li>
+                                <li><strong>Daily Details:</strong> Hover over any line to see day-by-day P&L and drawdown details</li>
+                                <li><strong>Peak Tracking:</strong> Tooltips show current P&L vs. peak P&L and days since peak</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            
+            // Render the chart
+            setTimeout(() => {
+                Plotly.newPlot('drawdownChart', chartData.data, chartData.layout, {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    useResizeHandler: true
+                });
+            }, 100);
+        }
+
+        function renderPortfolioBalanceChart(chartData) {
+            const container = document.getElementById('chartContainer');
+            
+            // Create HTML with explanation pane above the chart
+            let html = `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Individual Strategy Analysis</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-primary">Strategy Classification Logic:</h6>
+                                        <ul class="list-unstyled small">
+                                            <li><span style='color:#2ca02c'>🟢 BULLISH</span>: Market ↑ (+0.5%+) AND P&L > 0, OR Market ↓ (-0.5%+) AND P&L < 0</li>
+                                            <li><span style='color:#d62728'>🔴 BEARISH</span>: Market ↓ (-0.5%+) AND P&L > 0, OR Market ↑ (+0.5%+) AND P&L < 0</li>
+                                            <li><span style='color:#ff7f0e'>🟠 NEUTRAL</span>: Market movement between -0.5% and +0.5%</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-info">Pie Chart Details:</h6>
+                                        <ul class="list-unstyled small">
+                                            <li>• Each slice = Individual strategy sized by |P&L|</li>
+                                            <li>• Color = Strategy type (Bullish/Bearish/Neutral)</li>
+                                            <li>• Sorted by P&L magnitude (largest first)</li>
+                                            <li>• Hover for full strategy name and details</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div id="portfolioBalanceChart" style="height: 600px;"></div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            
+            // Render the chart
+            setTimeout(() => {
+                Plotly.newPlot('portfolioBalanceChart', chartData.data, chartData.layout, {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    useResizeHandler: true
+                });
+            }, 100);
         }
 
         function loadPortfolioData() {
@@ -3981,19 +4168,6 @@
                 }
             });
 
-            // Load position sizing
-            console.log('Fetching /api/portfolio/position-sizing...');
-            fetch('/api/portfolio/position-sizing')
-            .then(response => {
-                console.log('Position sizing response received:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Position sizing data received:', data);
-                if (data.success) {
-                    updatePositionSizing(data.data);
-                }
-            });
 
             // Auto-load cumulative P&L chart only if no chart is currently loaded and not loading a saved file
             setTimeout(() => {
@@ -4208,46 +4382,133 @@
             const balance = data.balance;
             const diversification = data.diversification;
 
+            // Calculate totals
+            const totalStrategies = (balance.BULLISH?.strategy_count || 0) + (balance.BEARISH?.strategy_count || 0) + (balance.NEUTRAL?.strategy_count || 0);
+            const totalTrades = (balance.BULLISH?.trade_count || 0) + (balance.BEARISH?.trade_count || 0) + (balance.NEUTRAL?.trade_count || 0);
+            const totalPnl = (balance.BULLISH?.pnl || 0) + (balance.BEARISH?.pnl || 0) + (balance.NEUTRAL?.pnl || 0);
+
             container.innerHTML = `
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <h6 class="mb-2"><i class="fas fa-info-circle"></i> Portfolio Balance Summary</h6>
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <strong>${totalStrategies}</strong><br>
+                                    <small class="text-muted">Total Strategies</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>${totalTrades}</strong><br>
+                                    <small class="text-muted">Total Trades</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong class="${totalPnl >= 0 ? 'positive' : 'negative'}">${formatCurrency(totalPnl)}</strong><br>
+                                    <small class="text-muted">Total P&L</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>${diversification?.score || 0}%</strong><br>
+                                    <small class="text-muted">Diversification Score</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-md-4">
-                        <h6>🟢 Bullish Strategies</h6>
-                        <p><strong>${balance.BULLISH ? balance.BULLISH.strategy_count : 0}</strong> strategies</p>
-                        <p>P&L: <span class="${(balance.BULLISH?.pnl || 0) >= 0 ? 'positive' : 'negative'}">${formatCurrency(balance.BULLISH?.pnl || 0)}</span></p>
-                        ${balance.BULLISH?.strategies ? `
-                            <details>
-                                <summary class="text-muted" style="cursor: pointer; font-size: 0.9em;">Show strategies</summary>
-                                <ul style="font-size: 0.8em; margin-top: 5px;">
-                                    ${balance.BULLISH.strategies.map(s => `<li title="${s.name}">${s.name.substring(0, 40)}${s.name.length > 40 ? '...' : ''}</li>`).join('')}
-                                </ul>
-                            </details>
-                        ` : ''}
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-success">🟢 Bullish Strategies</h6>
+                                <div class="mb-2">
+                                    <strong>${balance.BULLISH ? balance.BULLISH.strategy_count : 0}</strong> strategies
+                                    <span class="badge bg-success ms-2">${balance.BULLISH ? ((balance.BULLISH.strategy_count / totalStrategies) * 100).toFixed(1) : 0}%</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>${balance.BULLISH?.trade_count || 0}</strong> trades
+                                    <span class="badge bg-secondary ms-2">${balance.BULLISH ? ((balance.BULLISH.trade_count / totalTrades) * 100).toFixed(1) : 0}%</span>
+                                </div>
+                                <div class="mb-2">
+                                    P&L: <span class="${(balance.BULLISH?.pnl || 0) >= 0 ? 'positive' : 'negative'}">${formatCurrency(balance.BULLISH?.pnl || 0)}</span>
+                                    <span class="badge bg-info ms-2">${balance.BULLISH ? ((balance.BULLISH.pnl / totalPnl) * 100).toFixed(1) : 0}%</span>
+                                </div>
+                                ${balance.BULLISH?.strategies ? `
+                                    <details>
+                                        <summary class="text-muted" style="cursor: pointer; font-size: 0.9em;">Show strategies (${balance.BULLISH.strategies.length})</summary>
+                                        <ul style="font-size: 0.8em; margin-top: 5px; max-height: 150px; overflow-y: auto; word-wrap: break-word; white-space: normal;">
+                                            ${balance.BULLISH.strategies.map(s => `
+                                                <li title="${s.name} - P&L: ${formatCurrency(s.pnl)}, Trades: ${s.trade_count}">
+                                                    ${s.name}
+                                                    <span class="text-muted">(${formatCurrency(s.pnl)})</span>
+                                                </li>
+                                            `).join('')}
+                                        </ul>
+                                    </details>
+                                ` : ''}
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-4">
-                        <h6>🔴 Bearish Strategies</h6>
-                        <p><strong>${balance.BEARISH ? balance.BEARISH.strategy_count : 0}</strong> strategies</p>
-                        <p>P&L: <span class="${(balance.BEARISH?.pnl || 0) >= 0 ? 'positive' : 'negative'}">${formatCurrency(balance.BEARISH?.pnl || 0)}</span></p>
-                        ${balance.BEARISH?.strategies ? `
-                            <details>
-                                <summary class="text-muted" style="cursor: pointer; font-size: 0.9em;">Show strategies</summary>
-                                <ul style="font-size: 0.8em; margin-top: 5px;">
-                                    ${balance.BEARISH.strategies.map(s => `<li title="${s.name}">${s.name.substring(0, 40)}${s.name.length > 40 ? '...' : ''}</li>`).join('')}
-                                </ul>
-                            </details>
-                        ` : ''}
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-danger">🔴 Bearish Strategies</h6>
+                                <div class="mb-2">
+                                    <strong>${balance.BEARISH ? balance.BEARISH.strategy_count : 0}</strong> strategies
+                                    <span class="badge bg-danger ms-2">${balance.BEARISH ? ((balance.BEARISH.strategy_count / totalStrategies) * 100).toFixed(1) : 0}%</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>${balance.BEARISH?.trade_count || 0}</strong> trades
+                                    <span class="badge bg-secondary ms-2">${balance.BEARISH ? ((balance.BEARISH.trade_count / totalTrades) * 100).toFixed(1) : 0}%</span>
+                                </div>
+                                <div class="mb-2">
+                                    P&L: <span class="${(balance.BEARISH?.pnl || 0) >= 0 ? 'positive' : 'negative'}">${formatCurrency(balance.BEARISH?.pnl || 0)}</span>
+                                    <span class="badge bg-info ms-2">${balance.BEARISH ? ((balance.BEARISH.pnl / totalPnl) * 100).toFixed(1) : 0}%</span>
+                                </div>
+                                ${balance.BEARISH?.strategies ? `
+                                    <details>
+                                        <summary class="text-muted" style="cursor: pointer; font-size: 0.9em;">Show strategies (${balance.BEARISH.strategies.length})</summary>
+                                        <ul style="font-size: 0.8em; margin-top: 5px; max-height: 150px; overflow-y: auto; word-wrap: break-word; white-space: normal;">
+                                            ${balance.BEARISH.strategies.map(s => `
+                                                <li title="${s.name} - P&L: ${formatCurrency(s.pnl)}, Trades: ${s.trade_count}">
+                                                    ${s.name}
+                                                    <span class="text-muted">(${formatCurrency(s.pnl)})</span>
+                                                </li>
+                                            `).join('')}
+                                        </ul>
+                                    </details>
+                                ` : ''}
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-4">
-                        <h6>🟡 Neutral Strategies</h6>
-                        <p><strong>${balance.NEUTRAL ? balance.NEUTRAL.strategy_count : 0}</strong> strategies</p>
-                        <p>P&L: <span class="${(balance.NEUTRAL?.pnl || 0) >= 0 ? 'positive' : 'negative'}">${formatCurrency(balance.NEUTRAL?.pnl || 0)}</span></p>
-                        ${balance.NEUTRAL?.strategies ? `
-                            <details>
-                                <summary class="text-muted" style="cursor: pointer; font-size: 0.9em;">Show strategies</summary>
-                                <ul style="font-size: 0.8em; margin-top: 5px;">
-                                    ${balance.NEUTRAL.strategies.map(s => `<li title="${s.name}">${s.name.substring(0, 40)}${s.name.length > 40 ? '...' : ''}</li>`).join('')}
-                                </ul>
-                            </details>
-                        ` : ''}
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-warning">🟡 Neutral Strategies</h6>
+                                <div class="mb-2">
+                                    <strong>${balance.NEUTRAL ? balance.NEUTRAL.strategy_count : 0}</strong> strategies
+                                    <span class="badge bg-warning ms-2">${balance.NEUTRAL ? ((balance.NEUTRAL.strategy_count / totalStrategies) * 100).toFixed(1) : 0}%</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>${balance.NEUTRAL?.trade_count || 0}</strong> trades
+                                    <span class="badge bg-secondary ms-2">${balance.NEUTRAL ? ((balance.NEUTRAL.trade_count / totalTrades) * 100).toFixed(1) : 0}%</span>
+                                </div>
+                                <div class="mb-2">
+                                    P&L: <span class="${(balance.NEUTRAL?.pnl || 0) >= 0 ? 'positive' : 'negative'}">${formatCurrency(balance.NEUTRAL?.pnl || 0)}</span>
+                                    <span class="badge bg-info ms-2">${balance.NEUTRAL ? ((balance.NEUTRAL.pnl / totalPnl) * 100).toFixed(1) : 0}%</span>
+                                </div>
+                                ${balance.NEUTRAL?.strategies ? `
+                                    <details>
+                                        <summary class="text-muted" style="cursor: pointer; font-size: 0.9em;">Show strategies (${balance.NEUTRAL.strategies.length})</summary>
+                                        <ul style="font-size: 0.8em; margin-top: 5px; max-height: 150px; overflow-y: auto; word-wrap: break-word; white-space: normal;">
+                                            ${balance.NEUTRAL.strategies.map(s => `
+                                                <li title="${s.name} - P&L: ${formatCurrency(s.pnl)}, Trades: ${s.trade_count}">
+                                                    ${s.name}
+                                                    <span class="text-muted">(${formatCurrency(s.pnl)})</span>
+                                                </li>
+                                            `).join('')}
+                                        </ul>
+                                    </details>
+                                ` : ''}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <hr>
@@ -4261,34 +4522,6 @@
             `;
         }
 
-        function updatePositionSizing(suggestions) {
-            const container = document.getElementById('positionSizing');
-            
-            if (Object.keys(suggestions).length === 0) {
-                container.innerHTML = '<p class="text-muted">No position sizing data available</p>';
-                return;
-            }
-
-            // Show top 3 recommendations
-            const sortedSuggestions = Object.entries(suggestions)
-                .sort(([,a], [,b]) => b.suggested_allocation_pct - a.suggested_allocation_pct)
-                .slice(0, 3);
-
-            container.innerHTML = `
-                <h6>💡 Top Recommendations</h6>
-                ${sortedSuggestions.map(([strategy, data]) => `
-                    <div class="mb-3">
-                        <strong>${strategy}</strong>
-                        <div class="small text-muted">${data.recommendation}</div>
-                        <div class="progress mt-1">
-                            <div class="progress-bar" style="width: ${Math.min(data.suggested_allocation_pct, 100)}%">
-                                ${data.suggested_allocation_pct.toFixed(1)}%
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-            `;
-        }
 
         function formatCurrency(amount) {
             return new Intl.NumberFormat('en-US', {
@@ -7173,31 +7406,58 @@
             
             let html = '';
             
-            // Summary section
+            // Explanation section
+            html += `
+                <div class="alert alert-info mb-4">
+                    <h5><i class="fas fa-info-circle"></i> What are Conflicting Legs?</h5>
+                    <p class="mb-2">Conflicting legs occur when you have <strong>opposing positions on the same contract</strong> during overlapping time periods. This analysis identifies trades that may be working against each other.</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Examples of Conflicts:</strong>
+                            <ul class="mb-0">
+                                <li>Long call + Short call (same strike/expiry)</li>
+                                <li>Long put + Short put (same strike/expiry)</li>
+                                <li>Long stock + Short stock</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Why This Matters:</strong>
+                            <ul class="mb-0">
+                                <li>Positions may cancel each other out</li>
+                                <li>Increased margin requirements</li>
+                                <li>Reduced capital efficiency</li>
+                                <li>Potential for unexpected losses</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Summary section with centered text
             html += `
                 <div class="row mb-4">
                     <div class="col-md-3">
-                        <div class="metric-card text-center">
-                            <h4 class="metric-value text-danger">${summary.total_conflicts}</h4>
-                            <p class="metric-title">Total Conflicts</p>
+                        <div class="metric-card">
+                            <div class="card-body text-center">
+                                <h4 class="metric-value text-danger">${summary.total_conflicts}</h4>
+                                <p class="metric-title">Total Conflicts</p>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="metric-card text-center">
-                            <h4 class="metric-value text-warning">${summary.affected_trades}</h4>
-                            <p class="metric-title">Affected Trades</p>
+                        <div class="metric-card">
+                            <div class="card-body text-center">
+                                <h4 class="metric-value text-warning">${summary.affected_trades}</h4>
+                                <p class="metric-title">Affected Trades</p>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="metric-card text-center">
-                            <h4 class="metric-value text-info">${summary.affected_strategies}</h4>
-                            <p class="metric-title">Affected Strategies</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="metric-card text-center">
-                            <h4 class="metric-value text-danger">${summary.high_severity_conflicts || 0}</h4>
-                            <p class="metric-title">High Severity</p>
+                        <div class="metric-card">
+                            <div class="card-body text-center">
+                                <h4 class="metric-value text-info">${summary.affected_strategies}</h4>
+                                <p class="metric-title">Affected Strategies</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -7250,22 +7510,35 @@
                     html += `
                         <div class="card mb-4">
                             <div class="card-body">
-                                <h5 class="card-title">Conflicts by Strategy</h5>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="card-title mb-0">Conflicts by Strategy</h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label for="conflictsStrategyFilter" class="form-label mb-0 small">Filter by Strategy:</label>
+                                        <select class="form-select form-select-sm" id="conflictsStrategyFilter" onchange="filterConflictsByStrategy(this.value)" style="width: auto;">
+                                            <option value="">All Strategies</option>
+                                        </select>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="clearConflictsFilter()" title="Clear filter">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
                                 
                                 <h6 class="mt-3 mb-2 text-primary">Strategy Pairs in Conflicts (ordered by frequency)</h6>
                                 <div class="row">
                     `;
                     
                     sortedPairs.forEach(([pair, count]) => {
-                        // Extract first strategy from pair (before the " & " separator)
-                        const firstStrategy = pair.split(' & ')[0];
+                        // Extract first strategy from pair (before the " ⚡ " separator)
+                        const firstStrategy = pair.split(' ⚡ ')[0];
+                        console.log('Strategy pair:', pair, 'First strategy:', firstStrategy);
                         html += `
                             <div class="col-md-6 mb-2">
                                 <div class="d-flex justify-content-between align-items-center p-2 border rounded strategy-pair-card" 
+                                     data-strategy="${firstStrategy}" 
                                      style="cursor: pointer; transition: background-color 0.2s;" 
                                      onmouseover="this.style.backgroundColor='var(--bg-elevated)'"
                                      onmouseout="if (!this.style.backgroundColor.includes('var(--primary-color)')) this.style.backgroundColor=''"
-                                     onclick="filterConflictsByStrategy('${firstStrategy.replace(/'/g, "\\'")}')"
+                                     onclick="console.log('Clicked strategy pair:', '${firstStrategy}'); filterConflictsByStrategy('${firstStrategy.replace(/'/g, "\\'")}')"
                                      title="Click to filter by: ${firstStrategy}">
                                     <span class="small">${pair}</span>
                                     <span class="badge badge-danger">${count}</span>
@@ -7308,18 +7581,7 @@
                 html += `
                     <div class="card">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="card-title mb-0">Detailed Conflicts</h5>
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="strategyFilter" class="form-label mb-0 small">Filter by Strategy:</label>
-                                    <select class="form-select form-select-sm" id="strategyFilter" onchange="filterConflictsByStrategy(this.value)" style="width: auto;">
-                                        <option value="">All Strategies</option>
-                                    </select>
-                                    <button class="btn btn-outline-secondary btn-sm" onclick="clearConflictsFilter()" title="Clear filter">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
+                            <h5 class="card-title mb-3">Detailed Conflicts</h5>
                             <div class="table-responsive">
                                 <table class="table table-hover" id="conflictsTable">
                                     <thead class="table-dark">
@@ -7392,12 +7654,14 @@
             
             // Populate strategy filter dropdown
             if (conflicts.length > 0) {
-                const strategyFilter = document.getElementById('strategyFilter');
+                const strategyFilter = document.getElementById('conflictsStrategyFilter');
                 const strategies = new Set();
                 conflicts.forEach(conflict => {
                     strategies.add(conflict.trade1.strategy);
                     strategies.add(conflict.trade2.strategy);
                 });
+                
+                console.log('Available strategies in conflicts data:', Array.from(strategies));
                 
                 Array.from(strategies).sort().forEach(strategy => {
                     const option = document.createElement('option');
@@ -7424,12 +7688,18 @@
         let conflictsSortDirection = 'asc';
         
         function filterConflictsByStrategy(strategy) {
+            console.log('filterConflictsByStrategy called with:', strategy);
             const rows = document.querySelectorAll('.conflict-row');
-            const strategyFilter = document.getElementById('strategyFilter');
+            const strategyFilter = document.getElementById('conflictsStrategyFilter');
+            
+            console.log('Strategy filter element:', strategyFilter);
             
             // Update filter dropdown
             if (strategyFilter) {
                 strategyFilter.value = strategy;
+                console.log('Set filter value to:', strategy);
+            } else {
+                console.error('Strategy filter element not found!');
             }
             
             // Update strategy clickable elements highlighting
@@ -7457,16 +7727,20 @@
             });
             
             // Filter table rows
+            let visibleRows = 0;
             rows.forEach(row => {
                 const trade1Strategy = row.dataset.trade1Strategy;
                 const trade2Strategy = row.dataset.trade2Strategy;
                 
                 if (!strategy || trade1Strategy === strategy || trade2Strategy === strategy) {
                     row.style.display = '';
+                    visibleRows++;
                 } else {
                     row.style.display = 'none';
                 }
             });
+            
+            console.log(`Filtered to ${visibleRows} visible rows for strategy: ${strategy}`);
             
             // Filter strategy pairs section
             const strategyPairCards = document.querySelectorAll('.strategy-pair-card');
@@ -7491,11 +7765,11 @@
             });
             
             // Update row count display
-            const visibleRows = document.querySelectorAll('.conflict-row:not([style*="display: none"])');
+            const visibleRowsCount = document.querySelectorAll('.conflict-row:not([style*="display: none"])');
             const visiblePairs = document.querySelectorAll('.strategy-pair-card').length - 
                                 document.querySelectorAll('.strategy-pair-card').length + 
                                 document.querySelectorAll('.strategy-pair-card:not([style*="display: none"])').length;
-            console.log(`🔧 Filtered to ${visibleRows.length} conflicts and ${visiblePairs} strategy pairs for strategy: ${strategy || 'All'}`);
+            console.log(`🔧 Filtered to ${visibleRowsCount.length} conflicts and ${visiblePairs} strategy pairs for strategy: ${strategy || 'All'}`);
         }
         
         function clearConflictsFilter() {
@@ -8667,18 +8941,29 @@
         });
 
         // Handle window resize to ensure charts are properly sized
+        let resizeTimeout;
         window.addEventListener('resize', function() {
-            // Trigger Plotly resize for all charts
-            const chartContainers = document.querySelectorAll('.chart-container');
-            chartContainers.forEach(container => {
-                const plotDiv = container.querySelector('.js-plotly-plot');
-                if (plotDiv && plotDiv.layout) {
-                    Plotly.relayout(plotDiv, {
-                        width: container.clientWidth - 60, // Account for padding
-                        height: container.clientHeight - 60
-                    });
-                }
-            });
+            // Debounce resize events to avoid excessive redraws
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const chartContainers = document.querySelectorAll('.chart-container');
+                chartContainers.forEach(container => {
+                    const plotDiv = container.querySelector('.js-plotly-plot');
+                    if (plotDiv && plotDiv.layout) {
+                        // Only resize if the container size has actually changed
+                        const newWidth = container.clientWidth - 60; // Account for padding
+                        const newHeight = Math.max(400, container.clientHeight - 60); // Minimum height of 400px
+                        
+                        // Check if size actually changed to avoid unnecessary redraws
+                        if (plotDiv.layout.width !== newWidth || plotDiv.layout.height !== newHeight) {
+                            Plotly.relayout(plotDiv, {
+                                width: newWidth,
+                                height: newHeight
+                            });
+                        }
+                    }
+                });
+            }, 150); // 150ms debounce
         });
 
         // Initial chart resize after page load

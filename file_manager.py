@@ -231,4 +231,29 @@ class FileManager:
             'deleted_count': deleted_count,
             'message': f'Cleaned up {deleted_count} duplicate files',
             'deleted_files': deleted_files
-        } 
+        }
+    
+    def cleanup_empty_directories(self, base_dir: str = None) -> int:
+        """Remove empty directories in the guest data folder."""
+        if base_dir is None:
+            base_dir = self.base_data_dir
+        
+        removed_count = 0
+        
+        try:
+            # Walk through all subdirectories
+            for root, dirs, files in os.walk(base_dir, topdown=False):
+                for dir_name in dirs:
+                    dir_path = os.path.join(root, dir_name)
+                    try:
+                        # Check if directory is empty
+                        if not os.listdir(dir_path):
+                            os.rmdir(dir_path)
+                            removed_count += 1
+                            print(f"Removed empty directory: {dir_path}")
+                    except OSError as e:
+                        print(f"Error removing directory {dir_path}: {e}")
+        except Exception as e:
+            print(f"Error during directory cleanup: {e}")
+        
+        return removed_count 

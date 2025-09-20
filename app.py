@@ -1968,6 +1968,167 @@ def upload_csv():
             'error': f'Upload failed: {str(e)}'
         }), 500
 
+@app.route('/api/cleanup-empty-dirs', methods=['POST'])
+@guest_mode_required
+def cleanup_empty_directories():
+    """Clean up empty directories in the guest data folder."""
+    try:
+        print("=== CLEANUP EMPTY DIRECTORIES START ===")
+        
+        # Track cleanup attempt
+        app_insights.track_event('cleanup_empty_dirs_attempted', {
+            'user_id': get_current_user_id()
+        })
+        
+        # Clean up empty directories
+        removed_count = file_manager.cleanup_empty_directories()
+        
+        # Track successful cleanup
+        app_insights.track_event('cleanup_empty_dirs_success', {
+            'user_id': get_current_user_id(),
+            'removed_count': removed_count
+        })
+        
+        print(f"=== CLEANUP EMPTY DIRECTORIES SUCCESS: {removed_count} directories removed ===")
+        return jsonify({
+            'success': True,
+            'removed_count': removed_count,
+            'message': f'Cleaned up {removed_count} empty directories'
+        })
+        
+    except Exception as e:
+        # Track cleanup failure
+        app_insights.track_exception(e, {
+            'user_id': get_current_user_id(),
+            'endpoint': 'cleanup_empty_directories'
+        })
+        
+        print(f"=== CLEANUP EMPTY DIRECTORIES ERROR: {str(e)} ===")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to cleanup directories: {str(e)}'
+        }), 500
+
+@app.route('/api/load-sample-data', methods=['POST'])
+@guest_mode_required
+def load_sample_data():
+    """Load the sample portfolio data from Example-Portfolio.csv."""
+    try:
+        print("=== LOAD SAMPLE DATA START ===")
+        
+        # Track sample data load attempt
+        app_insights.track_event('sample_data_load_attempted', {
+            'user_id': get_current_user_id()
+        })
+        
+        import os
+        sample_file_path = os.path.join(os.getcwd(), 'Example-Portfolio.csv')
+        
+        if not os.path.exists(sample_file_path):
+            app_insights.track_event('sample_data_load_failed', {
+                'user_id': get_current_user_id(),
+                'error': 'file_not_found'
+            })
+            return jsonify({
+                'success': False,
+                'error': 'Sample data file not found. Please ensure Example-Portfolio.csv exists in the project root.'
+            }), 404
+        
+        # Copy the sample file to the user's data directory with a timestamp
+        import shutil
+        from datetime import datetime
+        
+        # Generate timestamped filename
+        base_name = 'Example-Portfolio'
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        saved_filename = f"{base_name}_{timestamp}.csv"
+        saved_path = file_manager.get_file_path(saved_filename)
+        
+        # Copy the sample file to the user's data directory
+        shutil.copy2(sample_file_path, saved_path)
+        
+        # Store metadata for the copied file
+        file_manager.metadata[saved_filename] = {
+            'friendly_name': 'Example Portfolio',
+            'upload_date': datetime.now().isoformat(),
+            'original_filename': 'Example-Portfolio.csv'
+        }
+        
+        try:
+            # Read CSV to validate columns
+            df = pd.read_csv(saved_path)
+            
+            # Detect data type
+            if 'Initial Premium' in df.columns:
+                data_type = 'real_trade'
+            else:
+                data_type = 'backtest'
+            
+            # Set required columns
+            if data_type == 'real_trade':
+                required_columns = ['Date Opened', 'Date Closed', 'P/L']
+            else:
+                required_columns = ['Date Opened', 'Date Closed', 'P/L', 'Funds at Close']
+            
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            
+            if missing_columns:
+                os.remove(saved_path)  # Clean up file if invalid
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required columns: {", ".join(missing_columns)}',
+                    'available_columns': list(df.columns)
+                }), 400
+            
+            # Clear existing data and load new data
+            portfolio.strategies.clear()
+            portfolio.load_from_csv(saved_path)
+            # Set current filename
+            portfolio.current_filename = saved_filename
+            # Set data type
+            global current_data_type, current_initial_capital
+            current_data_type = data_type
+            current_initial_capital = None  # Sample data doesn't need initial capital
+            
+            # Track successful sample data load
+            app_insights.track_event('sample_data_load_success', {
+                'user_id': get_current_user_id(),
+                'trades_count': portfolio.total_trades,
+                'strategies_count': len(portfolio.strategies),
+                'filename': saved_filename
+            })
+            
+            print("=== LOAD SAMPLE DATA SUCCESS ===")
+            return jsonify({
+                'success': True,
+                'data': {
+                    'filename': saved_filename,
+                    'friendly_name': 'Example Portfolio',
+                    'trades_count': portfolio.total_trades,
+                    'strategies_count': len(portfolio.strategies),
+                    'data_type': data_type
+                }
+            })
+            
+        except Exception as e:
+            # Clean up file if error occurs during processing
+            if os.path.exists(saved_path):
+                os.remove(saved_path)
+            raise e
+        
+    except Exception as e:
+        # Track sample data load failure
+        app_insights.track_exception(e, {
+            'user_id': get_current_user_id(),
+            'endpoint': 'load_sample_data'
+        })
+        
+        print(f"=== LOAD SAMPLE DATA ERROR: {str(e)} ===")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to load sample data: {str(e)}'
+        }), 500
+
 @app.route('/api/saved-files')
 def list_saved_files():
     """Get list of saved CSV files, ordered newest to oldest."""

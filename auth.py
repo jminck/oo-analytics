@@ -141,12 +141,18 @@ def get_current_data_folder():
     """Get the current user's data folder (user or guest)."""
     if current_user.is_authenticated:
         return current_user.get_data_folder()
-    elif session.get('is_guest'):
-        return get_guest_data_folder()
     else:
-        # Create guest session if none exists
-        session['guest_id'] = secrets.token_urlsafe(16)
-        session['is_guest'] = True
+        # For guest users, ensure we have a persistent guest_id
+        guest_id = session.get('guest_id')
+        if not guest_id:
+            # Create a new guest session
+            guest_id = secrets.token_urlsafe(16)
+            session['guest_id'] = guest_id
+            session['is_guest'] = True
+            print(f"Created new guest session: {guest_id}")
+        else:
+            print(f"Using existing guest session: {guest_id}")
+        
         return get_guest_data_folder()
 
 def get_guest_data_folder():

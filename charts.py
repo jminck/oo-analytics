@@ -84,6 +84,107 @@ class ChartGenerator:
                     hovertemplate=f'<b>{strategy_name}</b><br><b>Date:</b> %{{x}}<br><b>Cumulative P&L:</b> $%{{y:,.2f}}<extra></extra>'
                 ))
         
+        # Calculate data range for log scale handling
+        min_pnl = df['cumulative'].min()
+        max_pnl = df['cumulative'].max()
+        
+        # Create update menu buttons
+        buttons = [
+            {
+                'args': [{'yaxis': {'type': 'linear', 'title': 'Cumulative P&L ($)'}}],
+                'label': 'Linear Scale',
+                'method': 'relayout'
+            }
+        ]
+        
+        # Check if we have negative values
+        has_negative = min_pnl < 0
+        
+        if has_negative:
+            # For data with negatives, use a custom symlog transformation
+            
+            # Create transformed data for symlog scale
+            def symlog_transform(x, linthresh=100):
+                """Symmetric log transformation that handles negative values"""
+                return np.sign(x) * np.log1p(np.abs(x) / linthresh)
+            
+            def symlog_inverse(y, linthresh=100):
+                """Inverse of symlog transformation"""
+                return np.sign(y) * linthresh * (np.expm1(np.abs(y)))
+            
+            # Determine appropriate linear threshold based on data range
+            max_abs = max(abs(min_pnl), abs(max_pnl))
+            linthresh = max_abs / 10  # More aggressive transformation for visible effect
+            
+            # Create transformed traces
+            transformed_traces = []
+            for trace in fig.data:
+                if hasattr(trace, 'y') and trace.y is not None:
+                    transformed_y = [symlog_transform(y, linthresh) for y in trace.y]
+                    # Create a new trace dictionary manually
+                    new_trace = {
+                        'x': trace.x,
+                        'y': transformed_y,
+                        'mode': trace.mode,
+                        'name': trace.name,
+                        'line': trace.line,
+                        'visible': trace.visible,
+                        'hovertemplate': trace.hovertemplate,
+                        'type': 'scatter'
+                    }
+                    transformed_traces.append(new_trace)
+            
+            # Create tick values for the transformed scale
+            tick_vals = []
+            tick_text = []
+            
+            # Generate tick values that will show the symlog effect clearly
+            tick_points = []
+            
+            # Add zero
+            tick_points.append(0)
+            
+            # Add symmetric points around zero for better visualization
+            for i in range(1, 6):  # 1 to 5
+                val = max_abs * (i / 5)  # 20%, 40%, 60%, 80%, 100% of max
+                tick_points.extend([val, -val])
+            
+            # Add some intermediate points for better granularity
+            for i in range(1, 4):
+                val = max_abs * (i / 10)  # 10%, 20%, 30% of max
+                tick_points.extend([val, -val])
+            
+            # Transform the tick points and create labels
+            for val in sorted(set(tick_points)):
+                if abs(val) <= max_abs * 1.2:  # Only show relevant ticks
+                    transformed_val = symlog_transform(val, linthresh)
+                    tick_vals.append(transformed_val)
+                    tick_text.append(f'${val:,.0f}')
+            
+            buttons.append({
+                'args': [{
+                    'data': transformed_traces,
+                    'layout': {
+                        'yaxis': {
+                            'type': 'linear',
+                            'title': 'Cumulative P&L ($) - Symlog Scale',
+                            'tickmode': 'array',
+                            'tickvals': tick_vals,
+                            'ticktext': tick_text
+                        }
+                    }
+                }],
+                'label': 'Symlog Scale',
+                'method': 'restyle'
+            })
+        else:
+            # Regular log scale for positive-only data
+            buttons.append({
+                'args': [{'yaxis': {'type': 'log', 'title': 'Cumulative P&L ($) - Log Scale'}}],
+                'label': 'Log Scale',
+                'method': 'relayout'
+            })
+        
         fig.update_layout(
             title='Portfolio Cumulative P&L',
             xaxis_title='Date',
@@ -99,18 +200,7 @@ class ChartGenerator:
                 xanchor='center'
             ),
             updatemenus=[{
-                'buttons': [
-                    {
-                        'args': [{'yaxis': {'type': 'linear', 'title': 'Cumulative P&L ($)'}}],
-                        'label': 'Linear Scale',
-                        'method': 'relayout'
-                    },
-                    {
-                        'args': [{'yaxis': {'type': 'log', 'title': 'Cumulative P&L ($) - Log Scale'}}],
-                        'label': 'Log Scale',
-                        'method': 'relayout'
-                    }
-                ],
+                'buttons': buttons,
                 'direction': 'down',
                 'showactive': True,
                 'x': 0.1,
@@ -297,16 +387,17 @@ class ChartGenerator:
         }
     
     def create_strategy_balance_pie(self) -> Dict:
-        """Create pie chart showing portfolio balance by strategy type."""
+        """Create enhanced pie chart showing portfolio balance by strategy type with detailed information."""
         balance = self.analyzer.get_strategy_balance_analysis()
         
         if not balance:
             return self._empty_chart("No balance data available")
         
-        # Prepare data for pie chart
-        types = []
+        # Prepare data for pie chart - individual strategies
+        strategy_names = []
         values = []
         colors_pie = []
+        custom_data = []
         
         color_map = {
             'BULLISH': '#2ca02c',  # Green
@@ -314,33 +405,87 @@ class ChartGenerator:
             'NEUTRAL': '#ff7f0e'   # Orange
         }
         
+        # Collect all individual strategies
+        all_strategies = []
         for strategy_type, data in balance.items():
-            if data['strategy_count'] > 0:  # Only include types with strategies
-                types.append(f"{strategy_type}<br>({data['strategy_count']} strategies)")
-                values.append(abs(data['pnl']))  # Use absolute value for pie chart
-                colors_pie.append(color_map.get(strategy_type, '#1f77b4'))
+            if data['strategy_count'] > 0 and 'strategies' in data:
+                for strategy in data['strategies']:
+                    strategy['type'] = strategy_type  # Add type to strategy data
+                    all_strategies.append(strategy)
+        
+        # Sort strategies by absolute P&L (largest first)
+        all_strategies.sort(key=lambda x: abs(x['pnl']), reverse=True)
+        
+        # Calculate total for percentage calculations
+        total_pnl = sum(abs(s['pnl']) for s in all_strategies)
+        
+        for strategy in all_strategies:
+            # Truncate long strategy names for display
+            display_name = strategy['name']
+            if len(display_name) > 25:
+                display_name = strategy['name'][:22] + "..."
+            
+            # Create label with strategy type indicator
+            type_emoji = {'BULLISH': '🟢', 'BEARISH': '🔴', 'NEUTRAL': '🟡'}.get(strategy['type'], '⚪')
+            label = f"{type_emoji} {display_name}"
+            
+            strategy_names.append(label)
+            values.append(abs(strategy['pnl']))  # Use absolute value for pie chart
+            colors_pie.append(color_map.get(strategy['type'], '#1f77b4'))
+            
+            # Store custom data for enhanced hover
+            custom_data.append([
+                strategy['name'],  # Full strategy name
+                strategy['type'],  # Strategy type
+                strategy['pnl'],   # P&L value
+                strategy['trade_count'],  # Trade count
+                abs(strategy['pnl']) / total_pnl * 100 if total_pnl > 0 else 0  # Percentage of total
+            ])
         
         if not values:
             return self._empty_chart("No strategy data available")
         
+        # Create simple hover template to avoid customdata issues
+        hover_template = (
+            '<b>%{label}</b><br>' +
+            'P&L: $%{value:,.2f} (%{percent})<br>' +
+            '<extra></extra>'
+        )
+        
         fig = go.Figure(data=[go.Pie(
-            labels=types,
+            labels=strategy_names,
             values=values,
             marker_colors=colors_pie,
-            hovertemplate='<b>%{label}</b><br>P&L: $%{value:,.2f}<br>Percentage: %{percent}<extra></extra>'
+            hovertemplate=hover_template,
+            textinfo='label+percent',
+            textposition='auto',
+            textfont=dict(size=10),
+            pull=[0.05 if data[2] < 0 else 0 for data in custom_data]  # Pull negative slices slightly (data[2] is pnl)
         )])
         
+        # Debug: Print customdata structure
+        print(f"DEBUG: Custom data structure: {custom_data}")
+        print(f"DEBUG: First custom data item: {custom_data[0] if custom_data else 'None'}")
+        
+        
         fig.update_layout(
-            title='Portfolio Balance by Strategy Type',
+            title={
+                'text': 'Individual Strategy Analysis<br><sub>Portfolio Balance by Individual Strategy</sub>',
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 18}
+            },
             template='plotly_white',
-            height=650,
-            autosize=True
+            height=700,
+            autosize=True,
+            showlegend=False,  # Remove legend since strategy names are on the pie slices
+            margin=dict(l=20, r=20, t=60, b=20)  # Reduced right margin since no legend
         )
         
         return {
             'chart': fig.to_json(),
-            'type': 'balance_pie',
-            'description': 'Distribution of portfolio P&L across bullish, bearish, and neutral strategies.'
+            'type': 'portfolio_balance',
+            'description': 'Distribution of portfolio P&L across bullish, bearish, and neutral strategies with detailed strategy information and classification logic.'
         }
     
     def create_risk_return_scatter(self) -> Dict:
@@ -635,9 +780,13 @@ class ChartGenerator:
         }
 
     def create_drawdown_chart(self) -> Dict:
-        """Create portfolio drawdown analysis chart."""
+        """Create enhanced portfolio drawdown analysis chart with per-strategy details."""
         all_trades = []
-        for strategy in self.portfolio.strategies.values():
+        strategy_trades = {}
+        
+        # Collect trades by strategy
+        for strategy_name, strategy in self.portfolio.strategies.items():
+            strategy_trades[strategy_name] = strategy.trades
             all_trades.extend(strategy.trades)
         
         if not all_trades:
@@ -654,6 +803,7 @@ class ChartGenerator:
         initial_balance = first_trade.funds_at_close - first_trade.pnl
         
         # Calculate account values over time (same as Portfolio Overview)
+        print(f"DEBUG: Starting portfolio data calculation with {len(sorted_trades)} trades")
         cumulative_pnl = []
         running_pnl = 0
         account_values = []
@@ -666,31 +816,191 @@ class ChartGenerator:
             account_values.append(account_value)
             dates.append(trade.date_closed)
         
+        print(f"DEBUG: Portfolio account values calculation complete")
+        print(f"DEBUG: account_values type: {type(account_values)}, length: {len(account_values)}")
+        print(f"DEBUG: dates type: {type(dates)}, length: {len(dates)}")
+        
         # Calculate drawdown using account values (same as Portfolio Overview)
-        running_max = np.maximum.accumulate(account_values)
+        running_max = [float(x) for x in np.maximum.accumulate(account_values)]
         drawdown_pct = []
+        drawdown_dollar = []
+        
+        print(f"DEBUG: Portfolio data calculation complete")
+        print(f"DEBUG: account_values type: {type(account_values)}, length: {len(account_values)}")
+        print(f"DEBUG: drawdown_pct type: {type(drawdown_pct)}, length: {len(drawdown_pct)}")
+        print(f"DEBUG: running_max type: {type(running_max)}, length: {len(running_max)}")
         
         for i, account_value in enumerate(account_values):
             peak = running_max[i]
             if peak > 0:
-                current_drawdown = (peak - account_value) / peak * 100
+                current_drawdown_pct = (peak - account_value) / peak * 100
+                current_drawdown_dollar = peak - account_value
             else:
-                current_drawdown = 0
-            drawdown_pct.append(current_drawdown)
+                current_drawdown_pct = 0
+                current_drawdown_dollar = 0
+            drawdown_pct.append(current_drawdown_pct)
+            drawdown_dollar.append(current_drawdown_dollar)
+        
+        print(f"DEBUG: Portfolio drawdown calculation complete")
+        print(f"DEBUG: Final account_values type: {type(account_values)}, length: {len(account_values)}")
+        print(f"DEBUG: Final drawdown_pct type: {type(drawdown_pct)}, length: {len(drawdown_pct)}")
+        
+        # Check portfolio variables before strategy calculation
+        print(f"DEBUG: Before strategy calculation - account_values type: {type(account_values)}, length: {len(account_values)}")
+        print(f"DEBUG: Before strategy calculation - drawdown_pct type: {type(drawdown_pct)}, length: {len(drawdown_pct)}")
+        print(f"DEBUG: Before strategy calculation - running_max type: {type(running_max)}, length: {len(running_max)}")
+        
+        # Calculate per-strategy drawdown statistics
+        strategy_drawdown_stats = {}
+        for strategy_name, trades in strategy_trades.items():
+            if not trades:
+                continue
+                
+            # Sort strategy trades by date
+            strategy_trades_sorted = sorted(trades, key=lambda t: pd.to_datetime(t.date_closed))
+            
+            # Calculate strategy-specific running P&L and drawdown against "Funds at Close"
+            strategy_running_pnl = 0
+            strategy_running_pnl_list = []
+            strategy_dates = []
+            strategy_funds_at_close = []
+            
+            for trade in strategy_trades_sorted:
+                strategy_running_pnl += trade.pnl
+                strategy_running_pnl_list.append(float(strategy_running_pnl))
+                strategy_dates.append(trade.date_closed)
+                strategy_funds_at_close.append(float(trade.funds_at_close))
+            
+            if strategy_running_pnl_list:
+                # Calculate peak P&L and drawdown against "Funds at Close"
+                strategy_peak_pnl = [float(x) for x in np.maximum.accumulate(strategy_running_pnl_list)]
+                strategy_drawdowns = []
+                strategy_drawdown_dollars = []
+                days_since_peak = []
+                
+                print(f"DEBUG: Strategy stats calculation for {strategy_name}")
+                print(f"DEBUG: pnl_list type: {type(strategy_running_pnl_list)}, length: {len(strategy_running_pnl_list)}")
+                print(f"DEBUG: funds_list type: {type(strategy_funds_at_close)}, length: {len(strategy_funds_at_close)}")
+                print(f"DEBUG: peak_list type: {type(strategy_peak_pnl)}, length: {len(strategy_peak_pnl)}")
+                
+                for i, (current_pnl, funds_at_close) in enumerate(zip(strategy_running_pnl_list, strategy_funds_at_close)):
+                    peak_pnl = strategy_peak_pnl[i]
+                    
+                    # Calculate drawdown % against "Funds at Close"
+                    if funds_at_close > 0:
+                        strategy_drawdown_pct = (peak_pnl - current_pnl) / funds_at_close * 100
+                        strategy_drawdown_dollar = peak_pnl - current_pnl
+                    else:
+                        strategy_drawdown_pct = 0
+                        strategy_drawdown_dollar = 0
+                    
+                    strategy_drawdowns.append(strategy_drawdown_pct)
+                    strategy_drawdown_dollars.append(strategy_drawdown_dollar)
+                    
+                    # Count days since current P&L >= Peak P&L
+                    if current_pnl >= peak_pnl:
+                        days_since_peak.append(0)  # At or above peak
+                    else:
+                        # Count consecutive days below peak
+                        days_below_peak = 0
+                        try:
+                            for j in range(i, -1, -1):
+                                if j < len(strategy_running_pnl_list) and j < len(strategy_peak_pnl):
+                                    if strategy_running_pnl_list[j] < strategy_peak_pnl[j]:
+                                        days_below_peak += 1
+                                    else:
+                                        break
+                                else:
+                                    break
+                        except Exception as e:
+                            print(f"DEBUG: Error in stats days calculation for {strategy_name} at index {i}: {e}")
+                            print(f"DEBUG: j={j}, pnl_list_len={len(strategy_running_pnl_list)}, peak_list_len={len(strategy_peak_pnl)}")
+                            raise
+                        days_since_peak.append(days_below_peak)
+                
+                # Calculate strategy statistics
+                max_drawdown_pct = float(max(strategy_drawdowns)) if strategy_drawdowns else 0.0
+                max_drawdown_idx = strategy_drawdowns.index(max_drawdown_pct) if strategy_drawdowns else 0
+                max_drawdown_dollar = float(strategy_drawdown_dollars[max_drawdown_idx]) if max_drawdown_idx < len(strategy_drawdown_dollars) else 0.0
+                max_days_since_peak = int(max(days_since_peak)) if days_since_peak else 0
+                
+                print(f"DEBUG: Strategy '{strategy_name}' max drawdown: {max_drawdown_pct:.2f}% (${max_drawdown_dollar:,.2f})")
+                print(f"DEBUG: Strategy '{strategy_name}' P&L range: ${min(strategy_running_pnl_list):,.2f} to ${max(strategy_running_pnl_list):,.2f}")
+                print(f"DEBUG: Strategy '{strategy_name}' peak P&L: ${max(strategy_peak_pnl):,.2f}")
+                print(f"DEBUG: Strategy '{strategy_name}' max days since peak: {max_days_since_peak}")
+                print(f"DEBUG: Strategy '{strategy_name}' first few P&L values: {strategy_running_pnl_list[:3]}")
+                print(f"DEBUG: Strategy '{strategy_name}' first few drawdowns: {strategy_drawdowns[:3]}")
+                
+                strategy_drawdown_stats[strategy_name] = {
+                    'max_drawdown_pct': float(round(max_drawdown_pct, 2)),
+                    'max_drawdown_dollar': float(round(max_drawdown_dollar, 2)),
+                    'max_drawdown_days': int(max_days_since_peak),
+                    'total_trades': int(len(trades)),
+                    'total_pnl': float(round(sum(trade.pnl for trade in trades), 2)),
+                    'peak_pnl': float(round(max(strategy_peak_pnl), 2)),
+                    'current_pnl': float(round(strategy_running_pnl_list[-1], 2)) if strategy_running_pnl_list else 0.0
+                }
+        
+        print(f"DEBUG: Strategy statistics calculation complete for {len(strategy_drawdown_stats)} strategies")
+        
+        # Check portfolio variables after strategy calculation
+        print(f"DEBUG: After strategy calculation - account_values type: {type(account_values)}, length: {len(account_values)}")
+        print(f"DEBUG: After strategy calculation - drawdown_pct type: {type(drawdown_pct)}, length: {len(drawdown_pct)}")
+        print(f"DEBUG: After strategy calculation - running_max type: {type(running_max)}, length: {len(running_max)}")
+        
+        print(f"DEBUG: About to create Plotly figure")
         
         fig = go.Figure()
         
-        # Add account values line
+        # Convert portfolio data to Python lists to avoid Plotly errors
+        print(f"DEBUG: Converting portfolio data to Python lists")
+        print(f"DEBUG: account_values type: {type(account_values)}, length: {len(account_values)}")
+        print(f"DEBUG: drawdown_pct type: {type(drawdown_pct)}, length: {len(drawdown_pct)}")
+        print(f"DEBUG: running_max type: {type(running_max)}, length: {len(running_max)}")
+        
+        # Check the first few values in account_values
+        print(f"DEBUG: First 5 account_values: {account_values[:5]}")
+        print(f"DEBUG: Types of first 5 account_values: {[type(x) for x in account_values[:5]]}")
+        
+        try:
+            account_values = [float(x) for x in account_values]
+            print(f"DEBUG: account_values conversion successful")
+        except Exception as e:
+            print(f"DEBUG: Error converting account_values: {e}")
+            print(f"DEBUG: Problematic values: {[x for x in account_values[:10] if not isinstance(x, (int, float))]}")
+            raise
+        
+        try:
+            drawdown_pct = [float(x) for x in drawdown_pct]
+            print(f"DEBUG: drawdown_pct conversion successful")
+        except Exception as e:
+            print(f"DEBUG: Error converting drawdown_pct: {e}")
+            raise
+            
+        try:
+            running_max = [float(x) for x in running_max]
+            print(f"DEBUG: running_max conversion successful")
+        except Exception as e:
+            print(f"DEBUG: Error converting running_max: {e}")
+            raise
+        
+        print(f"DEBUG: Portfolio data conversion complete")
+        
+        # Add account values line with enhanced hover
         fig.add_trace(go.Scatter(
             x=dates,
             y=account_values,
             mode='lines',
             name='Account Value',
             line=dict(color='blue', width=2),
-            yaxis='y'
+            yaxis='y',
+            hovertemplate='<b>Portfolio Account Value</b><br>' +
+                         'Date: %{x}<br>' +
+                         'Account Value: $%{y:,.2f}<br>' +
+                         '<extra></extra>'
         ))
         
-        # Add drawdown area
+        # Add drawdown area with enhanced hover
         fig.add_trace(go.Scatter(
             x=dates,
             y=drawdown_pct,
@@ -699,11 +1009,161 @@ class ChartGenerator:
             line=dict(color='red', width=2),
             fill='tonexty',
             fillcolor='rgba(255,0,0,0.1)',
-            yaxis='y2'
+            yaxis='y2',
+            customdata=list(zip(drawdown_dollar, running_max, account_values)),
+            hovertemplate='<b>Portfolio Drawdown</b><br>' +
+                         'Date: %{x}<br>' +
+                         'Drawdown: %{y:.2f}%<br>' +
+                         'Drawdown $: $%{customdata[0]:,.2f}<br>' +
+                         'Peak Account Value: $%{customdata[1]:,.2f}<br>' +
+                         'Current Account Value: $%{customdata[2]:,.2f}<br>' +
+                         '<extra></extra>'
+        ))
+        
+        # Add strategy-specific lines with daily drawdown details
+        colors = ['#A23B72', '#F18F01', '#C73E1D', '#7209B7', '#048A81', '#D4AF37', '#8B4513', '#2F4F4F']
+        print(f"DEBUG: Starting chart rendering for {len(strategy_drawdown_stats)} strategies")
+        
+        for i, (strategy_name, stats) in enumerate(strategy_drawdown_stats.items()):
+            color = colors[i % len(colors)]
+            print(f"DEBUG: Processing chart rendering for strategy {i+1}/{len(strategy_drawdown_stats)}: {strategy_name}")
+            
+            # Get strategy trades sorted by date
+            strategy_trades_sorted = sorted(strategy_trades[strategy_name], key=lambda t: pd.to_datetime(t.date_closed))
+            
+            # Calculate strategy running P&L and drawdown against "Funds at Close"
+            strategy_running_pnl = 0
+            strategy_running_pnl_list = []
+            strategy_dates = []
+            strategy_funds_at_close = []
+            
+            for trade in strategy_trades_sorted:
+                strategy_running_pnl += trade.pnl
+                strategy_running_pnl_list.append(float(strategy_running_pnl))
+                strategy_dates.append(trade.date_closed)
+                strategy_funds_at_close.append(float(trade.funds_at_close))
+            
+            print(f"DEBUG: Chart data collection complete for {strategy_name}")
+            print(f"DEBUG: Chart pnl_list type: {type(strategy_running_pnl_list)}, length: {len(strategy_running_pnl_list)}")
+            print(f"DEBUG: Chart funds_list type: {type(strategy_funds_at_close)}, length: {len(strategy_funds_at_close)}")
+            
+            # Calculate strategy-specific drawdown against "Funds at Close"
+            if strategy_running_pnl_list:
+                strategy_peak_pnl = [float(x) for x in np.maximum.accumulate(strategy_running_pnl_list)]
+                strategy_drawdowns = []
+                strategy_drawdown_dollars = []
+                days_since_peak = []
+                
+                print(f"DEBUG: About to iterate over {strategy_name}")
+                print(f"DEBUG: strategy_running_pnl_list type: {type(strategy_running_pnl_list)}, length: {len(strategy_running_pnl_list)}")
+                print(f"DEBUG: strategy_funds_at_close type: {type(strategy_funds_at_close)}, length: {len(strategy_funds_at_close)}")
+                print(f"DEBUG: strategy_peak_pnl type: {type(strategy_peak_pnl)}, length: {len(strategy_peak_pnl)}")
+                
+                for i, (current_pnl, funds_at_close) in enumerate(zip(strategy_running_pnl_list, strategy_funds_at_close)):
+                    peak_pnl = strategy_peak_pnl[i]
+                    
+                    # Calculate drawdown % against "Funds at Close"
+                    if funds_at_close > 0:
+                        strategy_drawdown_pct = (peak_pnl - current_pnl) / funds_at_close * 100
+                        strategy_drawdown_dollar = peak_pnl - current_pnl
+                    else:
+                        strategy_drawdown_pct = 0
+                        strategy_drawdown_dollar = 0
+                    
+                    strategy_drawdowns.append(strategy_drawdown_pct)
+                    strategy_drawdown_dollars.append(strategy_drawdown_dollar)
+                    
+                    # Count days since current P&L >= Peak P&L
+                    if current_pnl >= peak_pnl:
+                        days_since_peak.append(0)  # At or above peak
+                    else:
+                        # Count consecutive days below peak
+                        days_below_peak = 0
+                        try:
+                            for j in range(i, -1, -1):
+                                if j < len(strategy_running_pnl_list) and j < len(strategy_peak_pnl):
+                                    if strategy_running_pnl_list[j] < strategy_peak_pnl[j]:
+                                        days_below_peak += 1
+                                    else:
+                                        break
+                                else:
+                                    break
+                        except Exception as e:
+                            print(f"DEBUG: Error in days calculation for {strategy_name} at index {i}: {e}")
+                            print(f"DEBUG: j={j}, pnl_list_len={len(strategy_running_pnl_list)}, peak_list_len={len(strategy_peak_pnl)}")
+                            raise
+                        days_since_peak.append(days_below_peak)
+                
+                # Create custom data for enhanced tooltips
+                custom_data = []
+                print(f"DEBUG: Creating custom data for {strategy_name}")
+                print(f"DEBUG: Lengths - dates: {len(strategy_dates)}, drawdowns: {len(strategy_drawdowns)}, pnl: {len(strategy_running_pnl_list)}")
+                
+                for j in range(len(strategy_dates)):
+                    try:
+                        custom_data.append([
+                            float(strategy_drawdowns[j]),  # Current drawdown %
+                            float(strategy_drawdown_dollars[j]),  # Current drawdown $
+                            float(strategy_peak_pnl[j]),  # Peak P&L
+                            float(strategy_running_pnl_list[j]),  # Current P&L
+                            float(strategy_funds_at_close[j]),  # Funds at Close
+                            int(days_since_peak[j])  # Days since peak
+                        ])
+                    except Exception as e:
+                        print(f"DEBUG: Error creating custom data at index {j}: {e}")
+                        print(f"DEBUG: Values - drawdown: {strategy_drawdowns[j]}, dollar: {strategy_drawdown_dollars[j]}, peak: {strategy_peak_pnl[j]}")
+                        raise
+                
+                # Convert numpy arrays to Python lists to avoid Plotly errors
+                strategy_running_pnl_list = [float(x) for x in strategy_running_pnl_list]
+                strategy_drawdowns = [float(x) for x in strategy_drawdowns]
+                
+                # Add strategy P&L line
+                fig.add_trace(go.Scatter(
+                    x=strategy_dates,
+                    y=strategy_running_pnl_list,
+                    mode='lines',
+                    name=f'{strategy_name} P&L',
+                    line=dict(color=color, width=1, dash='dot'),
+                    yaxis='y',
+                    visible='legendonly',  # Hidden by default
+                    customdata=custom_data,
+                    hovertemplate=f'<b>{strategy_name} P&L</b><br>' +
+                                 'Date: %{x}<br>' +
+                                 'Current P&L: $%{y:,.2f}<br>' +
+                                 'Peak P&L: $%{customdata[2]:,.2f}<br>' +
+                                 'Funds at Close: $%{customdata[4]:,.2f}<br>' +
+                                 'Current Drawdown: %{customdata[0]:.2f}% ($%{customdata[1]:,.2f})<br>' +
+                                 'Days Since Peak: %{customdata[5]}<br>' +
+                                 f'Max Drawdown: {stats["max_drawdown_pct"]:.2f}% (${stats["max_drawdown_dollar"]:,.2f})<br>' +
+                                 f'Max Days Since Peak: {stats["max_drawdown_days"]}<br>' +
+                                 f'Total Trades: {stats["total_trades"]}<br>' +
+                                 '<extra></extra>'
+                ))
+                
+                # Add strategy drawdown line (secondary y-axis)
+                fig.add_trace(go.Scatter(
+                    x=strategy_dates,
+                    y=strategy_drawdowns,
+                    mode='lines',
+                    name=f'{strategy_name} DD%',
+                    line=dict(color=color, width=1, dash='dash'),
+                    yaxis='y2',
+                    visible='legendonly',  # Hidden by default
+                    customdata=custom_data,
+                    hovertemplate=f'<b>{strategy_name} Drawdown</b><br>' +
+                                 'Date: %{x}<br>' +
+                                 'Drawdown: %{y:.2f}%<br>' +
+                                 'Drawdown $: $%{customdata[1]:,.2f}<br>' +
+                                 'Peak P&L: $%{customdata[2]:,.2f}<br>' +
+                                 'Current P&L: $%{customdata[3]:,.2f}<br>' +
+                                 'Funds at Close: $%{customdata[4]:,.2f}<br>' +
+                                 'Days Since Peak: %{customdata[5]}<br>' +
+                                 '<extra></extra>'
         ))
         
         fig.update_layout(
-            title='Portfolio Drawdown Analysis',
+            title='Portfolio Drawdown Analysis with Strategy Details',
             xaxis_title='Date',
             yaxis=dict(
                 title='Account Value ($)',
@@ -716,16 +1176,18 @@ class ChartGenerator:
                 range=[0, max(drawdown_pct) * 1.1]  # Show drawdown from 0 to max
             ),
             template='plotly_white',
-            height=650,
+            height=1000,  # Set explicit height to 1000px
             autosize=True,
             xaxis={'tickangle': 45},
-            legend=dict(x=0.02, y=0.98)
+            legend=dict(x=0.02, y=0.98),
+            margin=dict(r=100, t=50, b=50, l=50)  # Add margins for right y-axis and spacing
         )
         
         return {
             'chart': fig.to_json(),
             'type': 'drawdown',
-            'description': 'Portfolio drawdown analysis showing peak-to-trough declines.'
+            'description': 'Portfolio drawdown analysis showing peak-to-trough declines with per-strategy details.',
+            'strategy_stats': strategy_drawdown_stats
         }
     
     def create_monte_carlo_distribution_chart(self, simulation_data: Dict) -> Dict:

@@ -756,8 +756,19 @@ class MonteCarloSimulator:
         # Since we're using per-lot P&L, we need to normalize the initial balance calculation
         account_balances = [trade.funds_at_close for trade in strategy.trades]
         avg_contracts = np.mean([getattr(trade, 'contracts', 1) for trade in strategy.trades])
-        # For per-lot analysis, use a standard initial balance per lot
-        initial_balance = 1000.0  # Standard $1000 per lot initial balance
+        # Calculate actual initial balance from chronologically first trade of this strategy
+        if strategy.trades:
+            # Sort trades by date to get the chronologically first trade
+            sorted_trades = sorted(strategy.trades, key=lambda t: pd.to_datetime(t.date_closed))
+            first_trade = sorted_trades[0]
+            # Starting balance = funds at close - P&L (this gives us the balance before the trade)
+            initial_balance = first_trade.funds_at_close - first_trade.pnl
+            print(f"DEBUG: Strategy '{strategy_name}' first trade date: {first_trade.date_closed}")
+            print(f"DEBUG: First trade funds_at_close: ${first_trade.funds_at_close:,.2f}")
+            print(f"DEBUG: First trade P&L: ${first_trade.pnl:,.2f}")
+            print(f"DEBUG: Calculated initial balance: ${initial_balance:,.2f}")
+        else:
+            initial_balance = 1000.0  # Fallback if no trades
         
         # Run simulations
         simulation_results = []
