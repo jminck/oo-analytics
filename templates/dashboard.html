@@ -2502,6 +2502,12 @@
                     formData.append('initial_capital', initialCapital);
                 }
             }
+            // Show loading state
+            const uploadBtn = document.getElementById('uploadFileBtn');
+            const originalBtnText = uploadBtn.innerHTML;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            uploadBtn.disabled = true;
+            
             showAlert('Uploading and processing file...', 'info');
             fetch('/api/upload', {
                 method: 'POST',
@@ -2555,6 +2561,10 @@
                     }
                     showAlert(`Upload failed: ${data.error}`, 'danger');
                 }
+                
+                // Restore button state
+                uploadBtn.innerHTML = originalBtnText;
+                uploadBtn.disabled = false;
             })
             .catch(error => {
                 // Track upload error
@@ -2565,6 +2575,10 @@
                     });
                 }
                 showAlert(`Upload error: ${error.message}`, 'danger');
+                
+                // Restore button state
+                uploadBtn.innerHTML = originalBtnText;
+                uploadBtn.disabled = false;
             });
         }
 

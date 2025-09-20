@@ -35,6 +35,10 @@ def cleanup_old_guest_directories():
         logging.warning(f"Base path does not exist: {base_path}")
         return 0
     
+    # Count files and folders before cleanup
+    before_stats = count_files_and_folders(base_path)
+    logging.info(f"BEFORE CLEANUP: {before_stats['folders']} folders, {before_stats['files']} files, {format_size(before_stats['total_size'])} total size")
+    
     # Calculate cutoff time (24 hours ago)
     cutoff_time = time.time() - (24 * 60 * 60)  # 24 hours in seconds
     
@@ -79,10 +83,39 @@ def cleanup_old_guest_directories():
         logging.error(f"Error accessing base directory {base_path}: {e}")
         return 0
     
+    # Count files and folders after cleanup
+    after_stats = count_files_and_folders(base_path)
+    logging.info(f"AFTER CLEANUP: {after_stats['folders']} folders, {after_stats['files']} files, {format_size(after_stats['total_size'])} total size")
+    
     # Log summary
     logging.info(f"Cleanup completed: {deleted_count} directories deleted, {format_size(total_size_freed)} freed")
     
     return deleted_count
+
+def count_files_and_folders(base_path):
+    """Count total files, folders, and size in the base directory."""
+    folder_count = 0
+    file_count = 0
+    total_size = 0
+    
+    try:
+        for item in base_path.rglob('*'):
+            if item.is_file():
+                file_count += 1
+                try:
+                    total_size += item.stat().st_size
+                except (OSError, FileNotFoundError):
+                    pass
+            elif item.is_dir():
+                folder_count += 1
+    except Exception as e:
+        logging.warning(f"Error counting files/folders: {e}")
+    
+    return {
+        'folders': folder_count,
+        'files': file_count,
+        'total_size': total_size
+    }
 
 def get_directory_size(path):
     """Calculate total size of directory in bytes."""
