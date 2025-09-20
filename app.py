@@ -24,6 +24,7 @@ from commission_config import CommissionCalculator, CommissionConfig, Commission
 from charts import ChartFactory
 from file_manager import FileManager
 from auth import init_auth, auth_bp, guest_mode_required, get_current_data_folder
+from admin import admin_bp
 from config import Config
 from app_insights import app_insights
 
@@ -69,6 +70,9 @@ init_auth(app)
 
 # Register authentication blueprint
 app.register_blueprint(auth_bp, url_prefix='/auth')
+
+# Register admin blueprint
+app.register_blueprint(admin_bp)
 
 # Create base data directories
 os.makedirs(app.config['DATA_BASE_DIR'], exist_ok=True)

@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - OO Analytics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --info-color: #06b6d4;
+            --danger-color: #ef4444;
+            
+            /* Dark theme variables - EXACT match to main site */
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #262626;
+            --bg-card: #1e1e1e;
+            --bg-elevated: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #a3a3a3;
+            --text-muted: #737373;
+            --border-color: #404040;
+            --border-subtle: #2a2a2a;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-tertiary: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-elevated: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --border-subtle: #f1f5f9;
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(0, 0, 0, 0.1);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            background: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+        }
+
+        /* Override Bootstrap's background classes */
+        .bg-light {
+            background-color: var(--bg-primary) !important;
+        }
+
+        .bg-dark {
+            background-color: var(--bg-secondary) !important;
+        }
+
+        .navbar {
+            background: var(--glass-bg) !important;
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .navbar-brand, .nav-link {
+            color: var(--text-primary) !important;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            box-shadow: var(--shadow);
+            border-radius: 12px;
+        }
+
+        .card-header {
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            border-radius: 12px 12px 0 0 !important;
+            font-weight: 600;
+        }
+
+        .table {
+            color: var(--text-primary);
+            background: transparent;
+        }
+
+        .table-striped > tbody > tr:nth-of-type(odd) > td {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .table-striped > tbody > tr:nth-of-type(even) > td {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .table th {
+            border-color: var(--border-color);
+            color: var(--text-primary);
+            background-color: var(--bg-elevated);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+        }
+
+        .table td {
+            border-color: var(--border-color);
+            vertical-align: middle;
+            color: var(--text-primary);
+        }
+
+        .table tbody tr:hover {
+            background-color: var(--bg-elevated) !important;
+        }
+
+        .admin-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: var(--glass-shadow);
+            transition: all 0.3s ease;
+        }
+        .admin-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        }
+        .stat-card.success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+            box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+        }
+        .stat-card.warning {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #d97706 100%);
+            box-shadow: 0 8px 32px rgba(245, 158, 11, 0.3);
+        }
+        .stat-card.info {
+            background: linear-gradient(135deg, var(--info-color) 0%, #1d4ed8 100%);
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline-primary {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: transparent;
+        }
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-outline-secondary {
+            border-color: var(--text-secondary);
+            color: var(--text-secondary);
+            background: transparent;
+        }
+        .btn-outline-secondary:hover {
+            background-color: var(--text-secondary);
+            border-color: var(--text-secondary);
+            color: var(--bg-primary);
+            transform: translateY(-1px);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #d97706 100%);
+            border: none;
+            color: white;
+        }
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, var(--info-color) 0%, #1d4ed8 100%);
+            border: none;
+            color: white;
+        }
+        .btn-info:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+
+        .text-primary {
+            color: var(--primary-color) !important;
+        }
+
+        .text-info {
+            color: var(--info-color) !important;
+        }
+
+        .text-success {
+            color: var(--success-color) !important;
+        }
+
+        .text-warning {
+            color: var(--warning-color) !important;
+        }
+
+        .text-danger {
+            color: var(--danger-color) !important;
+        }
+
+        .badge {
+            color: white;
+            font-weight: 500;
+            padding: 0.5em 0.75em;
+            border-radius: 6px;
+        }
+
+        .badge.bg-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+        }
+
+        .badge.bg-secondary {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+        }
+
+        .badge.bg-info {
+            background: linear-gradient(135deg, var(--info-color) 0%, #1d4ed8 100%) !important;
+        }
+
+        .dropdown-menu {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .dropdown-item {
+            color: var(--text-primary);
+        }
+        .dropdown-item:hover {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .dropdown-header {
+            color: var(--text-secondary);
+        }
+
+        .dropdown-divider {
+            border-color: var(--border-color);
+        }
+
+        .alert {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+        }
+
+        .alert-info {
+            background: rgba(79, 172, 254, 0.1);
+            border-color: var(--info-color);
+            color: var(--info-color);
+        }
+
+        .alert-success {
+            background: rgba(17, 153, 142, 0.1);
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .alert-warning {
+            background: rgba(240, 147, 251, 0.1);
+            border-color: var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .alert-danger {
+            background: rgba(245, 87, 108, 0.1);
+            border-color: var(--danger-color);
+            color: var(--danger-color);
+        }
+
+        /* Theme toggle button */
+        .theme-toggle {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            backdrop-filter: blur(20px);
+        }
+        .theme-toggle:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line"></i> OO Analytics Admin
+            </a>
+            <div class="navbar-nav ms-auto">
+                <button class="btn theme-toggle me-2" onclick="toggleTheme()" title="Toggle theme">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+                <a class="nav-link" href="/">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <a class="nav-link" href="/auth/logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-cogs"></i> Admin Dashboard
+                </h1>
+            </div>
+        </div>
+
+        <!-- System Stats -->
+        <div class="row mb-4">
+            <div class="col-md-2">
+                <div class="card stat-card success admin-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-2x mb-2"></i>
+                        <h4 id="totalUsers">-</h4>
+                        <p class="mb-0">Total Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card info admin-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-user-plus fa-2x mb-2"></i>
+                        <h4 id="recentUsers">-</h4>
+                        <p class="mb-0">New Users (7d)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card warning admin-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-hdd fa-2x mb-2"></i>
+                        <h4 id="totalStorage">-</h4>
+                        <p class="mb-0">Total Storage</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card admin-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-database fa-2x mb-2"></i>
+                        <h4 id="dbSize">-</h4>
+                        <p class="mb-0">Database Size</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card info admin-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-recycle fa-2x mb-2"></i>
+                        <h4 id="recycledSize">-</h4>
+                        <p class="mb-0">Recycled Data</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card success admin-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file fa-2x mb-2"></i>
+                        <h4 id="totalFiles">-</h4>
+                        <p class="mb-0">Total Files</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Storage Breakdown -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h3 class="mb-3">
+                    <i class="fas fa-chart-pie"></i> Storage Breakdown
+                </h3>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card warning admin-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-hdd fa-2x mb-2"></i>
+                        <h4 id="activeStorage">-</h4>
+                        <p class="mb-0">Active Data</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card danger admin-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-recycle fa-2x mb-2"></i>
+                        <h4 id="recycledStorage">-</h4>
+                        <p class="mb-0">Recycled Data</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card admin-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-database fa-2x mb-2"></i>
+                        <h4 id="databaseStorage">-</h4>
+                        <p class="mb-0">Database</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card success admin-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-percentage fa-2x mb-2"></i>
+                        <h4 id="recycledPercentage">-</h4>
+                        <p class="mb-0">Recycled %</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card admin-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-tools"></i> Admin Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button class="btn btn-warning w-100 mb-2" onclick="cleanupGuestData()">
+                                    <i class="fas fa-broom"></i> Cleanup Guest Data
+                                </button>
+                                <small class="text-muted">Remove guest directories older than 24 hours</small>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-info w-100 mb-2" onclick="refreshStats()">
+                                    <i class="fas fa-sync-alt"></i> Refresh Stats
+                                </button>
+                                <small class="text-muted">Update system statistics</small>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-secondary w-100 mb-2" onclick="viewLogs()">
+                                    <i class="fas fa-file-alt"></i> View Logs
+                                </button>
+                                <small class="text-muted">View application logs</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card admin-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users"></i> Users
+                        </h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadUsers()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="usersTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Provider</th>
+                                        <th>Files</th>
+                                        <th>Storage</th>
+                                        <th>Recycled</th>
+                                        <th>Created</th>
+                                        <th>Last Login</th>
+                                        <th>Admin</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="10" class="text-center">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading users...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Info -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card admin-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle"></i> Admin Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Admin Emails:</strong> <span id="adminEmails">Loading...</span></p>
+                        <p><strong>Current User:</strong> {{ current_user.email }} ({{ current_user.name }})</p>
+                        <p><strong>Environment:</strong> {{ 'Azure' if config.WEBSITE_SITE_NAME else 'Local Development' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load initial data
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSystemStats();
+            loadUsers();
+        });
+
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert-' + Date.now();
+            const alertHtml = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            alertContainer.insertAdjacentHTML('beforeend', alertHtml);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        function loadSystemStats() {
+            fetch('/admin/system-stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const stats = data.data;
+                        document.getElementById('totalUsers').textContent = stats.users.total;
+                        document.getElementById('recentUsers').textContent = stats.users.recent_7_days;
+                        
+                        const totalStorage = stats.storage.guest_data.size + stats.storage.user_data.size;
+                        const totalFiles = stats.storage.guest_data.files + stats.storage.user_data.files;
+                        
+                        document.getElementById('totalStorage').textContent = formatSize(totalStorage);
+                        document.getElementById('totalFiles').textContent = totalFiles.toLocaleString();
+                        document.getElementById('recycledSize').textContent = formatSize(stats.storage.recycled_data.size);
+                        document.getElementById('dbSize').textContent = formatSize(stats.storage.database_size);
+                        
+                        // Storage breakdown
+                        const activeStorage = totalStorage - stats.storage.recycled_data.size;
+                        const recycledStorage = stats.storage.recycled_data.size;
+                        const databaseStorage = stats.storage.database_size;
+                        const recycledPercentage = totalStorage > 0 ? ((recycledStorage / totalStorage) * 100).toFixed(1) : '0.0';
+                        
+                        document.getElementById('activeStorage').textContent = formatSize(activeStorage);
+                        document.getElementById('recycledStorage').textContent = formatSize(recycledStorage);
+                        document.getElementById('databaseStorage').textContent = formatSize(databaseStorage);
+                        document.getElementById('recycledPercentage').textContent = recycledPercentage + '%';
+                        
+                        document.getElementById('adminEmails').textContent = stats.admin_emails.join(', ') || 'None configured';
+                    } else {
+                        showAlert('Failed to load system stats: ' + data.error, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showAlert('Error loading system stats: ' + error.message, 'danger');
+                });
+        }
+
+        function loadUsers() {
+            fetch('/admin/users')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const tbody = document.querySelector('#usersTable tbody');
+                        if (data.data.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No users found</td></tr>';
+                        } else {
+                            tbody.innerHTML = data.data.map(user => `
+                                <tr>
+                                    <td>${user.id}</td>
+                                    <td>${user.name}</td>
+                                    <td>${user.email}</td>
+                                    <td><span class="badge bg-${user.provider === 'google' ? 'primary' : 'secondary'}">${user.provider}</span></td>
+                                    <td><span class="badge bg-info">${user.file_stats.files}</span></td>
+                                    <td><small class="text-muted">${formatSize(user.file_stats.size)}</small></td>
+                                    <td><small class="text-muted">${formatSize(user.file_stats.recycled_size || 0)}</small></td>
+                                    <td>${new Date(user.created_at).toLocaleDateString()}</td>
+                                    <td>${user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}</td>
+                                    <td>${user.is_admin ? '<i class="fas fa-crown text-warning"></i>' : '-'}</td>
+                                </tr>
+                            `).join('');
+                        }
+                    } else {
+                        showAlert('Failed to load users: ' + data.error, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showAlert('Error loading users: ' + error.message, 'danger');
+                });
+        }
+
+        function cleanupGuestData() {
+            if (!confirm('Are you sure you want to cleanup old guest data? This action cannot be undone.')) {
+                return;
+            }
+            
+            fetch('/admin/cleanup-guest-data', {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert(data.data.message, 'success');
+                        loadSystemStats(); // Refresh stats
+                    } else {
+                        showAlert('Cleanup failed: ' + data.error, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showAlert('Error during cleanup: ' + error.message, 'danger');
+                });
+        }
+
+        function refreshStats() {
+            loadSystemStats();
+            showAlert('Stats refreshed', 'info');
+        }
+
+        function viewLogs() {
+            fetch('/admin/logs')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert(data.data.message, 'info');
+                    } else {
+                        showAlert('Failed to load logs: ' + data.error, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showAlert('Error loading logs: ' + error.message, 'danger');
+                });
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + sizes[i];
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+            const currentTheme = html.getAttribute('data-theme');
+            
+            if (currentTheme === 'light') {
+                html.setAttribute('data-theme', 'dark');
+                themeIcon.className = 'fas fa-moon';
+                localStorage.setItem('admin-theme', 'dark');
+            } else {
+                html.setAttribute('data-theme', 'light');
+                themeIcon.className = 'fas fa-sun';
+                localStorage.setItem('admin-theme', 'light');
+            }
+        }
+
+        // Initialize theme
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('admin-theme') || 'dark';
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+            
+            html.setAttribute('data-theme', savedTheme);
+            themeIcon.className = savedTheme === 'light' ? 'fas fa-sun' : 'fas fa-moon';
+        });
+    </script>
+</body>
+</html>

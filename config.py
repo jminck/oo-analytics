@@ -51,6 +51,11 @@ class Config:
     print(f"DEBUG CONFIG: GOOGLE_REDIRECT_URI = {GOOGLE_REDIRECT_URI}")
     print(f"DEBUG CONFIG: DISCORD_REDIRECT_URI = {DISCORD_REDIRECT_URI}")
     
+    # Admin Configuration
+    ADMIN_EMAILS = os.environ.get('ADMIN_EMAILS', '').split(',') if os.environ.get('ADMIN_EMAILS') else []
+    # Clean up any whitespace and filter out empty strings
+    ADMIN_EMAILS = [email.strip().lower() for email in ADMIN_EMAILS if email.strip()]
+    
     # File Storage
     if os.environ.get('WEBSITE_SITE_NAME'):
         # Azure App Service - use persistent paths

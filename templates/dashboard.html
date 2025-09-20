@@ -8811,6 +8811,9 @@
             const dropdownMenu = document.getElementById('authDropdownMenu');
             
             if (data.is_authenticated) {
+                // Check if user is admin
+                const isAdmin = data.user.is_admin || false;
+                
                 // Logged in user menu
                 dropdownMenu.innerHTML = `
                     <li><h6 class="dropdown-header">Signed in as ${data.user.name}</h6></li>
@@ -8818,6 +8821,9 @@
                     <li><a class="dropdown-item" href="#" onclick="showUserInfo()">
                         <i class="fas fa-user"></i> Profile
                     </a></li>
+                    ${isAdmin ? `<li><a class="dropdown-item" href="/admin/" target="_blank">
+                        <i class="fas fa-cogs"></i> Admin Panel
+                    </a></li>` : ''}
                     <li><a class="dropdown-item" href="#" onclick="switchToGuest()">
                         <i class="fas fa-user-ninja"></i> Switch to Guest
                     </a></li>

@@ -41,9 +41,27 @@ class User(UserMixin, db.Model):
         folder = self.get_data_folder()
         os.makedirs(folder, exist_ok=True)
         return folder
+    
+    def is_admin(self):
+        """Check if user is an admin based on email."""
+        if not self.email:
+            return False
+        admin_emails = current_app.config.get('ADMIN_EMAILS', [])
+        return self.email.lower() in admin_emails
 
 # Create authentication blueprint
 auth_bp = Blueprint('auth', __name__)
+
+def admin_required(f):
+    """Decorator to require admin access."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login'))
+        if not current_user.is_admin():
+            return jsonify({'error': 'Admin access required'}), 403
+        return f(*args, **kwargs)
+    return decorated_function
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -472,7 +490,8 @@ def user_info():
                 'email': current_user.email,
                 'avatar_url': current_user.avatar_url,
                 'provider': current_user.provider,
-                'data_folder': current_user.get_data_folder()
+                'data_folder': current_user.get_data_folder(),
+                'is_admin': current_user.is_admin()
             }
         })
     elif session.get('is_guest'):
