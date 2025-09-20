@@ -475,10 +475,10 @@
                                 <small class="text-muted">Update system statistics</small>
                             </div>
                             <div class="col-md-4">
-                                <button class="btn btn-secondary w-100 mb-2" onclick="viewLogs()">
-                                    <i class="fas fa-file-alt"></i> View Logs
+                                <button class="btn btn-warning w-100 mb-2" onclick="emptyRecycleFolders()">
+                                    <i class="fas fa-trash-alt"></i> Empty Recycle Folders
                                 </button>
-                                <small class="text-muted">View application logs</small>
+                                <small class="text-muted">Remove all files from all users' recycle folders</small>
                             </div>
                         </div>
                     </div>
@@ -677,19 +677,30 @@
             showAlert('Stats refreshed', 'info');
         }
 
-        function viewLogs() {
-            fetch('/admin/logs')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showAlert(data.data.message, 'info');
-                    } else {
-                        showAlert('Failed to load logs: ' + data.error, 'danger');
-                    }
-                })
-                .catch(error => {
-                    showAlert('Error loading logs: ' + error.message, 'danger');
-                });
+        function emptyRecycleFolders() {
+            if (!confirm('Are you sure you want to empty all recycle folders? This action cannot be undone and will permanently delete all recycled files.')) {
+                return;
+            }
+            
+            showAlert('Emptying recycle folders...', 'info');
+            
+            fetch('/admin/empty-recycle-folders', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(`Successfully emptied recycle folders. Deleted ${data.data.files_deleted} files and freed ${formatSize(data.data.space_freed)}.`, 'success');
+                    // Refresh the page data
+                    loadSystemStats();
+                    loadUsers();
+                } else {
+                    showAlert('Failed to empty recycle folders: ' + data.error, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert('Error emptying recycle folders: ' + error.message, 'danger');
+            });
         }
 
         function formatSize(bytes) {

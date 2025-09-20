@@ -130,6 +130,48 @@ def cleanup_guest_data():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@admin_bp.route('/empty-recycle-folders', methods=['POST'])
+@login_required
+@admin_required
+def empty_recycle_folders():
+    """Empty all recycle folders for all users."""
+    try:
+        guest_data_dir = current_app.config.get('GUEST_DATA_DIR', '')
+        user_data_dir = current_app.config.get('USER_DATA_DIR', '')
+        
+        files_deleted = 0
+        space_freed = 0
+        
+        # Empty guest recycle folder
+        guest_recycle = os.path.join(guest_data_dir, 'recycle')
+        if os.path.exists(guest_recycle):
+            guest_stats = get_directory_stats(guest_recycle)
+            files_deleted += guest_stats['files']
+            space_freed += guest_stats['size']
+            shutil.rmtree(guest_recycle)
+            os.makedirs(guest_recycle, exist_ok=True)  # Recreate empty folder
+        
+        # Empty user recycle folders
+        if os.path.exists(user_data_dir):
+            for user_folder in os.listdir(user_data_dir):
+                user_recycle = os.path.join(user_data_dir, user_folder, 'recycle')
+                if os.path.exists(user_recycle):
+                    user_stats = get_directory_stats(user_recycle)
+                    files_deleted += user_stats['files']
+                    space_freed += user_stats['size']
+                    shutil.rmtree(user_recycle)
+                    os.makedirs(user_recycle, exist_ok=True)  # Recreate empty folder
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'files_deleted': files_deleted,
+                'space_freed': space_freed
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @admin_bp.route('/logs')
 @login_required
 @admin_required
