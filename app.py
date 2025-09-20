@@ -1537,7 +1537,8 @@ def get_chart(chart_type):
             'strategy_detail': 'strategy_detail',
             'win_rates_table': 'win_rates_table',
             'margin_analysis': 'margin_analysis',
-            'daily_margin_analysis': 'daily_margin_analysis'
+            'daily_margin_analysis': 'daily_margin_analysis',
+            'meic_analysis': 'meic_analysis'
         }
         
         # Handle display names with emojis
@@ -1552,7 +1553,8 @@ def get_chart(chart_type):
             '📋 Strategy Detail': 'strategy_detail',
             '📊 Win Rates Table': 'win_rates_table',
             '💰 Margin Analysis': 'margin_analysis',
-            '📊 Daily Margin Analysis': 'daily_margin_analysis'
+            '📊 Daily Margin Analysis': 'daily_margin_analysis',
+            '🎯 MEIC Analysis': 'meic_analysis'
         }
         
         method_name = display_to_method.get(chart_type, chart_type_map.get(chart_type, chart_type))
@@ -1563,6 +1565,18 @@ def get_chart(chart_type):
                 'chart_type': 'strategy_detail',
                 'message': 'Strategy detail requires frontend handling'
             })
+        
+        if method_name == 'meic_analysis':
+            # Handle MEIC analysis specially
+            from analytics import MEICAnalyzer
+            current_filename = session.get('current_filename')
+            analyzer = MEICAnalyzer(portfolio, current_filename)
+            heatmap_data = analyzer.get_time_heatmap_data()
+            
+            # Create the heatmap chart
+            chart_generator = ChartGenerator(portfolio)
+            result = chart_generator.create_meic_heatmap_chart(heatmap_data)
+            return jsonify(result)
         
         chart_data = chart_factory.create_chart(method_name)
         return jsonify(chart_data)
@@ -4374,6 +4388,62 @@ def get_files_overview():
             'success': True,
             'data': files_overview
         })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/meic/stopout-statistics')
+@guest_mode_required
+def get_meic_stopout_statistics():
+    """Get MEIC stopout statistics."""
+    try:
+        if not portfolio.strategies:
+            return jsonify({
+                'success': False,
+                'error': 'No portfolio data available'
+            })
+        
+        # Get the current filename from session or use None
+        current_filename = session.get('current_filename')
+        
+        from analytics import MEICAnalyzer
+        analyzer = MEICAnalyzer(portfolio, current_filename)
+        result = analyzer.get_stopout_statistics()
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/meic/time-heatmap')
+@guest_mode_required
+def get_meic_time_heatmap():
+    """Get MEIC time-based heatmap data with optional date filtering."""
+    try:
+        if not portfolio.strategies:
+            return jsonify({
+                'success': False,
+                'error': 'No portfolio data available'
+            })
+        
+        # Get date filter parameters from query string
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Get the current filename from session or use None
+        current_filename = session.get('current_filename')
+        
+        from analytics import MEICAnalyzer
+        analyzer = MEICAnalyzer(portfolio, current_filename)
+        result = analyzer.get_time_heatmap_data(start_date=start_date, end_date=end_date)
+        
+        return jsonify(result)
         
     except Exception as e:
         return jsonify({

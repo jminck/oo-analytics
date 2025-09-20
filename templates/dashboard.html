@@ -679,7 +679,7 @@
             min-height: auto !important;
             height: auto !important;
         }
-
+        
         /* Chart Container */
         .chart-container {
             min-height: 800px; /* Increased from 600px to give more vertical space */
@@ -2271,6 +2271,134 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- MEIC Analysis Content (hidden by default, shown when "MEIC Analysis" chart type is selected) -->
+                <div id="meicAnalysisContent" style="display: none;">
+                    <!-- MEIC Requirements Explanation -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="alert alert-info py-2">
+                                <h6 class="alert-heading mb-2">
+                                    <i class="fas fa-info-circle"></i>
+                                    MEIC (Multiple Entry Iron Condor) Analysis Requirements
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Naming:</strong> "meic" must be in filename or strategy name<br>
+                                        <strong>Structure:</strong> 2 leg groups (put spread + call spread)<br>
+                                        <strong>Timing:</strong> Same entry date and time for both trades
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Example:</strong> Entry 15:14:00 on 2025-09-05<br>
+                                        • Put: "4 Sep 5 6470 P STO 1.95 | 4 Sep 5 6395 P BTO 0.05"<br>
+                                        • Call: "4 Sep 5 6485 C STO 2.20 | 4 Sep 5 6540 C BTO 0.05"
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MEIC No Trades Message (hidden by default) -->
+                    <div id="meicNoTradesMessage" style="display: none;">
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <h4 class="alert-heading">
+                                        <i class="fas fa-info-circle"></i>
+                                        No MEIC Trades Detected
+                                    </h4>
+                                    <p>No Multiple Entry Iron Condor (MEIC) trades were found in your data. To analyze MEIC trades, please ensure:</p>
+                                    <hr>
+                                    <h6><strong>Naming Requirements:</strong></h6>
+                                    <ul>
+                                        <li>The word "meic" (case-insensitive) must appear in either:</li>
+                                        <ul>
+                                            <li>The <strong>filename</strong> of your uploaded CSV file, OR</li>
+                                            <li>The <strong>strategy name</strong> in your trade data</li>
+                                        </ul>
+                                    </ul>
+                                    <h6><strong>Leg Group Requirements:</strong></h6>
+                                    <ul>
+                                        <li>MEIC trades must be organized in "leg groups"</li>
+                                        <li>Each leg group consists of <strong>2 trades</strong> placed at the same entry time:</li>
+                                        <ul>
+                                            <li>One trade for the <strong>put spread</strong> (P strikes only)</li>
+                                            <li>One trade for the <strong>call spread</strong> (C strikes only)</li>
+                                        </ul>
+                                        <li>Both trades must have the same <strong>entry date and time</strong></li>
+                                    </ul>
+                                    <h6><strong>Example:</strong></h6>
+                                    <p>For a MEIC trade group entered at 15:14:00 on 2025-09-05:</p>
+                                    <ul>
+                                        <li><strong>Put Spread:</strong> "4 Sep 5 6470 P STO 1.95 | 4 Sep 5 6395 P BTO 0.05"</li>
+                                        <li><strong>Call Spread:</strong> "4 Sep 5 6485 C STO 2.20 | 4 Sep 5 6540 C BTO 0.05"</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- MEIC Overview -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h3 class="section-title">
+                                <i class="fas fa-chart-pie"></i>
+                                MEIC Overview
+                            </h3>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div id="meicOverviewStats">
+                                        <p class="text-muted">Loading MEIC overview statistics...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- MEIC Time Heatmap -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h3 class="section-title">
+                                <i class="fas fa-chart-bar"></i>
+                                MEIC Performance Heatmap
+                            </h3>
+                            <div class="card">
+                                <div class="card-body">
+                                    <!-- Date Range Controls -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="meicStartDate" class="form-label">
+                                                <i class="fas fa-calendar-alt"></i> Start Date
+                                            </label>
+                                            <input type="date" class="form-control" id="meicStartDate" onchange="updateMEICHeatmap()">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="meicEndDate" class="form-label">
+                                                <i class="fas fa-calendar-alt"></i> End Date
+                                            </label>
+                                            <input type="date" class="form-control" id="meicEndDate" onchange="updateMEICHeatmap()">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetMEICDateRange()">
+                                                <i class="fas fa-undo"></i> Reset to All Dates
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="meicHeatmapChart" class="chart-container">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-chart-bar" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                                            <h4>MEIC Performance Heatmap</h4>
+                                            <p>Heatmap will show P&L by day of week and entry time</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -3577,6 +3705,7 @@
                     ['monte_carlo', 'Monte Carlo simulation analysis'],
                     ['blackout_dates', 'Blackout dates analysis'],
                     ['price_movement', 'Price movement analysis'],
+                    ['meic_analysis', 'MEIC (Multiple Entry Iron Condor) analysis'],
                     ['separator', '--- Cross-File Analysis ---'],
                     ['cross_file_correlation', 'Analyze strategies across multiple uploaded files'],
                     ['files_overview', 'Uploaded files overview and management']
@@ -3607,6 +3736,7 @@
                 'monte_carlo',
                 'blackout_dates',
                 'price_movement',
+                'meic_analysis',
                 'separator',
                 'cross_file_correlation',
                 'files_overview'
@@ -3681,6 +3811,7 @@
                 'conflicting_legs': '⚠️ Conflicting Legs',
                 'blackout_dates': '🚫 Blackout Dates',
                 'price_movement': '📈 Price Movement',
+                'meic_analysis': '🎯 MEIC Analysis',
                 'separator': '--- Cross-File Analysis ---',
                 'cross_file_correlation': '🔗 Cross-File Correlation',
                 'files_overview': '📁 Uploaded Files Overview'
@@ -3957,6 +4088,18 @@
                 return;
             }
             
+            if (chartType === 'meic_analysis') {
+                console.log('🔧 MEIC ANALYSIS CONDITION REACHED');
+                loadMEICAnalysis();
+                return;
+            }
+            
+            // Hide MEIC content for all other chart types
+            const meicContent = document.getElementById('meicAnalysisContent');
+            if (meicContent) {
+                meicContent.style.display = 'none';
+            }
+            
             if (chartType === 'price_movement') {
                 loadPriceMovementChart();
                 return;
@@ -4015,21 +4158,21 @@
                         renderPortfolioBalanceChart(chartData);
                     } else {
                         // Regular chart rendering
-                        Plotly.newPlot('chartContainer', chartData.data, chartData.layout, {
-                            responsive: true,
-                            displayModeBar: true,
-                            displaylogo: false,
-                            useResizeHandler: true
-                        }).then(() => {
-                            // Ensure chart is properly sized after rendering
-                            const container = document.getElementById('chartContainer');
-                            if (container) {
-                                Plotly.relayout('chartContainer', {
-                                    width: container.clientWidth - 60,
-                                    height: container.clientHeight - 60
-                                });
-                            }
-                        });
+                    Plotly.newPlot('chartContainer', chartData.data, chartData.layout, {
+                        responsive: true,
+                        displayModeBar: true,
+                        displaylogo: false,
+                        useResizeHandler: true
+                    }).then(() => {
+                        // Ensure chart is properly sized after rendering
+                        const container = document.getElementById('chartContainer');
+                        if (container) {
+                            Plotly.relayout('chartContainer', {
+                                width: container.clientWidth - 60,
+                                height: container.clientHeight - 60
+                            });
+                        }
+                    });
                     }
                 } else {
                     console.error('Unexpected response format:', data);
@@ -4444,8 +4587,8 @@
                                     P&L: <span class="${(balance.BULLISH?.pnl || 0) >= 0 ? 'positive' : 'negative'}">${formatCurrency(balance.BULLISH?.pnl || 0)}</span>
                                     <span class="badge bg-info ms-2">${balance.BULLISH ? ((balance.BULLISH.pnl / totalPnl) * 100).toFixed(1) : 0}%</span>
                                 </div>
-                                ${balance.BULLISH?.strategies ? `
-                                    <details>
+                        ${balance.BULLISH?.strategies ? `
+                            <details>
                                         <summary class="text-muted" style="cursor: pointer; font-size: 0.9em;">Show strategies (${balance.BULLISH.strategies.length})</summary>
                                         <ul style="font-size: 0.8em; margin-top: 5px; max-height: 150px; overflow-y: auto; word-wrap: break-word; white-space: normal;">
                                             ${balance.BULLISH.strategies.map(s => `
@@ -4454,9 +4597,9 @@
                                                     <span class="text-muted">(${formatCurrency(s.pnl)})</span>
                                                 </li>
                                             `).join('')}
-                                        </ul>
-                                    </details>
-                                ` : ''}
+                                </ul>
+                            </details>
+                        ` : ''}
                             </div>
                         </div>
                     </div>
@@ -4476,8 +4619,8 @@
                                     P&L: <span class="${(balance.BEARISH?.pnl || 0) >= 0 ? 'positive' : 'negative'}">${formatCurrency(balance.BEARISH?.pnl || 0)}</span>
                                     <span class="badge bg-info ms-2">${balance.BEARISH ? ((balance.BEARISH.pnl / totalPnl) * 100).toFixed(1) : 0}%</span>
                                 </div>
-                                ${balance.BEARISH?.strategies ? `
-                                    <details>
+                        ${balance.BEARISH?.strategies ? `
+                            <details>
                                         <summary class="text-muted" style="cursor: pointer; font-size: 0.9em;">Show strategies (${balance.BEARISH.strategies.length})</summary>
                                         <ul style="font-size: 0.8em; margin-top: 5px; max-height: 150px; overflow-y: auto; word-wrap: break-word; white-space: normal;">
                                             ${balance.BEARISH.strategies.map(s => `
@@ -4486,9 +4629,9 @@
                                                     <span class="text-muted">(${formatCurrency(s.pnl)})</span>
                                                 </li>
                                             `).join('')}
-                                        </ul>
-                                    </details>
-                                ` : ''}
+                                </ul>
+                            </details>
+                        ` : ''}
                             </div>
                         </div>
                     </div>
@@ -4508,8 +4651,8 @@
                                     P&L: <span class="${(balance.NEUTRAL?.pnl || 0) >= 0 ? 'positive' : 'negative'}">${formatCurrency(balance.NEUTRAL?.pnl || 0)}</span>
                                     <span class="badge bg-info ms-2">${balance.NEUTRAL ? ((balance.NEUTRAL.pnl / totalPnl) * 100).toFixed(1) : 0}%</span>
                                 </div>
-                                ${balance.NEUTRAL?.strategies ? `
-                                    <details>
+                        ${balance.NEUTRAL?.strategies ? `
+                            <details>
                                         <summary class="text-muted" style="cursor: pointer; font-size: 0.9em;">Show strategies (${balance.NEUTRAL.strategies.length})</summary>
                                         <ul style="font-size: 0.8em; margin-top: 5px; max-height: 150px; overflow-y: auto; word-wrap: break-word; white-space: normal;">
                                             ${balance.NEUTRAL.strategies.map(s => `
@@ -4518,9 +4661,9 @@
                                                     <span class="text-muted">(${formatCurrency(s.pnl)})</span>
                                                 </li>
                                             `).join('')}
-                                        </ul>
-                                    </details>
-                                ` : ''}
+                                </ul>
+                            </details>
+                        ` : ''}
                             </div>
                         </div>
                     </div>
@@ -7453,25 +7596,25 @@
                     <div class="col-md-3">
                         <div class="metric-card">
                             <div class="card-body text-center">
-                                <h4 class="metric-value text-danger">${summary.total_conflicts}</h4>
-                                <p class="metric-title">Total Conflicts</p>
+                            <h4 class="metric-value text-danger">${summary.total_conflicts}</h4>
+                            <p class="metric-title">Total Conflicts</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="metric-card">
                             <div class="card-body text-center">
-                                <h4 class="metric-value text-warning">${summary.affected_trades}</h4>
-                                <p class="metric-title">Affected Trades</p>
+                            <h4 class="metric-value text-warning">${summary.affected_trades}</h4>
+                            <p class="metric-title">Affected Trades</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="metric-card">
                             <div class="card-body text-center">
-                                <h4 class="metric-value text-info">${summary.affected_strategies}</h4>
-                                <p class="metric-title">Affected Strategies</p>
-                            </div>
+                            <h4 class="metric-value text-info">${summary.affected_strategies}</h4>
+                            <p class="metric-title">Affected Strategies</p>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -8966,23 +9109,23 @@
             // Debounce resize events to avoid excessive redraws
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                const chartContainers = document.querySelectorAll('.chart-container');
-                chartContainers.forEach(container => {
-                    const plotDiv = container.querySelector('.js-plotly-plot');
-                    if (plotDiv && plotDiv.layout) {
+            const chartContainers = document.querySelectorAll('.chart-container');
+            chartContainers.forEach(container => {
+                const plotDiv = container.querySelector('.js-plotly-plot');
+                if (plotDiv && plotDiv.layout) {
                         // Only resize if the container size has actually changed
                         const newWidth = container.clientWidth - 60; // Account for padding
                         const newHeight = Math.max(400, container.clientHeight - 60); // Minimum height of 400px
                         
                         // Check if size actually changed to avoid unnecessary redraws
                         if (plotDiv.layout.width !== newWidth || plotDiv.layout.height !== newHeight) {
-                            Plotly.relayout(plotDiv, {
+                    Plotly.relayout(plotDiv, {
                                 width: newWidth,
                                 height: newHeight
-                            });
+                    });
                         }
-                    }
-                });
+                }
+            });
             }, 150); // 150ms debounce
         });
 
@@ -10301,6 +10444,352 @@
                     select.value = listName;
                 }
             }, 500);
+        }
+
+        function loadMEICAnalysis() {
+            console.log('🔧 loadMEICAnalysis() called');
+            const container = document.getElementById('chartContainer');
+            const loading = document.getElementById('chartLoading');
+            const meicContent = document.getElementById('meicAnalysisContent');
+            const noTradesMessage = document.getElementById('meicNoTradesMessage');
+            
+            // Hide other content and show MEIC content
+            container.style.display = 'none';
+            loading.style.display = 'none';
+            meicContent.style.display = 'block';
+            
+            // First check if MEIC trades exist
+            checkMEICTrades();
+        }
+        
+        function checkMEICTrades() {
+            console.log('🔧 checkMEICTrades() called');
+            fetch('/api/meic/stopout-statistics')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('🔧 MEIC stopout statistics response:', data);
+                    const noTradesMessage = document.getElementById('meicNoTradesMessage');
+                    const overviewSection = document.getElementById('meicOverviewStats').parentElement.parentElement.parentElement;
+                    const heatmapSection = document.getElementById('meicHeatmapChart').parentElement.parentElement.parentElement;
+                    
+                    if (data.success && data.data.total_leg_groups > 0) {
+                        console.log('🔧 MEIC trades found, showing sections and loading data');
+                        // MEIC trades found - hide message and show all sections
+                        noTradesMessage.style.display = 'none';
+                        overviewSection.style.display = 'block';
+                        heatmapSection.style.display = 'block';
+                        
+                        // Load MEIC data
+                        loadMEICOverview();
+                        loadMEICHeatmap();
+                    } else {
+                        console.log('🔧 No MEIC trades found, showing message');
+                        // No MEIC trades found - show message and hide other sections
+                        noTradesMessage.style.display = 'block';
+                        overviewSection.style.display = 'none';
+                        heatmapSection.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking MEIC trades:', error);
+                    // On error, show the no trades message
+                    const noTradesMessage = document.getElementById('meicNoTradesMessage');
+                    noTradesMessage.style.display = 'block';
+                });
+        }
+        
+        function loadMEICOverview() {
+            const overviewContainer = document.getElementById('meicOverviewStats');
+            overviewContainer.innerHTML = '<p class="text-muted">Loading MEIC overview statistics...</p>';
+            
+            // Load both stopout statistics and summary statistics
+            Promise.all([
+                fetch('/api/meic/stopout-statistics').then(response => response.json()),
+                fetch('/api/meic/time-heatmap').then(response => response.json())
+            ])
+            .then(([stopoutData, heatmapData]) => {
+                if (stopoutData.success && heatmapData.success) {
+                    const stopoutStats = stopoutData.data;
+                    const summaryStats = heatmapData.data.summary_stats;
+                    
+                    overviewContainer.innerHTML = `
+                        <!-- Stopout Statistics -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="mb-3">Stopout Statistics</h5>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h5 class="card-title text-success">${stopoutStats.no_stopouts.percentage}%</h5>
+                                                <p class="card-text">No Stopouts</p>
+                                                <small class="text-muted">${stopoutStats.no_stopouts.count} leg groups</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h5 class="card-title text-warning">${stopoutStats.puts_stopped.percentage}%</h5>
+                                                <p class="card-text">Puts Stopped</p>
+                                                <small class="text-muted">${stopoutStats.puts_stopped.count} leg groups</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h5 class="card-title text-warning">${stopoutStats.calls_stopped.percentage}%</h5>
+                                                <p class="card-text">Calls Stopped</p>
+                                                <small class="text-muted">${stopoutStats.calls_stopped.count} leg groups</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h5 class="card-title text-danger">${stopoutStats.both_stopped.percentage}%</h5>
+                                                <p class="card-text">Both Stopped</p>
+                                                <small class="text-muted">${stopoutStats.both_stopped.count} leg groups</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Performance & Trading Statistics -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="mb-3">Performance & Trading Statistics</h5>
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Total P&L</h6>
+                                                <p class="card-text">$${summaryStats.total_pnl.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Avg P&L/Group</h6>
+                                                <p class="card-text">$${summaryStats.avg_pnl_per_group.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Total Contracts</h6>
+                                                <p class="card-text">${stopoutStats.total_contracts.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Total Commissions</h6>
+                                                <p class="card-text">$${stopoutStats.total_commissions.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Best Day</h6>
+                                                <p class="card-text">${summaryStats.best_day || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Worst Day</h6>
+                                                <p class="card-text">${summaryStats.worst_day || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Summary -->
+                        <div class="row">
+                            <div class="col-12">
+                                <p class="text-muted"><strong>Total Leg Groups:</strong> ${stopoutStats.total_leg_groups}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    overviewContainer.innerHTML = `<div class="alert alert-warning">Error loading MEIC overview data</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading MEIC overview:', error);
+                overviewContainer.innerHTML = `<div class="alert alert-danger">Error loading MEIC overview: ${error.message}</div>`;
+            });
+        }
+        
+        function loadMEICHeatmap(startDate = null, endDate = null) {
+            console.log('🔧 loadMEICHeatmap() called with dates:', startDate, endDate);
+            const heatmapContainer = document.getElementById('meicHeatmapChart');
+            heatmapContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading MEIC heatmap...</p></div>';
+            
+            // Build URL with date parameters
+            let url = '/api/meic/time-heatmap';
+            const params = new URLSearchParams();
+            if (startDate) params.append('start_date', startDate);
+            if (endDate) params.append('end_date', endDate);
+            if (params.toString()) url += '?' + params.toString();
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('🔧 MEIC heatmap API response:', data);
+                    if (data.success) {
+                        const heatmapData = data.data;
+                        console.log('🔧 MEIC heatmap data:', heatmapData);
+                        console.log('🔧 pnl_heatmap keys:', Object.keys(heatmapData.pnl_heatmap));
+                        
+                        // Create the heatmap using Plotly
+                        // Get all available days from the data and sort them properly
+                        const availableDays = Object.keys(heatmapData.pnl_heatmap);
+                        console.log('🔧 Available days from data:', availableDays);
+                        
+                        // Sort days in proper Monday-Friday order
+                        const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                        const orderedDays = availableDays.sort((a, b) => {
+                            const aIndex = dayOrder.indexOf(a);
+                            const bIndex = dayOrder.indexOf(b);
+                            // If both are in dayOrder, sort by dayOrder index (Monday=0, Tuesday=1, etc.)
+                            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                            // If only one is in dayOrder, prioritize it
+                            if (aIndex !== -1) return -1;
+                            if (bIndex !== -1) return 1;
+                            // If neither is in dayOrder, sort alphabetically
+                            return a.localeCompare(b);
+                        });
+                        console.log('🔧 Ordered days:', orderedDays);
+                        
+                        // Debug: Check if we have valid data
+                        if (orderedDays.length === 0) {
+                            console.error('🔧 No ordered days found');
+                            heatmapContainer.innerHTML = '<div class="alert alert-warning">No MEIC data available - no days found</div>';
+                            return;
+                        }
+                        
+                        const firstDay = orderedDays[0];
+                        const entryTimes = Object.keys(heatmapData.pnl_heatmap[firstDay] || {});
+                        
+                        // Sort entry times chronologically (earliest first)
+                        entryTimes.sort((a, b) => {
+                            // Convert time strings to comparable format
+                            const timeA = a.split(':').map(Number);
+                            const timeB = b.split(':').map(Number);
+                            
+                            // Compare hours first, then minutes, then seconds
+                            if (timeA[0] !== timeB[0]) return timeA[0] - timeB[0];
+                            if (timeA[1] !== timeB[1]) return timeA[1] - timeB[1];
+                            return timeA[2] - timeB[2];
+                        });
+                        
+                        // Reverse the array so earliest time appears at the top of the heatmap
+                        entryTimes.reverse();
+                        
+                        console.log('🔧 Entry times for first day (sorted, earliest at top):', entryTimes);
+                        
+                        if (entryTimes.length === 0) {
+                            console.error('🔧 No entry times found');
+                            heatmapContainer.innerHTML = '<div class="alert alert-warning">No MEIC data available - no entry times found</div>';
+                            return;
+                        }
+                        
+                        // Create z data matrix - transpose for correct axis orientation
+                        // Days should be columns (x-axis), Entry times should be rows (y-axis)
+                        const zData = entryTimes.map(time => {
+                            return orderedDays.map(day => {
+                                const dayData = heatmapData.pnl_heatmap[day] || {};
+                                return dayData[time] || 0;
+                            });
+                        });
+                        
+                        console.log('🔧 Z data matrix (transposed):', zData);
+                        console.log('🔧 Days for x-axis:', orderedDays);
+                        console.log('🔧 Entry times for y-axis:', entryTimes);
+                        
+                        const plotData = [{
+                            z: zData,
+                            x: orderedDays,
+                            y: entryTimes,
+                            type: 'heatmap',
+                            colorscale: [
+                                [0, 'rgb(220, 53, 69)'],    // Red for losses (negative values)
+                                [0.5, 'rgb(255, 255, 255)'], // White for zero
+                                [1, 'rgb(40, 167, 69)']     // Green for wins (positive values)
+                            ],
+                            zmid: 0,
+                            text: zData,
+                            texttemplate: '%{text:.0f}',
+                            textfont: {size: 10},
+                            hoverongaps: false,
+                            hovertemplate: '<b>%{x}</b><br>Entry Time: %{y}<br>Total P&L: $%{z:.2f}<br><extra></extra>'
+                        }];
+                        
+                        console.log('🔧 Plot data:', plotData);
+                        
+                        const layout = {
+                            title: 'MEIC Performance Heatmap by Day of Week and Entry Time',
+                            xaxis: { title: 'Day of Week' },
+                            yaxis: { title: 'Entry Time' },
+                            height: 500,
+                            margin: { l: 120, r: 60, t: 80, b: 60 },  // Increased left margin for entry times
+                            font: { size: 12 }
+                        };
+                        
+                        console.log('🔧 About to render Plotly heatmap...');
+                        
+                        // Add timeout to catch hanging issues
+                        const renderTimeout = setTimeout(() => {
+                            console.error('🔧 Plotly rendering timed out');
+                            heatmapContainer.innerHTML = '<div class="alert alert-warning">Heatmap rendering timed out. Please try again.</div>';
+                        }, 10000); // 10 second timeout
+                        
+                        Plotly.newPlot(heatmapContainer, plotData, layout)
+                            .then(() => {
+                                clearTimeout(renderTimeout);
+                                console.log('🔧 Plotly heatmap rendered successfully');
+                                // Clear any loading content that might still be showing
+                                const loadingElements = heatmapContainer.querySelectorAll('.spinner-border, .text-center');
+                                loadingElements.forEach(el => el.remove());
+                            })
+                            .catch(error => {
+                                clearTimeout(renderTimeout);
+                                console.error('🔧 Plotly rendering error:', error);
+                                heatmapContainer.innerHTML = `<div class="alert alert-danger">Error rendering heatmap: ${error.message}</div>`;
+                            });
+                    } else {
+                        console.log('🔧 MEIC heatmap API returned error:', data.error);
+                        heatmapContainer.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading MEIC heatmap:', error);
+                    heatmapContainer.innerHTML = `<div class="alert alert-danger">Error loading MEIC heatmap: ${error.message}</div>`;
+                });
+        }
+
+        function updateMEICHeatmap() {
+            const startDate = document.getElementById('meicStartDate').value;
+            const endDate = document.getElementById('meicEndDate').value;
+            loadMEICHeatmap(startDate || null, endDate || null);
+        }
+
+        function resetMEICDateRange() {
+            document.getElementById('meicStartDate').value = '';
+            document.getElementById('meicEndDate').value = '';
+            loadMEICHeatmap();
         }
 
         function loadPriceMovementChart() {

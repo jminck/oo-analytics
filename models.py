@@ -146,6 +146,36 @@ class Trade:
         """Commissions per contract/lot."""
         return self.total_commissions / self.contracts if self.contracts > 0 else 0
     
+    def is_meic_trade(self, filename: str = None) -> bool:
+        """Check if this trade is part of a MEIC (Multiple Entry Iron Condor) strategy."""
+        # Check strategy name
+        if self.strategy and 'meic' in self.strategy.lower():
+            return True
+        
+        # Check filename if provided
+        if filename and 'meic' in filename.lower():
+            return True
+            
+        return False
+    
+    def is_put_spread(self) -> bool:
+        """Check if this trade is a put spread based on legs description."""
+        if not self.legs:
+            return False
+        # Look for put strikes in the legs
+        return 'P' in self.legs.upper() and 'C' not in self.legs.upper()
+    
+    def is_call_spread(self) -> bool:
+        """Check if this trade is a call spread based on legs description."""
+        if not self.legs:
+            return False
+        # Look for call strikes in the legs
+        return 'C' in self.legs.upper() and 'P' not in self.legs.upper()
+    
+    def was_stopped_out(self) -> bool:
+        """Check if this trade was stopped out."""
+        return self.reason_for_close and 'stop loss' in self.reason_for_close.lower()
+    
     @property
     def margin_per_contract(self) -> float:
         """Margin requirement per contract."""
@@ -208,7 +238,18 @@ class Strategy:
     @property
     def total_contracts(self) -> int:
         """Total contracts traded for this strategy."""
-        return sum(trade.contracts for trade in self.trades)
+        from commission_config import CommissionCalculator
+        calc = CommissionCalculator()
+        
+        total = 0
+        for trade in self.trades:
+            legs = getattr(trade, 'legs', '')
+            if legs and legs.strip():
+                contracts = calc.calculate_actual_contracts_from_legs(legs)
+            else:
+                contracts = getattr(trade, 'contracts', 1)
+            total += contracts
+        return total
     
     @property
     def total_commissions(self) -> float:

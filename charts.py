@@ -1995,6 +1995,63 @@ class ChartGenerator:
             'type': 'empty',
             'description': message
         }
+    
+    def create_meic_heatmap_chart(self, heatmap_data: Dict) -> Dict:
+        """Create a heatmap chart for MEIC time-based analysis."""
+        try:
+            if not heatmap_data.get('success'):
+                return self._empty_chart(heatmap_data.get('error', 'No MEIC data available'))
+            
+            data = heatmap_data['data']
+            pnl_heatmap = data['pnl_heatmap']
+            
+            # Convert to DataFrame for easier manipulation
+            df = pd.DataFrame(pnl_heatmap)
+            
+            if df.empty:
+                return self._empty_chart('No MEIC heatmap data available')
+            
+            # Create the heatmap
+            fig = go.Figure(data=go.Heatmap(
+                z=df.values,
+                x=df.columns.tolist(),
+                y=df.index.tolist(),
+                colorscale='RdGn',  # Red for losses, Green for wins
+                zmid=0,  # Center the colorscale at 0
+                text=df.values,
+                texttemplate='%{text:.0f}',
+                textfont={"size": 10},
+                hoverongaps=False,
+                hovertemplate='<b>%{y}</b><br>' +
+                             'Entry Time: %{x}<br>' +
+                             'Total P&L: $%{z:.2f}<br>' +
+                             '<extra></extra>'
+            ))
+            
+            fig.update_layout(
+                title='MEIC Performance Heatmap by Day of Week and Entry Time',
+                xaxis_title='Entry Time',
+                yaxis_title='Day of Week',
+                height=500,
+                margin=dict(l=120, r=60, t=80, b=60),  # Increased left margin for entry times
+                font=dict(size=12)
+            )
+            
+            # Update x-axis to show time in a more readable format
+            fig.update_xaxes(
+                tickangle=45,
+                tickmode='linear',
+                dtick=1
+            )
+            
+            return {
+                'chart': fig.to_json(),
+                'type': 'meic_heatmap',
+                'description': 'MEIC performance heatmap showing total P&L by day of week and entry time. Green indicates profitable periods, red indicates losses.'
+            }
+            
+        except Exception as e:
+            return self._empty_chart(f'Error creating MEIC heatmap: {str(e)}')
 
 class ChartFactory:
     """Factory for creating specific chart types easily."""
@@ -2024,6 +2081,7 @@ class ChartFactory:
             'monte_carlo': 'Monte Carlo simulation analysis',
             'blackout_dates': 'Blackout dates analysis',
             'price_movement': 'Price movement analysis',
+            'meic_analysis': 'MEIC (Multiple Entry Iron Condor) analysis',
             'separator': '--- Cross-File Analysis ---',
             'cross_file_correlation': 'Cross-file strategy correlation analysis',
             'files_overview': 'Uploaded files overview and management'

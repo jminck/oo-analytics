@@ -487,7 +487,19 @@ class PortfolioMetrics:
         # Calculate returns as percentage of a standard base
         # Use average margin per lot across all trades as base
         total_margin = sum(getattr(trade, 'margin_req', 0) for trade in all_trades)
-        total_contracts = sum(getattr(trade, 'contracts', 1) for trade in all_trades)
+        
+        # Calculate actual contract count from legs, fallback to CSV field
+        from commission_config import CommissionCalculator
+        calc = CommissionCalculator()
+        total_contracts = 0
+        for trade in all_trades:
+            legs = getattr(trade, 'legs', '')
+            if legs and legs.strip():
+                contracts = calc.calculate_actual_contracts_from_legs(legs)
+            else:
+                contracts = getattr(trade, 'contracts', 1)
+            total_contracts += contracts
+            
         avg_margin_per_lot = total_margin / total_contracts if total_contracts > 0 else 1000.0
         
         # Use standard base if no margin data
@@ -755,7 +767,19 @@ class MonteCarloSimulator:
         # Calculate initial balance (for single strategy, use average account balance)
         # Since we're using per-lot P&L, we need to normalize the initial balance calculation
         account_balances = [trade.funds_at_close for trade in strategy.trades]
-        avg_contracts = np.mean([getattr(trade, 'contracts', 1) for trade in strategy.trades])
+        
+        # Calculate actual contract count from legs, fallback to CSV field
+        from commission_config import CommissionCalculator
+        calc = CommissionCalculator()
+        contract_counts = []
+        for trade in strategy.trades:
+            legs = getattr(trade, 'legs', '')
+            if legs and legs.strip():
+                contracts = calc.calculate_actual_contracts_from_legs(legs)
+            else:
+                contracts = getattr(trade, 'contracts', 1)
+            contract_counts.append(contracts)
+        avg_contracts = np.mean(contract_counts)
         # Calculate actual initial balance from chronologically first trade of this strategy
         if strategy.trades:
             # Sort trades by date to get the chronologically first trade
@@ -2029,7 +2053,16 @@ class PriceMovementAnalyzer:
                 
                 strategy_data[strategy_name]['trades'].append(trade)
                 strategy_data[strategy_name]['total_pnl'] += trade.pnl
-                strategy_data[strategy_name]['total_contracts'] += getattr(trade, 'contracts', 1)
+                
+                # Calculate actual contract count from legs, fallback to CSV field
+                legs = getattr(trade, 'legs', '')
+                if legs and legs.strip():
+                    from commission_config import CommissionCalculator
+                    calc = CommissionCalculator()
+                    contracts = calc.calculate_actual_contracts_from_legs(legs)
+                else:
+                    contracts = getattr(trade, 'contracts', 1)
+                strategy_data[strategy_name]['total_contracts'] += contracts
                 
                 if trade.pnl > 0:
                     strategy_data[strategy_name]['wins'] += 1
@@ -2077,4 +2110,218 @@ class PriceMovementAnalyzer:
             return {
                 'success': False,
                 'error': f'Failed to analyze price movement performance: {str(e)}'
-            } 
+            }
+
+class MEICAnalyzer:
+    """Analyzes Multiple Entry Iron Condor (MEIC) trades."""
+    
+    def __init__(self, portfolio: Portfolio, filename: str = None):
+        self.portfolio = portfolio
+        self.filename = filename
+        self.meic_trades = self._get_meic_trades()
+        self.leg_groups = self._group_trades_by_entry_time()
+    
+    def _get_meic_trades(self) -> List[Trade]:
+        """Get all MEIC trades from the portfolio."""
+        meic_trades = []
+        print(f"MEIC Analyzer: Checking {len(self.portfolio.strategies)} strategies")
+        print(f"MEIC Analyzer: Filename = {self.filename}")
+        
+        for strategy_name, strategy in self.portfolio.strategies.items():
+            print(f"MEIC Analyzer: Checking strategy '{strategy_name}' with {len(strategy.trades)} trades")
+            for trade in strategy.trades:
+                is_meic = trade.is_meic_trade(self.filename)
+                print(f"MEIC Analyzer: Trade {trade.date_opened} {trade.time_opened} - MEIC: {is_meic}")
+                if is_meic:
+                    meic_trades.append(trade)
+        
+        print(f"MEIC Analyzer: Found {len(meic_trades)} MEIC trades")
+        return meic_trades
+    
+    def _group_trades_by_entry_time(self) -> Dict[str, Dict]:
+        """Group MEIC trades by entry time to identify put/call spread pairs."""
+        leg_groups = {}
+        
+        for trade in self.meic_trades:
+            # Create a key based on entry date and time
+            entry_key = f"{trade.date_opened}_{trade.time_opened}"
+            
+            if entry_key not in leg_groups:
+                leg_groups[entry_key] = {
+                    'put_spread': None,
+                    'call_spread': None,
+                    'entry_date': trade.date_opened,
+                    'entry_time': trade.time_opened
+                }
+            
+            # Classify the trade as put or call spread
+            if trade.is_put_spread():
+                leg_groups[entry_key]['put_spread'] = trade
+            elif trade.is_call_spread():
+                leg_groups[entry_key]['call_spread'] = trade
+        
+        return leg_groups
+    
+    def get_stopout_statistics(self) -> Dict:
+        """Calculate stopout statistics for MEIC leg groups."""
+        if not self.leg_groups:
+            return {
+                'success': False,
+                'error': 'No MEIC trades found'
+            }
+        
+        total_groups = len(self.leg_groups)
+        no_stopouts = 0
+        puts_stopped = 0
+        calls_stopped = 0
+        both_stopped = 0
+        
+        for group in self.leg_groups.values():
+            put_stopped = group['put_spread'] and group['put_spread'].was_stopped_out()
+            call_stopped = group['call_spread'] and group['call_spread'].was_stopped_out()
+            
+            if not put_stopped and not call_stopped:
+                no_stopouts += 1
+            elif put_stopped and not call_stopped:
+                puts_stopped += 1
+            elif not put_stopped and call_stopped:
+                calls_stopped += 1
+            elif put_stopped and call_stopped:
+                both_stopped += 1
+        
+        # Calculate additional statistics
+        from commission_config import CommissionCalculator
+        calc = CommissionCalculator()
+        
+        total_contracts = 0
+        for trade in self.meic_trades:
+            legs = getattr(trade, 'legs', '')
+            if legs and legs.strip():
+                contracts = calc.calculate_actual_contracts_from_legs(legs)
+            else:
+                contracts = getattr(trade, 'contracts', 1)
+            total_contracts += contracts
+            
+        total_commissions = sum(trade.total_commissions for trade in self.meic_trades)
+        
+        return {
+            'success': True,
+            'data': {
+                'total_leg_groups': total_groups,
+                'total_contracts': total_contracts,
+                'total_commissions': round(total_commissions, 2),
+                'no_stopouts': {
+                    'count': no_stopouts,
+                    'percentage': round((no_stopouts / total_groups) * 100, 1) if total_groups > 0 else 0
+                },
+                'puts_stopped': {
+                    'count': puts_stopped,
+                    'percentage': round((puts_stopped / total_groups) * 100, 1) if total_groups > 0 else 0
+                },
+                'calls_stopped': {
+                    'count': calls_stopped,
+                    'percentage': round((calls_stopped / total_groups) * 100, 1) if total_groups > 0 else 0
+                },
+                'both_stopped': {
+                    'count': both_stopped,
+                    'percentage': round((both_stopped / total_groups) * 100, 1) if total_groups > 0 else 0
+                }
+            }
+        }
+    
+    def get_time_heatmap_data(self, start_date: str = None, end_date: str = None) -> Dict:
+        """Generate heatmap data showing P&L by day of week and entry time with optional date filtering."""
+        if not self.leg_groups:
+            return {
+                'success': False,
+                'error': 'No MEIC trades found'
+            }
+        
+        # Parse date filters if provided
+        start_date_parsed = None
+        end_date_parsed = None
+        
+        if start_date:
+            try:
+                start_date_parsed = pd.to_datetime(start_date)
+            except:
+                pass
+        
+        if end_date:
+            try:
+                end_date_parsed = pd.to_datetime(end_date)
+            except:
+                pass
+        
+        # Create a DataFrame for easier manipulation
+        heatmap_data = []
+        
+        for group in self.leg_groups.values():
+            entry_date = pd.to_datetime(group['entry_date'])
+            
+            # Apply date filtering
+            if start_date_parsed and entry_date < start_date_parsed:
+                continue
+            if end_date_parsed and entry_date > end_date_parsed:
+                continue
+            
+            day_of_week = entry_date.strftime('%A')
+            entry_time = group['entry_time']
+            
+            # Calculate total P&L for this leg group
+            total_pnl = 0
+            if group['put_spread']:
+                total_pnl += group['put_spread'].pnl
+            if group['call_spread']:
+                total_pnl += group['call_spread'].pnl
+            
+            heatmap_data.append({
+                'day_of_week': day_of_week,
+                'entry_time': entry_time,
+                'total_pnl': total_pnl,
+                'entry_date': entry_date
+            })
+        
+        df = pd.DataFrame(heatmap_data)
+        
+        # Group by day of week and entry time
+        heatmap_summary = df.groupby(['day_of_week', 'entry_time']).agg({
+            'total_pnl': ['sum', 'count', 'mean']
+        }).round(2)
+        
+        # Flatten column names
+        heatmap_summary.columns = ['total_pnl', 'trade_count', 'avg_pnl']
+        heatmap_summary = heatmap_summary.reset_index()
+        
+        # Create pivot table for heatmap
+        pivot_pnl = heatmap_summary.pivot(index='day_of_week', columns='entry_time', values='total_pnl').fillna(0)
+        pivot_count = heatmap_summary.pivot(index='day_of_week', columns='entry_time', values='trade_count').fillna(0)
+        
+        # Order days of week
+        day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        pivot_pnl = pivot_pnl.reindex([day for day in day_order if day in pivot_pnl.index])
+        pivot_count = pivot_count.reindex([day for day in day_order if day in pivot_pnl.index])
+        
+        # Convert to ordered dictionary to preserve day order
+        ordered_pnl_heatmap = {}
+        for day in pivot_pnl.index:
+            ordered_pnl_heatmap[day] = pivot_pnl.loc[day].to_dict()
+        
+        ordered_count_heatmap = {}
+        for day in pivot_count.index:
+            ordered_count_heatmap[day] = pivot_count.loc[day].to_dict()
+        
+        return {
+            'success': True,
+            'data': {
+                'pnl_heatmap': ordered_pnl_heatmap,
+                'count_heatmap': ordered_count_heatmap,
+                'summary_stats': {
+                    'total_leg_groups': len(self.leg_groups),
+                    'total_pnl': round(df['total_pnl'].sum(), 2),
+                    'avg_pnl_per_group': round(df['total_pnl'].mean(), 2),
+                    'best_day': df.groupby('day_of_week')['total_pnl'].sum().idxmax() if not df.empty else None,
+                    'worst_day': df.groupby('day_of_week')['total_pnl'].sum().idxmin() if not df.empty else None
+                }
+            }
+        } 
