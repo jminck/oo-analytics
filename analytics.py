@@ -2311,17 +2311,38 @@ class MEICAnalyzer:
         for day in pivot_count.index:
             ordered_count_heatmap[day] = pivot_count.loc[day].to_dict()
         
+        # Calculate P&L totals per day
+        daily_pnl_totals = {}
+        for day in pivot_pnl.index:
+            daily_pnl_totals[day] = round(pivot_pnl.loc[day].sum(), 2)
+        
+        # Calculate date range for sliders
+        date_range = None
+        if not df.empty:
+            min_date = df['entry_date'].min()
+            max_date = df['entry_date'].max()
+            date_range = {
+                'min_date': min_date.strftime('%Y-%m-%d'),
+                'max_date': max_date.strftime('%Y-%m-%d'),
+                'total_trades': len(df)
+            }
+
+        # Calculate total P&L from ALL MEIC trades (gross P&L, no commission subtraction)
+        total_meic_pnl = sum(trade.pnl for trade in self.meic_trades)
+        
         return {
             'success': True,
             'data': {
                 'pnl_heatmap': ordered_pnl_heatmap,
                 'count_heatmap': ordered_count_heatmap,
+                'daily_pnl_totals': daily_pnl_totals,
                 'summary_stats': {
                     'total_leg_groups': len(self.leg_groups),
-                    'total_pnl': round(df['total_pnl'].sum(), 2),
-                    'avg_pnl_per_group': round(df['total_pnl'].mean(), 2),
+                    'total_pnl': round(total_meic_pnl, 2),  # Gross P&L from all MEIC trades
+                    'avg_pnl_per_group': round(df['total_pnl'].mean(), 2) if not df.empty else 0,
                     'best_day': df.groupby('day_of_week')['total_pnl'].sum().idxmax() if not df.empty else None,
                     'worst_day': df.groupby('day_of_week')['total_pnl'].sum().idxmin() if not df.empty else None
-                }
+                },
+                'date_range': date_range
             }
         } 

@@ -2365,25 +2365,74 @@
                             <div class="card">
                                 <div class="card-body">
                                     <!-- Date Range Controls -->
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label for="meicStartDate" class="form-label">
-                                                <i class="fas fa-calendar-alt"></i> Start Date
-                                            </label>
-                                            <input type="date" class="form-control" id="meicStartDate" onchange="updateMEICHeatmap()">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="meicEndDate" class="form-label">
-                                                <i class="fas fa-calendar-alt"></i> End Date
-                                            </label>
-                                            <input type="date" class="form-control" id="meicEndDate" onchange="updateMEICHeatmap()">
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
+                                    <div class="row mb-2">
                                         <div class="col-12">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetMEICDateRange()">
-                                                <i class="fas fa-undo"></i> Reset to All Dates
-                                            </button>
+                                            <div class="card border-light">
+                                                <div class="card-body py-2">
+                                                    <div class="row align-items-center">
+                                                        <div class="col-md-8">
+                                                            <h6 class="card-title mb-2">
+                                                                <i class="fas fa-sliders-h"></i> Date Range Filter
+                                                            </h6>
+                                                            
+                                                            <!-- Date Range Display -->
+                                                            <div class="row mb-2">
+                                                                <div class="col-6">
+                                                                    <small class="text-muted">Start:</small> <span id="meicStartDateDisplay" class="fw-bold">All Dates</span>
+                                                                </div>
+                                                                <div class="col-6">
+                                                                    <small class="text-muted">End:</small> <span id="meicEndDateDisplay" class="fw-bold">All Dates</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <!-- Sliders -->
+                                                            <div class="mb-2">
+                                                                <label for="meicStartDateSlider" class="form-label small mb-1">Start Date</label>
+                                                                <input type="range" class="form-range" id="meicStartDateSlider" 
+                                                                       min="0" max="100" value="0" step="1" oninput="updateMEICDateLabels()">
+                                                                <div class="d-flex justify-content-between">
+                                                                    <small class="text-muted" id="meicStartDateMin">Loading...</small>
+                                                                    <small class="text-muted" id="meicStartDateMax">Loading...</small>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="mb-2">
+                                                                <label for="meicEndDateSlider" class="form-label small mb-1">End Date</label>
+                                                                <input type="range" class="form-range" id="meicEndDateSlider" 
+                                                                       min="0" max="100" value="100" step="1" oninput="updateMEICDateLabels()">
+                                                                <div class="d-flex justify-content-between">
+                                                                    <small class="text-muted" id="meicEndDateMin">Loading...</small>
+                                                                    <small class="text-muted" id="meicEndDateMax">Loading...</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div class="col-md-4">
+                                                            <!-- Trade Count & Actions -->
+                                                            <div class="alert alert-info py-1 mb-2" id="meicTradeCountAlert">
+                                                                <small><i class="fas fa-chart-bar"></i> <strong>Trades:</strong> <span id="meicTradeCount">Loading...</span></small>
+                                                            </div>
+                                                            
+                                                            <!-- Recalculation Notice -->
+                                                            <div id="meicRecalculationNotice" style="display: none;">
+                                                                <div class="alert alert-warning py-1 mb-2">
+                                                                    <small><i class="fas fa-exclamation-triangle"></i> <strong>Recalculation needed!</strong></small>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <!-- Action Buttons -->
+                                                            <div class="d-grid gap-1">
+                                                                <button type="button" class="btn btn-primary btn-sm" onclick="recalculateMEICHeatmap()" id="meicRecalculateBtn">
+                                                                    <i class="fas fa-calculator"></i> Recalculate
+                                                                </button>
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetMEICDateRange()">
+                                                                    <i class="fas fa-undo"></i> Reset
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -10523,7 +10572,7 @@
                                             <div class="card-body">
                                                 <h5 class="card-title text-success">${stopoutStats.no_stopouts.percentage}%</h5>
                                                 <p class="card-text">No Stopouts</p>
-                                                <small class="text-muted">${stopoutStats.no_stopouts.count} leg groups</small>
+                                                <small class="text-muted">${stopoutStats.no_stopouts.count} trades</small>
                                             </div>
                                         </div>
                                     </div>
@@ -10532,7 +10581,7 @@
                                             <div class="card-body">
                                                 <h5 class="card-title text-warning">${stopoutStats.puts_stopped.percentage}%</h5>
                                                 <p class="card-text">Puts Stopped</p>
-                                                <small class="text-muted">${stopoutStats.puts_stopped.count} leg groups</small>
+                                                <small class="text-muted">${stopoutStats.puts_stopped.count} trades</small>
                                             </div>
                                         </div>
                                     </div>
@@ -10541,7 +10590,7 @@
                                             <div class="card-body">
                                                 <h5 class="card-title text-warning">${stopoutStats.calls_stopped.percentage}%</h5>
                                                 <p class="card-text">Calls Stopped</p>
-                                                <small class="text-muted">${stopoutStats.calls_stopped.count} leg groups</small>
+                                                <small class="text-muted">${stopoutStats.calls_stopped.count} trades</small>
                                             </div>
                                         </div>
                                     </div>
@@ -10550,7 +10599,7 @@
                                             <div class="card-body">
                                                 <h5 class="card-title text-danger">${stopoutStats.both_stopped.percentage}%</h5>
                                                 <p class="card-text">Both Stopped</p>
-                                                <small class="text-muted">${stopoutStats.both_stopped.count} leg groups</small>
+                                                <small class="text-muted">${stopoutStats.both_stopped.count} trades</small>
                                             </div>
                                         </div>
                                     </div>
@@ -10618,7 +10667,7 @@
                         <!-- Summary -->
                         <div class="row">
                             <div class="col-12">
-                                <p class="text-muted"><strong>Total Leg Groups:</strong> ${stopoutStats.total_leg_groups}</p>
+                                <p class="text-muted"><strong>Total MEIC Trades:</strong> ${stopoutStats.total_leg_groups}</p>
                             </div>
                         </div>
                     `;
@@ -10652,6 +10701,15 @@
                         const heatmapData = data.data;
                         console.log('🔧 MEIC heatmap data:', heatmapData);
                         console.log('🔧 pnl_heatmap keys:', Object.keys(heatmapData.pnl_heatmap));
+                        
+                        // Initialize date sliders on first load
+                        if (heatmapData.date_range && !meicDateRange) {
+                            initializeMEICDateSliders(heatmapData.date_range);
+                        }
+                        
+                        // Update trade count display
+                        const tradeCount = heatmapData.summary_stats.total_leg_groups;
+                        document.getElementById('meicTradeCount').textContent = tradeCount.toLocaleString();
                         
                         // Create the heatmap using Plotly
                         // Get all available days from the data and sort them properly
@@ -10763,6 +10821,9 @@
                                 // Clear any loading content that might still be showing
                                 const loadingElements = heatmapContainer.querySelectorAll('.spinner-border, .text-center');
                                 loadingElements.forEach(el => el.remove());
+                                
+                                // Add daily P&L totals display
+                                addDailyPnLTotals(heatmapData.daily_pnl_totals, orderedDays);
                             })
                             .catch(error => {
                                 clearTimeout(renderTimeout);
@@ -10780,16 +10841,181 @@
                 });
         }
 
-        function updateMEICHeatmap() {
-            const startDate = document.getElementById('meicStartDate').value;
-            const endDate = document.getElementById('meicEndDate').value;
-            loadMEICHeatmap(startDate || null, endDate || null);
+        // Global variables for date range
+        let meicDateRange = null;
+        let meicDateList = [];
+        let meicCurrentStartDate = null;
+        let meicCurrentEndDate = null;
+
+        function updateMEICDateLabels() {
+            if (!meicDateRange || meicDateList.length === 0) return;
+            
+            const startSlider = document.getElementById('meicStartDateSlider');
+            const endSlider = document.getElementById('meicEndDateSlider');
+            
+            // Ensure start is not after end
+            if (parseInt(startSlider.value) >= parseInt(endSlider.value)) {
+                if (startSlider.value == endSlider.value) {
+                    endSlider.value = Math.min(parseInt(startSlider.value) + 1, 100);
+                } else {
+                    startSlider.value = Math.max(parseInt(endSlider.value) - 1, 0);
+                }
+            }
+            
+            // Convert slider values to dates
+            const startIndex = Math.floor((parseInt(startSlider.value) / 100) * (meicDateList.length - 1));
+            const endIndex = Math.floor((parseInt(endSlider.value) / 100) * (meicDateList.length - 1));
+            
+            const startDate = meicDateList[startIndex];
+            const endDate = meicDateList[endIndex];
+            
+            // Update display
+            document.getElementById('meicStartDateDisplay').textContent = startDate;
+            document.getElementById('meicEndDateDisplay').textContent = endDate;
+            
+            // Show recalculation notice if dates have changed
+            if (startDate !== meicCurrentStartDate || endDate !== meicCurrentEndDate) {
+                showRecalculationNotice();
+            }
+        }
+
+        function showRecalculationNotice() {
+            document.getElementById('meicRecalculationNotice').style.display = 'block';
+            document.getElementById('meicRecalculateBtn').classList.add('btn-warning');
+            document.getElementById('meicRecalculateBtn').classList.remove('btn-primary');
+        }
+
+        function hideRecalculationNotice() {
+            document.getElementById('meicRecalculationNotice').style.display = 'none';
+            document.getElementById('meicRecalculateBtn').classList.remove('btn-warning');
+            document.getElementById('meicRecalculateBtn').classList.add('btn-primary');
+        }
+
+        function recalculateMEICHeatmap() {
+            const startSlider = document.getElementById('meicStartDateSlider');
+            const endSlider = document.getElementById('meicEndDateSlider');
+            
+            // Convert slider values to dates
+            const startIndex = Math.floor((parseInt(startSlider.value) / 100) * (meicDateList.length - 1));
+            const endIndex = Math.floor((parseInt(endSlider.value) / 100) * (meicDateList.length - 1));
+            
+            const startDate = meicDateList[startIndex];
+            const endDate = meicDateList[endIndex];
+            
+            // Update current dates
+            meicCurrentStartDate = startDate;
+            meicCurrentEndDate = endDate;
+            
+            // Hide recalculation notice
+            hideRecalculationNotice();
+            
+            // Update heatmap
+            loadMEICHeatmap(startDate, endDate);
         }
 
         function resetMEICDateRange() {
-            document.getElementById('meicStartDate').value = '';
-            document.getElementById('meicEndDate').value = '';
+            document.getElementById('meicStartDateSlider').value = 0;
+            document.getElementById('meicEndDateSlider').value = 100;
+            document.getElementById('meicStartDateDisplay').textContent = 'All Dates';
+            document.getElementById('meicEndDateDisplay').textContent = 'All Dates';
+            
+            // Reset current dates
+            meicCurrentStartDate = null;
+            meicCurrentEndDate = null;
+            
+            // Hide recalculation notice
+            hideRecalculationNotice();
+            
+            // Update heatmap
             loadMEICHeatmap();
+        }
+
+        function initializeMEICDateSliders(dateRange) {
+            if (!dateRange) return;
+            
+            meicDateRange = dateRange;
+            
+            // Generate list of dates between min and max
+            const startDate = new Date(dateRange.min_date);
+            const endDate = new Date(dateRange.max_date);
+            meicDateList = [];
+            
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                meicDateList.push(d.toISOString().split('T')[0]);
+            }
+            
+            // Update slider labels
+            document.getElementById('meicStartDateMin').textContent = dateRange.min_date;
+            document.getElementById('meicStartDateMax').textContent = dateRange.max_date;
+            document.getElementById('meicEndDateMin').textContent = dateRange.min_date;
+            document.getElementById('meicEndDateMax').textContent = dateRange.max_date;
+            
+            // Set initial display
+            document.getElementById('meicStartDateDisplay').textContent = 'All Dates';
+            document.getElementById('meicEndDateDisplay').textContent = 'All Dates';
+            
+            // Initialize current dates to "All Dates" (null values)
+            meicCurrentStartDate = null;
+            meicCurrentEndDate = null;
+            
+            // Hide recalculation notice initially
+            hideRecalculationNotice();
+        }
+
+        function addDailyPnLTotals(dailyPnLTotals, orderedDays) {
+            // Remove any existing daily totals display
+            const existingTotals = document.getElementById('meicDailyTotals');
+            if (existingTotals) {
+                existingTotals.remove();
+            }
+            
+            // Create daily totals display
+            const totalsContainer = document.createElement('div');
+            totalsContainer.id = 'meicDailyTotals';
+            totalsContainer.className = 'mt-3';
+            
+            let totalsHtml = '<div class="card border-light"><div class="card-body py-2"><h6 class="card-title mb-2"><i class="fas fa-calculator"></i> Daily P&L Totals</h6><div class="row">';
+            
+            // Calculate total P&L for color coding
+            const totalPnL = Object.values(dailyPnLTotals).reduce((sum, pnl) => sum + pnl, 0);
+            const maxPnL = Math.max(...Object.values(dailyPnLTotals));
+            const minPnL = Math.min(...Object.values(dailyPnLTotals));
+            
+            orderedDays.forEach(day => {
+                const pnl = dailyPnLTotals[day] || 0;
+                let badgeClass = 'bg-secondary';
+                let textClass = 'text-dark';
+                
+                if (pnl > 0) {
+                    badgeClass = 'bg-success';
+                    textClass = 'text-white';
+                } else if (pnl < 0) {
+                    badgeClass = 'bg-danger';
+                    textClass = 'text-white';
+                }
+                
+                totalsHtml += `
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <div class="d-flex align-items-center">
+                            <span class="badge ${badgeClass} me-2">${day.substring(0, 3)}</span>
+                            <span class="${textClass} fw-bold">$${pnl.toLocaleString()}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            totalsHtml += '</div>';
+            
+            // Add summary
+            const summaryClass = totalPnL >= 0 ? 'text-success' : 'text-danger';
+            totalsHtml += `<div class="mt-2"><small class="text-muted">Total: </small><span class="${summaryClass} fw-bold">$${totalPnL.toLocaleString()}</span></div>`;
+            totalsHtml += '</div></div>';
+            
+            totalsContainer.innerHTML = totalsHtml;
+            
+            // Insert after the heatmap
+            const heatmapContainer = document.getElementById('meicHeatmapChart');
+            heatmapContainer.appendChild(totalsContainer);
         }
 
         function loadPriceMovementChart() {
