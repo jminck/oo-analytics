@@ -11,6 +11,7 @@ import numpy as np
 from typing import Dict, List, Any
 from models import Portfolio
 from analytics import StrategyAnalyzer, PortfolioMetrics, MonteCarloSimulator
+from cache_manager import cache_chart_result, cache_manager
 
 class ChartGenerator:
     """Generates interactive Plotly charts for strategy analysis."""
@@ -27,29 +28,55 @@ class ChartGenerator:
             '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5'
         ]
     
+    def clear_cache(self):
+        """Clear all cached chart data for this portfolio."""
+        if hasattr(self.portfolio, 'current_filename') and self.portfolio.current_filename:
+            portfolio_id = self.portfolio.current_filename
+            cache_manager.clear_portfolio_cache(portfolio_id)
+    
+    def _get_all_trades_optimized(self) -> List[Dict]:
+        """Get all trades in an optimized format for charting."""
+        all_trades = []
+        
+        # Pre-allocate lists for better performance
+        dates = []
+        pnls = []
+        strategies = []
+        
+        for strategy_name, strategy in self.portfolio.strategies.items():
+            for trade in strategy.trades:
+                if trade.date_closed:
+                    dates.append(pd.to_datetime(trade.date_closed))
+                    pnls.append(trade.pnl)
+                    strategies.append(strategy_name)
+        
+        # Create optimized data structure
+        for i, (date, pnl, strategy) in enumerate(zip(dates, pnls, strategies)):
+            all_trades.append({
+                'date': date,
+                'pnl': pnl,
+                'strategy': strategy
+            })
+        
+        return all_trades
+    
+    @cache_chart_result()
     def create_cumulative_pnl_chart(self) -> Dict:
-        """Create cumulative P&L chart with strategy breakdown option."""
+        """Create cumulative P&L chart with strategy breakdown option (optimized)."""
         overview = self.metrics.get_overview_metrics()
         
         if not overview['cumulative_pnl_series']:
             return self._empty_chart("No data available")
         
-        # Get all trades chronologically for the main line
-        all_trades = []
-        for strategy_name, strategy in self.portfolio.strategies.items():
-            for trade in strategy.trades:
-                all_trades.append({
-                    'date': np.array(pd.to_datetime(trade.date_closed).to_pydatetime()).item(),
-                    'pnl': trade.pnl,
-                    'strategy': strategy_name,
-                    'cumulative': 0  # Will calculate below
-                })
+        # Use optimized trade collection
+        all_trades = self._get_all_trades_optimized()
         
         if not all_trades:
             return self._empty_chart("No trades found")
         
-        # Sort by date and calculate cumulative
-        df = pd.DataFrame(all_trades).sort_values('date')
+        # Use vectorized operations for better performance
+        df = pd.DataFrame(all_trades)
+        df = df.sort_values('date')
         df['cumulative'] = df['pnl'].cumsum()
         
         fig = go.Figure()
@@ -314,6 +341,7 @@ class ChartGenerator:
             'description': 'Monthly P&L breakdown stacked by strategy. Shows contribution of each strategy to monthly performance.'
         }
     
+    @cache_chart_result()
     def create_strategy_correlation_heatmap(self) -> Dict:
         """Create correlation heatmap between strategies."""
         correlations = self.analyzer.calculate_strategy_correlations()
@@ -779,8 +807,14 @@ class ChartGenerator:
             'description': 'Daily P&L distribution showing portfolio performance over time in both dollars and percentage.'
         }
 
+    @cache_chart_result()
     def create_drawdown_chart(self) -> Dict:
         """Create enhanced portfolio drawdown analysis chart with per-strategy details."""
+        # Use optimized calculation for large datasets
+        return self._create_drawdown_chart_optimized()
+    
+    def _create_drawdown_chart_optimized(self) -> Dict:
+        """Optimized drawdown chart calculation for large datasets."""
         all_trades = []
         strategy_trades = {}
         
@@ -802,55 +836,29 @@ class ChartGenerator:
         first_trade = sorted_trades[0]
         initial_balance = first_trade.funds_at_close - first_trade.pnl
         
-        # Calculate account values over time (same as Portfolio Overview)
-        print(f"DEBUG: Starting portfolio data calculation with {len(sorted_trades)} trades")
-        cumulative_pnl = []
-        running_pnl = 0
-        account_values = []
-        dates = []
+        # Extract data into numpy arrays for vectorized operations
+        pnl_values = np.array([trade.pnl for trade in sorted_trades])
+        dates = [trade.date_closed for trade in sorted_trades]
         
-        for trade in sorted_trades:
-            running_pnl += trade.pnl
-            cumulative_pnl.append(running_pnl)
-            account_value = initial_balance + running_pnl
-            account_values.append(account_value)
-            dates.append(trade.date_closed)
+        # Calculate cumulative P&L and account values using numpy
+        cumulative_pnl = np.cumsum(pnl_values)
+        account_values = initial_balance + cumulative_pnl
         
-        print(f"DEBUG: Portfolio account values calculation complete")
-        print(f"DEBUG: account_values type: {type(account_values)}, length: {len(account_values)}")
-        print(f"DEBUG: dates type: {type(dates)}, length: {len(dates)}")
+        # Calculate drawdown using numpy for better performance
+        running_max = np.maximum.accumulate(account_values)
         
-        # Calculate drawdown using account values (same as Portfolio Overview)
-        running_max = [float(x) for x in np.maximum.accumulate(account_values)]
-        drawdown_pct = []
-        drawdown_dollar = []
+        # Vectorized drawdown calculation
+        drawdown_dollar = running_max - account_values
+        # Avoid division by zero
+        drawdown_pct = np.where(running_max > 0, (drawdown_dollar / running_max) * 100, 0)
         
-        print(f"DEBUG: Portfolio data calculation complete")
-        print(f"DEBUG: account_values type: {type(account_values)}, length: {len(account_values)}")
-        print(f"DEBUG: drawdown_pct type: {type(drawdown_pct)}, length: {len(drawdown_pct)}")
-        print(f"DEBUG: running_max type: {type(running_max)}, length: {len(running_max)}")
+        # Keep as numpy arrays for better performance, convert only when needed
+        account_values_list = account_values.tolist()
+        drawdown_pct_list = drawdown_pct.tolist()
+        drawdown_dollar_list = drawdown_dollar.tolist()
+        running_max_list = running_max.tolist()
         
-        for i, account_value in enumerate(account_values):
-            peak = running_max[i]
-            if peak > 0:
-                current_drawdown_pct = (peak - account_value) / peak * 100
-                current_drawdown_dollar = peak - account_value
-            else:
-                current_drawdown_pct = 0
-                current_drawdown_dollar = 0
-            drawdown_pct.append(current_drawdown_pct)
-            drawdown_dollar.append(current_drawdown_dollar)
-        
-        print(f"DEBUG: Portfolio drawdown calculation complete")
-        print(f"DEBUG: Final account_values type: {type(account_values)}, length: {len(account_values)}")
-        print(f"DEBUG: Final drawdown_pct type: {type(drawdown_pct)}, length: {len(drawdown_pct)}")
-        
-        # Check portfolio variables before strategy calculation
-        print(f"DEBUG: Before strategy calculation - account_values type: {type(account_values)}, length: {len(account_values)}")
-        print(f"DEBUG: Before strategy calculation - drawdown_pct type: {type(drawdown_pct)}, length: {len(drawdown_pct)}")
-        print(f"DEBUG: Before strategy calculation - running_max type: {type(running_max)}, length: {len(running_max)}")
-        
-        # Calculate per-strategy drawdown statistics
+        # Calculate per-strategy drawdown statistics (optimized)
         strategy_drawdown_stats = {}
         for strategy_name, trades in strategy_trades.items():
             if not trades:
@@ -859,137 +867,49 @@ class ChartGenerator:
             # Sort strategy trades by date
             strategy_trades_sorted = sorted(trades, key=lambda t: pd.to_datetime(t.date_closed))
             
-            # Calculate strategy-specific running P&L and drawdown against "Funds at Close"
-            strategy_running_pnl = 0
-            strategy_running_pnl_list = []
-            strategy_dates = []
-            strategy_funds_at_close = []
+            # Extract data into numpy arrays for vectorized operations
+            pnl_values = np.array([trade.pnl for trade in strategy_trades_sorted])
+            funds_values = np.array([float(trade.funds_at_close) for trade in strategy_trades_sorted])
             
-            for trade in strategy_trades_sorted:
-                strategy_running_pnl += trade.pnl
-                strategy_running_pnl_list.append(float(strategy_running_pnl))
-                strategy_dates.append(trade.date_closed)
-                strategy_funds_at_close.append(float(trade.funds_at_close))
-            
-            if strategy_running_pnl_list:
-                # Calculate peak P&L and drawdown against "Funds at Close"
-                strategy_peak_pnl = [float(x) for x in np.maximum.accumulate(strategy_running_pnl_list)]
-                strategy_drawdowns = []
-                strategy_drawdown_dollars = []
-                days_since_peak = []
+            if len(pnl_values) > 0:
+                # Calculate strategy-specific running P&L using numpy
+                strategy_running_pnl_list = np.cumsum(pnl_values)
+                strategy_peak_pnl = np.maximum.accumulate(strategy_running_pnl_list)
                 
-                print(f"DEBUG: Strategy stats calculation for {strategy_name}")
-                print(f"DEBUG: pnl_list type: {type(strategy_running_pnl_list)}, length: {len(strategy_running_pnl_list)}")
-                print(f"DEBUG: funds_list type: {type(strategy_funds_at_close)}, length: {len(strategy_funds_at_close)}")
-                print(f"DEBUG: peak_list type: {type(strategy_peak_pnl)}, length: {len(strategy_peak_pnl)}")
+                # Vectorized drawdown calculation
+                strategy_drawdown_dollars = strategy_peak_pnl - strategy_running_pnl_list
+                strategy_drawdowns = np.where(funds_values > 0, (strategy_drawdown_dollars / funds_values) * 100, 0)
                 
-                for i, (current_pnl, funds_at_close) in enumerate(zip(strategy_running_pnl_list, strategy_funds_at_close)):
-                    peak_pnl = strategy_peak_pnl[i]
-                    
-                    # Calculate drawdown % against "Funds at Close"
-                    if funds_at_close > 0:
-                        strategy_drawdown_pct = (peak_pnl - current_pnl) / funds_at_close * 100
-                        strategy_drawdown_dollar = peak_pnl - current_pnl
-                    else:
-                        strategy_drawdown_pct = 0
-                        strategy_drawdown_dollar = 0
-                    
-                    strategy_drawdowns.append(strategy_drawdown_pct)
-                    strategy_drawdown_dollars.append(strategy_drawdown_dollar)
-                    
-                    # Count days since current P&L >= Peak P&L
-                    if current_pnl >= peak_pnl:
-                        days_since_peak.append(0)  # At or above peak
-                    else:
-                        # Count consecutive days below peak
-                        days_below_peak = 0
-                        try:
-                            for j in range(i, -1, -1):
-                                if j < len(strategy_running_pnl_list) and j < len(strategy_peak_pnl):
-                                    if strategy_running_pnl_list[j] < strategy_peak_pnl[j]:
-                                        days_below_peak += 1
-                                    else:
-                                        break
-                                else:
-                                    break
-                        except Exception as e:
-                            print(f"DEBUG: Error in stats days calculation for {strategy_name} at index {i}: {e}")
-                            print(f"DEBUG: j={j}, pnl_list_len={len(strategy_running_pnl_list)}, peak_list_len={len(strategy_peak_pnl)}")
-                            raise
-                        days_since_peak.append(days_below_peak)
+                # Calculate days since peak (optimized with numpy)
+                days_since_peak = np.zeros(len(strategy_running_pnl_list))
+                is_below_peak = strategy_running_pnl_list < strategy_peak_pnl
+                for i in range(1, len(strategy_running_pnl_list)):
+                    if is_below_peak[i]:
+                        days_since_peak[i] = days_since_peak[i-1] + 1
                 
-                # Calculate strategy statistics
-                max_drawdown_pct = float(max(strategy_drawdowns)) if strategy_drawdowns else 0.0
-                max_drawdown_idx = strategy_drawdowns.index(max_drawdown_pct) if strategy_drawdowns else 0
-                max_drawdown_dollar = float(strategy_drawdown_dollars[max_drawdown_idx]) if max_drawdown_idx < len(strategy_drawdown_dollars) else 0.0
-                max_days_since_peak = int(max(days_since_peak)) if days_since_peak else 0
-                
-                print(f"DEBUG: Strategy '{strategy_name}' max drawdown: {max_drawdown_pct:.2f}% (${max_drawdown_dollar:,.2f})")
-                print(f"DEBUG: Strategy '{strategy_name}' P&L range: ${min(strategy_running_pnl_list):,.2f} to ${max(strategy_running_pnl_list):,.2f}")
-                print(f"DEBUG: Strategy '{strategy_name}' peak P&L: ${max(strategy_peak_pnl):,.2f}")
-                print(f"DEBUG: Strategy '{strategy_name}' max days since peak: {max_days_since_peak}")
-                print(f"DEBUG: Strategy '{strategy_name}' first few P&L values: {strategy_running_pnl_list[:3]}")
-                print(f"DEBUG: Strategy '{strategy_name}' first few drawdowns: {strategy_drawdowns[:3]}")
+                # Calculate strategy statistics using numpy operations
+                max_drawdown_pct = float(np.max(strategy_drawdowns))
+                max_drawdown_idx = int(np.argmax(strategy_drawdowns))
+                max_drawdown_dollar = float(strategy_drawdown_dollars[max_drawdown_idx])
+                max_days_since_peak = int(np.max(days_since_peak))
                 
                 strategy_drawdown_stats[strategy_name] = {
                     'max_drawdown_pct': float(round(max_drawdown_pct, 2)),
                     'max_drawdown_dollar': float(round(max_drawdown_dollar, 2)),
-                    'max_drawdown_days': int(max_days_since_peak),
+                    'max_drawdown_days': max_days_since_peak,
                     'total_trades': int(len(trades)),
-                    'total_pnl': float(round(sum(trade.pnl for trade in trades), 2)),
-                    'peak_pnl': float(round(max(strategy_peak_pnl), 2)),
-                    'current_pnl': float(round(strategy_running_pnl_list[-1], 2)) if strategy_running_pnl_list else 0.0
+                    'total_pnl': float(round(np.sum(pnl_values), 2)),
+                    'peak_pnl': float(round(np.max(strategy_peak_pnl), 2)),
+                    'current_pnl': float(round(strategy_running_pnl_list[-1], 2))
                 }
         
-        print(f"DEBUG: Strategy statistics calculation complete for {len(strategy_drawdown_stats)} strategies")
-        
-        # Check portfolio variables after strategy calculation
-        print(f"DEBUG: After strategy calculation - account_values type: {type(account_values)}, length: {len(account_values)}")
-        print(f"DEBUG: After strategy calculation - drawdown_pct type: {type(drawdown_pct)}, length: {len(drawdown_pct)}")
-        print(f"DEBUG: After strategy calculation - running_max type: {type(running_max)}, length: {len(running_max)}")
-        
-        print(f"DEBUG: About to create Plotly figure")
-        
+        # Create Plotly figure
         fig = go.Figure()
-        
-        # Convert portfolio data to Python lists to avoid Plotly errors
-        print(f"DEBUG: Converting portfolio data to Python lists")
-        print(f"DEBUG: account_values type: {type(account_values)}, length: {len(account_values)}")
-        print(f"DEBUG: drawdown_pct type: {type(drawdown_pct)}, length: {len(drawdown_pct)}")
-        print(f"DEBUG: running_max type: {type(running_max)}, length: {len(running_max)}")
-        
-        # Check the first few values in account_values
-        print(f"DEBUG: First 5 account_values: {account_values[:5]}")
-        print(f"DEBUG: Types of first 5 account_values: {[type(x) for x in account_values[:5]]}")
-        
-        try:
-            account_values = [float(x) for x in account_values]
-            print(f"DEBUG: account_values conversion successful")
-        except Exception as e:
-            print(f"DEBUG: Error converting account_values: {e}")
-            print(f"DEBUG: Problematic values: {[x for x in account_values[:10] if not isinstance(x, (int, float))]}")
-            raise
-        
-        try:
-            drawdown_pct = [float(x) for x in drawdown_pct]
-            print(f"DEBUG: drawdown_pct conversion successful")
-        except Exception as e:
-            print(f"DEBUG: Error converting drawdown_pct: {e}")
-            raise
-            
-        try:
-            running_max = [float(x) for x in running_max]
-            print(f"DEBUG: running_max conversion successful")
-        except Exception as e:
-            print(f"DEBUG: Error converting running_max: {e}")
-            raise
-        
-        print(f"DEBUG: Portfolio data conversion complete")
         
         # Add account values line with enhanced hover
         fig.add_trace(go.Scatter(
             x=dates,
-            y=account_values,
+            y=account_values_list,
             mode='lines',
             name='Account Value',
             line=dict(color='blue', width=2),
@@ -1003,14 +923,14 @@ class ChartGenerator:
         # Add drawdown area with enhanced hover
         fig.add_trace(go.Scatter(
             x=dates,
-            y=drawdown_pct,
+            y=drawdown_pct_list,
             mode='lines',
             name='Drawdown %',
             line=dict(color='red', width=2),
             fill='tonexty',
             fillcolor='rgba(255,0,0,0.1)',
             yaxis='y2',
-            customdata=list(zip(drawdown_dollar, running_max, account_values)),
+            customdata=list(zip(drawdown_dollar_list, running_max_list, account_values_list)),
             hovertemplate='<b>Portfolio Drawdown</b><br>' +
                          'Date: %{x}<br>' +
                          'Drawdown: %{y:.2f}%<br>' +
@@ -1022,11 +942,9 @@ class ChartGenerator:
         
         # Add strategy-specific lines with daily drawdown details
         colors = ['#A23B72', '#F18F01', '#C73E1D', '#7209B7', '#048A81', '#D4AF37', '#8B4513', '#2F4F4F']
-        print(f"DEBUG: Starting chart rendering for {len(strategy_drawdown_stats)} strategies")
         
         for i, (strategy_name, stats) in enumerate(strategy_drawdown_stats.items()):
             color = colors[i % len(colors)]
-            print(f"DEBUG: Processing chart rendering for strategy {i+1}/{len(strategy_drawdown_stats)}: {strategy_name}")
             
             # Get strategy trades sorted by date
             strategy_trades_sorted = sorted(strategy_trades[strategy_name], key=lambda t: pd.to_datetime(t.date_closed))
@@ -1043,21 +961,12 @@ class ChartGenerator:
                 strategy_dates.append(trade.date_closed)
                 strategy_funds_at_close.append(float(trade.funds_at_close))
             
-            print(f"DEBUG: Chart data collection complete for {strategy_name}")
-            print(f"DEBUG: Chart pnl_list type: {type(strategy_running_pnl_list)}, length: {len(strategy_running_pnl_list)}")
-            print(f"DEBUG: Chart funds_list type: {type(strategy_funds_at_close)}, length: {len(strategy_funds_at_close)}")
-            
             # Calculate strategy-specific drawdown against "Funds at Close"
             if strategy_running_pnl_list:
                 strategy_peak_pnl = [float(x) for x in np.maximum.accumulate(strategy_running_pnl_list)]
                 strategy_drawdowns = []
                 strategy_drawdown_dollars = []
                 days_since_peak = []
-                
-                print(f"DEBUG: About to iterate over {strategy_name}")
-                print(f"DEBUG: strategy_running_pnl_list type: {type(strategy_running_pnl_list)}, length: {len(strategy_running_pnl_list)}")
-                print(f"DEBUG: strategy_funds_at_close type: {type(strategy_funds_at_close)}, length: {len(strategy_funds_at_close)}")
-                print(f"DEBUG: strategy_peak_pnl type: {type(strategy_peak_pnl)}, length: {len(strategy_peak_pnl)}")
                 
                 for i, (current_pnl, funds_at_close) in enumerate(zip(strategy_running_pnl_list, strategy_funds_at_close)):
                     peak_pnl = strategy_peak_pnl[i]
@@ -1089,30 +998,22 @@ class ChartGenerator:
                                 else:
                                     break
                         except Exception as e:
-                            print(f"DEBUG: Error in days calculation for {strategy_name} at index {i}: {e}")
-                            print(f"DEBUG: j={j}, pnl_list_len={len(strategy_running_pnl_list)}, peak_list_len={len(strategy_peak_pnl)}")
-                            raise
-                        days_since_peak.append(days_below_peak)
+                            days_since_peak.append(0)  # Fallback to 0 on error
+                        else:
+                            days_since_peak.append(days_below_peak)
                 
                 # Create custom data for enhanced tooltips
                 custom_data = []
-                print(f"DEBUG: Creating custom data for {strategy_name}")
-                print(f"DEBUG: Lengths - dates: {len(strategy_dates)}, drawdowns: {len(strategy_drawdowns)}, pnl: {len(strategy_running_pnl_list)}")
                 
                 for j in range(len(strategy_dates)):
-                    try:
-                        custom_data.append([
-                            float(strategy_drawdowns[j]),  # Current drawdown %
-                            float(strategy_drawdown_dollars[j]),  # Current drawdown $
-                            float(strategy_peak_pnl[j]),  # Peak P&L
-                            float(strategy_running_pnl_list[j]),  # Current P&L
-                            float(strategy_funds_at_close[j]),  # Funds at Close
-                            int(days_since_peak[j])  # Days since peak
-                        ])
-                    except Exception as e:
-                        print(f"DEBUG: Error creating custom data at index {j}: {e}")
-                        print(f"DEBUG: Values - drawdown: {strategy_drawdowns[j]}, dollar: {strategy_drawdown_dollars[j]}, peak: {strategy_peak_pnl[j]}")
-                        raise
+                    custom_data.append([
+                        float(strategy_drawdowns[j]),  # Current drawdown %
+                        float(strategy_drawdown_dollars[j]),  # Current drawdown $
+                        float(strategy_peak_pnl[j]),  # Peak P&L
+                        float(strategy_running_pnl_list[j]),  # Current P&L
+                        float(strategy_funds_at_close[j]),  # Funds at Close
+                        int(days_since_peak[j])  # Days since peak
+                    ])
                 
                 # Convert numpy arrays to Python lists to avoid Plotly errors
                 strategy_running_pnl_list = [float(x) for x in strategy_running_pnl_list]
@@ -1264,26 +1165,40 @@ class ChartGenerator:
         except Exception as e:
             return self._empty_chart(f"Error creating Monte Carlo distribution chart: {str(e)}")
     
+    @cache_chart_result()
     def create_monte_carlo_confidence_intervals_chart(self, simulation_data: Dict) -> Dict:
-        """Create Monte Carlo confidence intervals chart."""
+        """Create Monte Carlo confidence intervals chart (optimized for data size)."""
         if not simulation_data or 'simulation_results' not in simulation_data:
             return self._empty_chart("No Monte Carlo simulation data available")
         
         try:
-            # Get simulation results (first 20 for visualization)
-            simulation_results = simulation_data.get('simulation_results', [])[:20]
+            # Get simulation results - limit to first 10 for visualization to reduce data size
+            all_simulation_results = simulation_data.get('simulation_results', [])
+            simulation_results = all_simulation_results[:10]  # Reduced from 20 to 10
+            
             if not simulation_results:
                 return self._empty_chart("No simulation results available")
             
             # Create figure
             fig = go.Figure()
             
-            # Add individual simulation paths (first 20)
+            # Add individual simulation paths (limited and sampled)
             for i, result in enumerate(simulation_results):
-                if i < 20:  # Limit to first 20 for clarity
+                if i < 10:  # Limit to first 10 for clarity and data size
+                    # Sample data points to reduce size (every 5th point for large datasets)
+                    account_balance = result['account_balance']
+                    if len(account_balance) > 100:
+                        # Sample every 5th point for large datasets
+                        x_indices = list(range(0, len(account_balance), 5))
+                        x_values = [i + 1 for i in x_indices]
+                        y_values = [account_balance[i] for i in x_indices]
+                    else:
+                        x_values = list(range(1, len(account_balance) + 1))
+                        y_values = account_balance
+                    
                     fig.add_trace(go.Scatter(
-                        x=list(range(1, len(result['account_balance']) + 1)),
-                        y=result['account_balance'],
+                        x=x_values,
+                        y=y_values,
                         mode='lines',
                         line=dict(color='lightgray', width=1),
                         opacity=0.3,
@@ -1292,25 +1207,35 @@ class ChartGenerator:
                         name=f'Sim {i+1}'
                     ))
             
-            # Calculate percentiles for confidence bands
+            # Calculate percentiles for confidence bands (optimized)
             if len(simulation_results) > 0:
-                trade_count = len(simulation_results[0]['account_balance'])
-                trades = list(range(1, trade_count + 1))
+                # Sample data points for percentile calculation to reduce data size
+                sample_result = simulation_results[0]
+                trade_count = len(sample_result['account_balance'])
                 
-                # Calculate percentiles for each trade
+                # Sample trades for large datasets (every 10th trade for >200 trades)
+                if trade_count > 200:
+                    trade_indices = list(range(0, trade_count, 10))
+                    trades = [i + 1 for i in trade_indices]
+                else:
+                    trades = list(range(1, trade_count + 1))
+                    trade_indices = list(range(trade_count))
+                
+                # Calculate percentiles for sampled trades only
                 p5_values = []
                 p25_values = []
                 p75_values = []
                 p95_values = []
                 median_values = []
                 
-                for trade_idx in range(trade_count):
-                    # Get a larger sample for better percentile calculation
-                    all_results = simulation_data.get('simulation_results', [])
-                    if len(all_results) > 100:
-                        balances_at_trade = [result['account_balance'][trade_idx] for result in all_results]
-                    else:
-                        balances_at_trade = [result['account_balance'][trade_idx] for result in simulation_results]
+                # Use a reasonable sample size for percentile calculation (max 500 simulations)
+                all_results = simulation_data.get('simulation_results', [])
+                sample_size = min(500, len(all_results))
+                results_for_percentiles = all_results[:sample_size]
+                
+                for trade_idx in trade_indices:
+                    # Get balances at this trade index from sampled results
+                    balances_at_trade = [result['account_balance'][trade_idx] for result in results_for_percentiles]
                     
                     p5_values.append(np.percentile(balances_at_trade, 5))
                     p25_values.append(np.percentile(balances_at_trade, 25))
@@ -1349,9 +1274,10 @@ class ChartGenerator:
                 ))
             
             # Update layout
+            total_simulations = simulation_data["simulation_summary"]["num_simulations"]
             fig.update_layout(
                 title={
-                    'text': f'Monte Carlo Simulation Paths<br><sub>Showing {len(simulation_results)} of {simulation_data["simulation_summary"]["num_simulations"]:,} simulations</sub>',
+                    'text': f'Monte Carlo Simulation Paths<br><sub>Showing {len(simulation_results)} of {total_simulations:,} simulations (sampled for performance)</sub>',
                     'x': 0.5,
                     'xanchor': 'center'
                 },

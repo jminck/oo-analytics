@@ -85,8 +85,16 @@ class DatabaseManager:
         conn.execute('CREATE INDEX IF NOT EXISTS idx_trades_strategy ON trades(strategy)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_trades_date ON trades(date_opened)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_trades_pnl ON trades(pnl)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_trades_date_closed ON trades(date_closed)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_trades_strategy_date ON trades(strategy, date_opened)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_blackout_user ON custom_blackout_lists(user_id)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_blackout_name ON custom_blackout_lists(user_id, list_name)')
+        
+        # Optimize database settings
+        conn.execute('PRAGMA journal_mode=WAL')  # Write-Ahead Logging for better concurrency
+        conn.execute('PRAGMA synchronous=NORMAL')  # Balance between safety and speed
+        conn.execute('PRAGMA cache_size=10000')  # Increase cache size
+        conn.execute('PRAGMA temp_store=MEMORY')  # Store temp tables in memory
         
         
         conn.close()
@@ -147,12 +155,12 @@ class Trade:
         return self.total_commissions / self.contracts if self.contracts > 0 else 0
     
     def is_meic_trade(self, filename: str = None) -> bool:
-        """Check if this trade is part of a MEIC (Multiple Entry Iron Condor) strategy."""
-        # Check strategy name
+        """Check if this trade is part of a MEIC (Multiple Entry Iron Condor) strategy (optimized)."""
+        # Check strategy name first (most common case)
         if self.strategy and 'meic' in self.strategy.lower():
             return True
         
-        # Check filename if provided
+        # Check filename if provided (less common case)
         if filename and 'meic' in filename.lower():
             return True
             
@@ -188,10 +196,13 @@ class Strategy:
         self.name = name
         self.strategy_type = strategy_type  # BULLISH, BEARISH, NEUTRAL
         self.trades: List[Trade] = []
+        self._cached_stats = None  # Cache for expensive calculations
+        self._stats_dirty = True  # Flag to track if stats need recalculation
     
     def add_trade(self, trade: Trade):
         """Add a trade to this strategy."""
         self.trades.append(trade)
+        self._stats_dirty = True  # Mark stats as needing recalculation
     
     @property
     def total_pnl(self) -> float:
@@ -343,7 +354,11 @@ class Strategy:
         return max_streak
     
     def get_summary_stats(self) -> Dict:
-        """Get comprehensive strategy statistics."""
+        """Get comprehensive strategy statistics (with caching)."""
+        # Return cached stats if available and not dirty
+        if not self._stats_dirty and self._cached_stats is not None:
+            return self._cached_stats
+        
         # Single pass through trades for better performance
         if not self.trades:
             return {
@@ -491,6 +506,10 @@ class Strategy:
             'efficiency': round(efficiency, 4)
         }
         
+        # Cache the result and mark as clean
+        self._cached_stats = result
+        self._stats_dirty = False
+        
         
         return result
 
@@ -597,6 +616,18 @@ class Portfolio:
         """Load trades from CSV file and organize by strategy."""
         print(f"Loading trades from {csv_file_path}...")
         
+        # Check file size to determine processing method
+        file_size = os.path.getsize(csv_file_path)
+        large_file_threshold = 10 * 1024 * 1024  # 10MB
+        
+        if file_size > large_file_threshold:
+            print(f"Large file detected ({file_size / 1024 / 1024:.1f}MB), using chunked processing...")
+            return self.load_from_csv_chunked(csv_file_path)
+        else:
+            return self.load_from_csv_standard(csv_file_path)
+    
+    def load_from_csv_standard(self, csv_file_path: str):
+        """Standard CSV loading for smaller files."""
         # Extract base filename for use as fallback strategy name
         fallback_strategy = self._extract_base_filename(csv_file_path)
         fallback_strategy_used = False
@@ -733,6 +764,205 @@ class Portfolio:
                     continue
         
         print(f"Loaded {self.total_trades} trades across {len(self.strategies)} strategies")
+    
+    def load_from_csv_chunked(self, csv_file_path: str, chunk_size: int = 1000):
+        """Load trades from CSV file using chunked processing for large files."""
+        print(f"Loading trades from {csv_file_path} using chunked processing...")
+        
+        # Extract base filename for use as fallback strategy name
+        fallback_strategy = self._extract_base_filename(csv_file_path)
+        fallback_strategy_used = False
+        
+        total_trades_processed = 0
+        chunk_count = 0
+        
+        try:
+            # Use pandas chunking for large files
+            for chunk in pd.read_csv(csv_file_path, chunksize=chunk_size):
+                chunk_count += 1
+                print(f"Processing chunk {chunk_count} ({len(chunk)} rows)...")
+                
+                # Process chunk
+                chunk_trades = self._process_chunk(chunk, fallback_strategy, fallback_strategy_used)
+                total_trades_processed += chunk_trades
+                
+                # Update fallback strategy flag
+                if chunk_trades > 0:
+                    fallback_strategy_used = True
+                
+                # Memory cleanup
+                del chunk
+                
+                # Force garbage collection every 10 chunks for large files
+                if chunk_count % 10 == 0:
+                    import gc
+                    gc.collect()
+        
+        except Exception as e:
+            print(f"Error during chunked processing: {e}")
+            raise
+        
+        print(f"Loaded {total_trades_processed} trades across {len(self.strategies)} strategies in {chunk_count} chunks")
+        
+        # Force garbage collection to free memory
+        import gc
+        gc.collect()
+    
+    def _process_chunk(self, chunk_df: pd.DataFrame, fallback_strategy: str, fallback_strategy_used: bool) -> int:
+        """Process a chunk of CSV data (optimized)."""
+        trades_processed = 0
+        
+        # Pre-validate and clean the chunk data
+        chunk_df = self._preprocess_chunk_data(chunk_df)
+        
+        for row_num, row in chunk_df.iterrows():
+            try:
+                # Convert row to dict for compatibility with existing code
+                row_dict = row.to_dict()
+                
+                # Parse dates - handle quoted values
+                date_opened_str = str(row_dict['Date Opened']).strip('"') if pd.notna(row_dict['Date Opened']) else None
+                if not date_opened_str or date_opened_str == 'nan':
+                    continue
+                
+                date_closed_str = str(row_dict['Date Closed']).strip('"') if pd.notna(row_dict['Date Closed']) else None
+                
+                try:
+                    date_opened = pd.to_datetime(date_opened_str).date()
+                except Exception as date_e:
+                    continue
+                
+                date_closed = None
+                if date_closed_str and date_closed_str != 'nan':
+                    try:
+                        date_closed = pd.to_datetime(date_closed_str).date()
+                    except Exception as date_e:
+                        continue
+                
+                # Parse P&L and portfolio value
+                try:
+                    pnl = float(row_dict['P/L'])
+                except Exception as pnl_e:
+                    continue
+                
+                try:
+                    funds_at_close = float(row_dict['Funds at Close'])
+                except Exception as funds_e:
+                    continue
+                
+                # Extract and classify strategy
+                strategy_raw = ""
+                if 'Strategy' in row_dict and pd.notna(row_dict['Strategy']):
+                    strategy_raw = str(row_dict['Strategy']).strip('"')
+                
+                if not strategy_raw or strategy_raw == 'nan':
+                    strategy_raw = fallback_strategy
+                
+                strategy_name = self._extract_strategy_name(strategy_raw)
+                
+                # Parse opening and closing prices for classification
+                try:
+                    opening_price = float(row_dict['Opening Price']) if pd.notna(row_dict['Opening Price']) else None
+                    closing_price = float(row_dict['Closing Price']) if pd.notna(row_dict['Closing Price']) else None
+                except Exception:
+                    opening_price = None
+                    closing_price = None
+                
+                strategy_type = self._classify_strategy_type(strategy_raw, opening_price, closing_price, pnl)
+                
+                # Create or get strategy
+                if strategy_name not in self.strategies:
+                    self.strategies[strategy_name] = Strategy(strategy_name, strategy_type)
+                
+                # Parse contracts and commissions
+                try:
+                    contracts = int(float(row_dict['No. of Contracts'])) if pd.notna(row_dict['No. of Contracts']) else 1
+                except Exception:
+                    contracts = 1
+                
+                try:
+                    opening_commissions = float(row_dict['Opening Commissions + Fees']) if pd.notna(row_dict['Opening Commissions + Fees']) else 0
+                except Exception:
+                    opening_commissions = 0
+                
+                try:
+                    closing_commissions = float(row_dict['Closing Commissions + Fees']) if pd.notna(row_dict['Closing Commissions + Fees']) else 0
+                except Exception:
+                    closing_commissions = 0
+                
+                # Parse margin requirement
+                try:
+                    margin_req = float(row_dict['Margin Req.']) if pd.notna(row_dict['Margin Req.']) else 0
+                except Exception:
+                    margin_req = 0
+                
+                # Parse time opened/closed if present
+                time_opened = str(row_dict.get('Time Opened', '')).strip() if 'Time Opened' in row_dict and pd.notna(row_dict['Time Opened']) else None
+                if time_opened == '' or time_opened == 'nan':
+                    time_opened = None
+                time_closed = str(row_dict.get('Time Closed', '')).strip() if 'Time Closed' in row_dict and pd.notna(row_dict['Time Closed']) else None
+                if time_closed == '' or time_closed == 'nan':
+                    time_closed = None
+                
+                # Get legs data if present
+                legs = str(row_dict.get('Legs', '')).strip() if 'Legs' in row_dict and pd.notna(row_dict['Legs']) else ''
+                
+                # Get reason for close if present
+                reason_for_close = str(row_dict.get('Reason For Close', '')).strip() if 'Reason For Close' in row_dict and pd.notna(row_dict['Reason For Close']) else ''
+                
+                # Create trade
+                trade = Trade(
+                    date_opened=date_opened,
+                    time_opened=time_opened,
+                    date_closed=date_closed,
+                    time_closed=time_closed,
+                    strategy=strategy_name,
+                    pnl=pnl,
+                    funds_at_close=funds_at_close,
+                    trade_type=strategy_type,
+                    contracts=contracts,
+                    opening_commissions=opening_commissions,
+                    closing_commissions=closing_commissions,
+                    legs=legs,
+                    margin_req=margin_req,
+                    reason_for_close=reason_for_close,
+                    opening_price=opening_price,
+                    closing_price=closing_price
+                )
+                
+                self.strategies[strategy_name].add_trade(trade)
+                trades_processed += 1
+                
+            except Exception as e:
+                print(f"Warning: Unexpected error processing row {row_num}: {e}")
+                continue
+        
+        return trades_processed
+    
+    def _preprocess_chunk_data(self, chunk_df: pd.DataFrame) -> pd.DataFrame:
+        """Preprocess and validate chunk data for better performance."""
+        # Remove rows with missing critical data early
+        required_columns = ['Date Opened', 'P/L', 'Funds at Close']
+        chunk_df = chunk_df.dropna(subset=required_columns)
+        
+        # Convert numeric columns in bulk
+        numeric_columns = ['P/L', 'Funds at Close', 'No. of Contracts', 
+                          'Opening Commissions + Fees', 'Closing Commissions + Fees', 'Margin Req.']
+        
+        for col in numeric_columns:
+            if col in chunk_df.columns:
+                chunk_df[col] = pd.to_numeric(chunk_df[col], errors='coerce')
+        
+        # Convert date columns in bulk
+        date_columns = ['Date Opened', 'Date Closed']
+        for col in date_columns:
+            if col in chunk_df.columns:
+                chunk_df[col] = pd.to_datetime(chunk_df[col], errors='coerce')
+        
+        # Remove rows with invalid dates or P&L
+        chunk_df = chunk_df.dropna(subset=['Date Opened', 'P/L', 'Funds at Close'])
+        
+        return chunk_df
     
     def _extract_strategy_name(self, strategy_raw: str) -> str:
         """Extract clean strategy name from raw strategy string."""

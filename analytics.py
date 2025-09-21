@@ -66,7 +66,7 @@ class StrategyAnalyzer:
             columns=strategy_names
         )
         
-        print(f"DEBUG: Created fallback correlation matrix for {n_strategies} strategies")
+        # Debug: Created fallback correlation matrix for {n_strategies} strategies
         return correlation_matrix
     
     def _add_missing_strategies_to_correlation(self, correlation_matrix: pd.DataFrame) -> pd.DataFrame:
@@ -87,7 +87,7 @@ class StrategyAnalyzer:
         for strategy in missing_strategies:
             correlation_matrix.loc[strategy, strategy] = 1.0
         
-        print(f"DEBUG: Added {len(missing_strategies)} missing strategies to correlation matrix")
+        # Debug: Added {len(missing_strategies)} missing strategies to correlation matrix
         return correlation_matrix
     
     def get_diversification_score(self) -> Dict:
@@ -238,34 +238,43 @@ class StrategyAnalyzer:
         return suggestions
     
     def _get_daily_returns_by_strategy(self) -> pd.DataFrame:
-        """Get daily returns for each strategy."""
-        daily_data = []
+        """Get daily returns for each strategy (optimized)."""
+        # Pre-allocate data structures for better performance
+        all_dates = []
+        all_strategies = []
+        all_pnls = []
         
+        # Collect all trade data in one pass
         for strategy_name, strategy in self.portfolio.strategies.items():
             for trade in strategy.trades:
-                # Only include trades with valid close dates
                 if trade.date_closed:
                     try:
+                        # Use vectorized date parsing
                         date = pd.to_datetime(trade.date_closed)
-                        daily_data.append({
-                            'date': date,
-                            'strategy': strategy_name,
-                            'pnl': trade.pnl_per_lot
-                        })
+                        all_dates.append(date)
+                        all_strategies.append(strategy_name)
+                        all_pnls.append(trade.pnl_per_lot)
                     except (ValueError, TypeError):
-                        # Skip trades with invalid dates
                         continue
         
-        if not daily_data:
+        if not all_dates:
             return pd.DataFrame()
         
-        df = pd.DataFrame(daily_data)
+        # Create DataFrame from pre-allocated lists (faster than append)
+        df = pd.DataFrame({
+            'date': all_dates,
+            'strategy': all_strategies,
+            'pnl': all_pnls
+        })
+        
+        # Use more efficient grouping with categorical data
+        df['strategy'] = df['strategy'].astype('category')
         
         # Group by date and strategy, sum P&L for each day
         daily_returns = df.groupby(['date', 'strategy'])['pnl'].sum().unstack(fill_value=0)
         
         # Debug: Print strategy count
-        print(f"DEBUG: Correlation calculation found {len(daily_returns.columns)} strategies: {list(daily_returns.columns)}")
+        # Debug: Correlation calculation found {len(daily_returns.columns)} strategies: {list(daily_returns.columns)}
         
         return daily_returns
     
@@ -345,7 +354,7 @@ class PortfolioMetrics:
         if not self.portfolio.strategies:
             return self._empty_metrics()
         
-        # Calculate cumulative P&L over time
+        # Calculate cumulative P&L over time (optimized)
         all_trades = self._get_all_trades_chronologically()
         
         if not all_trades:
@@ -355,7 +364,9 @@ class PortfolioMetrics:
         first_trade = all_trades[0]
         initial_balance = first_trade.funds_at_close - first_trade.pnl
         
-        cumulative_pnl = np.cumsum([trade.pnl for trade in all_trades])
+        # Use numpy for vectorized operations
+        pnl_values = np.array([trade.pnl for trade in all_trades])
+        cumulative_pnl = np.cumsum(pnl_values)
         account_values = initial_balance + cumulative_pnl
         
         # Calculate key metrics
@@ -377,8 +388,8 @@ class PortfolioMetrics:
         # Calculate proper Sharpe ratio using time normalization
         sharpe_ratio = self._calculate_portfolio_sharpe_ratio(all_trades)
         
-        # Calculate average trade P&L (for portfolio metrics)
-        returns = [trade.pnl for trade in all_trades]
+        # Use numpy array for returns (already calculated)
+        returns = pnl_values
         
         # Calculate average and longest days to new P&L high
         # Create a daily account value series to properly calculate calendar days
@@ -2118,34 +2129,53 @@ class MEICAnalyzer:
     def __init__(self, portfolio: Portfolio, filename: str = None):
         self.portfolio = portfolio
         self.filename = filename
+        self._meic_trades_cache = None
+        self._leg_groups_cache = None
         self.meic_trades = self._get_meic_trades()
         self.leg_groups = self._group_trades_by_entry_time()
     
     def _get_meic_trades(self) -> List[Trade]:
-        """Get all MEIC trades from the portfolio."""
+        """Get all MEIC trades from the portfolio (optimized with caching)."""
+        # Return cached result if available
+        if self._meic_trades_cache is not None:
+            return self._meic_trades_cache
+        
         meic_trades = []
-        print(f"MEIC Analyzer: Checking {len(self.portfolio.strategies)} strategies")
-        print(f"MEIC Analyzer: Filename = {self.filename}")
+        
+        # Pre-check filename to avoid repeated string operations
+        filename_has_meic = self.filename and 'meic' in self.filename.lower()
         
         for strategy_name, strategy in self.portfolio.strategies.items():
-            print(f"MEIC Analyzer: Checking strategy '{strategy_name}' with {len(strategy.trades)} trades")
-            for trade in strategy.trades:
-                is_meic = trade.is_meic_trade(self.filename)
-                print(f"MEIC Analyzer: Trade {trade.date_opened} {trade.time_opened} - MEIC: {is_meic}")
-                if is_meic:
-                    meic_trades.append(trade)
+            # Check strategy name once per strategy
+            strategy_has_meic = 'meic' in strategy_name.lower()
+            
+            # If strategy name contains 'meic', add all trades
+            if strategy_has_meic:
+                meic_trades.extend(strategy.trades)
+            elif filename_has_meic:
+                # Only check individual trades if filename has 'meic' but strategy doesn't
+                for trade in strategy.trades:
+                    if trade.is_meic_trade(self.filename):
+                        meic_trades.append(trade)
         
-        print(f"MEIC Analyzer: Found {len(meic_trades)} MEIC trades")
+        # Cache the result
+        self._meic_trades_cache = meic_trades
         return meic_trades
     
     def _group_trades_by_entry_time(self) -> Dict[str, Dict]:
-        """Group MEIC trades by entry time to identify put/call spread pairs."""
+        """Group MEIC trades by entry time to identify put/call spread pairs (optimized with caching)."""
+        # Return cached result if available
+        if self._leg_groups_cache is not None:
+            return self._leg_groups_cache
+        
         leg_groups = {}
         
+        # Pre-allocate the groups structure for better performance
         for trade in self.meic_trades:
-            # Create a key based on entry date and time
+            # Create a key based on entry date and time (optimized string formatting)
             entry_key = f"{trade.date_opened}_{trade.time_opened}"
             
+            # Use setdefault for cleaner code and better performance
             if entry_key not in leg_groups:
                 leg_groups[entry_key] = {
                     'put_spread': None,
@@ -2154,12 +2184,14 @@ class MEICAnalyzer:
                     'entry_time': trade.time_opened
                 }
             
-            # Classify the trade as put or call spread
+            # Classify the trade as put or call spread (optimized)
             if trade.is_put_spread():
                 leg_groups[entry_key]['put_spread'] = trade
             elif trade.is_call_spread():
                 leg_groups[entry_key]['call_spread'] = trade
         
+        # Cache the result
+        self._leg_groups_cache = leg_groups
         return leg_groups
     
     def get_stopout_statistics(self) -> Dict:

@@ -27,6 +27,7 @@ from auth import init_auth, auth_bp, guest_mode_required, get_current_data_folde
 from admin import admin_bp
 from config import Config
 from app_insights import app_insights
+from version import get_version_string, get_version_info, get_build_badge
 
 # Configure paths for Azure App Service
 if os.environ.get('WEBSITES_PORT'):
@@ -1202,7 +1203,32 @@ def dashboard():
     """Main dashboard with strategy analytics."""
     # Get Application Insights key for frontend tracking
     app_insights_key = os.getenv('APPINSIGHTS_INSTRUMENTATIONKEY', '')
-    return render_template('dashboard.html', app_insights_key=app_insights_key)
+    
+    # Get version information
+    version_string = get_version_string()
+    version_info = get_version_info()
+    build_badge = get_build_badge()
+    
+    return render_template('dashboard.html', 
+                         app_insights_key=app_insights_key,
+                         version_string=version_string,
+                         version_info=version_info,
+                         build_badge=build_badge)
+
+@app.route('/api/version')
+def api_version():
+    """API endpoint to get version information."""
+    try:
+        version_info = get_version_info()
+        return jsonify({
+            'success': True,
+            'version': version_info
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/debug_charts.html')
 def debug_charts():
@@ -1932,11 +1958,67 @@ def upload_csv():
                 saved_path = new_path
                 set_last_initial_capital(initial_capital)
                 # print(f"Transformed real trade log to backtest schema. Columns now: {list(df.columns)}")
+            
             # Clear existing data and load new data
             portfolio.strategies.clear()
-            portfolio.load_from_csv(saved_path)
-            # Set current filename
+            portfolio.current_filename = None
+            
+            # Load new data with error handling and timeout protection
+            try:
+                import threading
+                import time
+                
+                # Use timeout protection for large file loading
+                load_result = {'success': False, 'error': None}
+                
+                def load_with_timeout():
+                    try:
+                        portfolio.load_from_csv(saved_path)
+                        load_result['success'] = True
+                    except Exception as e:
+                        load_result['error'] = str(e)
+                
+                # Start loading in a separate thread
+                load_thread = threading.Thread(target=load_with_timeout)
+                load_thread.daemon = True
+                load_thread.start()
+                
+                # Wait for up to 60 seconds for large files
+                load_thread.join(timeout=60)
+                
+                if load_thread.is_alive():
+                    # Timeout occurred
+                    portfolio.strategies.clear()
+                    portfolio.current_filename = None
+                    return jsonify({
+                        'success': False,
+                        'error': 'File processing timed out. The file may be too large. Please try with a smaller file or contact support.'
+                    }), 408
+                
+                if not load_result['success']:
+                    raise Exception(load_result['error'])
+                    
+            except Exception as load_error:
+                # If loading fails, ensure portfolio is in clean state
+                portfolio.strategies.clear()
+                portfolio.current_filename = None
+                os.remove(saved_path)  # Clean up the uploaded file
+                return jsonify({
+                    'success': False,
+                    'error': f'Failed to load portfolio data: {str(load_error)}'
+                }), 500
+            
+            # Set current filename and session
             portfolio.current_filename = saved_filename
+            session['current_filename'] = saved_filename
+            
+            # Clear any cached chart data for the new portfolio
+            try:
+                from charts import ChartGenerator
+                chart_generator = ChartGenerator(portfolio)
+                chart_generator.clear_cache()
+            except Exception as cache_error:
+                print(f"Warning: Could not clear cache: {cache_error}")
             # Track current data type and initial capital
             global current_data_type, current_initial_capital
             current_data_type = data_type
@@ -2174,34 +2256,116 @@ def list_saved_files():
 def load_saved_file(filename):
     """Load a previously saved CSV file and reload portfolio."""
     try:
+        # Clear session data to prevent artifacts
+        session.pop('current_filename', None)
+        
         file_path = file_manager.get_file_path(filename)
         if not os.path.exists(file_path):
             return jsonify({
                 'success': False,
                 'error': 'File not found'
             }), 404
+        
+        # Check file size for large dataset warning
+        file_size = os.path.getsize(file_path)
+        if file_size > 50 * 1024 * 1024:  # 50MB
+            print(f"Warning: Loading large file {filename} ({file_size / 1024 / 1024:.1f}MB)")
+        
         # Extract initial capital from filename if present
         initial_capital = extract_initial_capital_from_filename(filename, default=get_last_initial_capital())
         set_last_initial_capital(initial_capital)
-        df = pd.read_csv(file_path)
+        
+        # Read CSV with error handling
+        try:
+            df = pd.read_csv(file_path)
+        except Exception as csv_error:
+            return jsonify({
+                'success': False,
+                'error': f'Failed to read CSV file: {str(csv_error)}'
+            }), 400
+        
         # Detect data type
         if 'Initial Premium' in df.columns:
             data_type = 'real_trade'
         else:
             data_type = 'backtest'
+        
         # Transform if real trade
         if data_type == 'real_trade':
-            df = transform_real_trade_to_backtest(df, initial_capital=initial_capital)
-            # Overwrite file with transformed data
-            df.to_csv(file_path, index=False)
+            try:
+                df = transform_real_trade_to_backtest(df, initial_capital=initial_capital)
+                # Overwrite file with transformed data
+                df.to_csv(file_path, index=False)
+            except Exception as transform_error:
+                return jsonify({
+                    'success': False,
+                    'error': f'Failed to transform real trade data: {str(transform_error)}'
+                }), 400
+        
+        # Clear portfolio completely before loading new data
         portfolio.strategies.clear()
-        portfolio.load_from_csv(file_path)
-        # Set current filename
+        portfolio.current_filename = None
+        
+        # Load new data with timeout protection
+        try:
+            import threading
+            
+            # Use timeout protection for large file loading
+            load_result = {'success': False, 'error': None}
+            
+            def load_with_timeout():
+                try:
+                    portfolio.load_from_csv(file_path)
+                    load_result['success'] = True
+                except Exception as e:
+                    load_result['error'] = str(e)
+            
+            # Start loading in a separate thread
+            load_thread = threading.Thread(target=load_with_timeout)
+            load_thread.daemon = True
+            load_thread.start()
+            
+            # Wait for up to 60 seconds for large files
+            load_thread.join(timeout=60)
+            
+            if load_thread.is_alive():
+                # Timeout occurred
+                portfolio.strategies.clear()
+                portfolio.current_filename = None
+                return jsonify({
+                    'success': False,
+                    'error': 'File loading timed out. The file may be too large. Please try with a smaller file or contact support.'
+                }), 408
+            
+            if not load_result['success']:
+                raise Exception(load_result['error'])
+                
+        except Exception as load_error:
+            # If loading fails, ensure portfolio is in clean state
+            portfolio.strategies.clear()
+            portfolio.current_filename = None
+            return jsonify({
+                'success': False,
+                'error': f'Failed to load portfolio data: {str(load_error)}'
+            }), 500
+        
+        # Set current filename and session
         portfolio.current_filename = filename
+        session['current_filename'] = filename
+        
+        # Clear any cached chart data for the new portfolio
+        try:
+            from charts import ChartGenerator
+            chart_generator = ChartGenerator(portfolio)
+            chart_generator.clear_cache()
+        except Exception as cache_error:
+            print(f"Warning: Could not clear cache: {cache_error}")
+        
         # Track current data type and initial capital
         global current_data_type, current_initial_capital
         current_data_type = data_type
         current_initial_capital = initial_capital if data_type == 'real_trade' else None
+        
         return jsonify({
             'success': True,
             'message': f'Loaded {portfolio.total_trades} trades',
@@ -2210,10 +2374,15 @@ def load_saved_file(filename):
                 'strategies_count': len(portfolio.strategies),
                 'strategies': list(portfolio.strategies.keys()),
                 'filename': filename,
-                'initial_capital': initial_capital if data_type == 'real_trade' else None
+                'initial_capital': initial_capital if data_type == 'real_trade' else None,
+                'file_size_mb': round(file_size / 1024 / 1024, 2)
             }
         })
     except Exception as e:
+        # Ensure portfolio is in clean state on any error
+        portfolio.strategies.clear()
+        portfolio.current_filename = None
+        session.pop('current_filename', None)
         return jsonify({
             'success': False,
             'error': f'Failed to load file: {str(e)}'

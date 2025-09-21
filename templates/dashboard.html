@@ -206,6 +206,80 @@
             font-size: 1.5rem;
         }
 
+        .version-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: 1rem;
+            font-size: 0.75rem;
+            font-weight: 400;
+        }
+
+        .version-text {
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-tertiary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .badge-warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .badge-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .badge-info {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .badge-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        /* Responsive version display */
+        @media (max-width: 768px) {
+            .version-info {
+                margin-left: 0.5rem;
+                font-size: 0.7rem;
+            }
+            
+            .version-text {
+                padding: 0.2rem 0.4rem;
+            }
+            
+            .badge {
+                padding: 0.2rem 0.4rem;
+                font-size: 0.6rem;
+            }
+        }
+
         .nav-stats {
             color: var(--text-secondary);
             font-family: 'JetBrains Mono', monospace;
@@ -1926,6 +2000,10 @@
             <a class="navbar-brand" href="/">
                 <i class="fas fa-chart-line"></i>
                 Portfolio Strategy Analytics
+                <span class="version-info" onclick="showVersionModal()" style="cursor: pointer;" title="Click for build details">
+                    <span class="version-text">{{ version_string }}</span>
+                    {{ build_badge|safe }}
+                </span>
             </a>
             <div class="navbar-nav">
                 <span class="nav-stats" id="dataStats">Loading...</span>
@@ -2724,6 +2802,9 @@
                     document.getElementById('uploadContent').style.display = '';
                     document.getElementById('uploadFileBtn').style.display = 'none';
                     document.getElementById('initialCapitalGroup').style.display = 'none';
+                    // Clear all application state before loading new data
+                    clearAllAppState();
+                    
                     loadPortfolioData();
                     loadDataStats();
                     loadSavedFilesList();
@@ -2786,6 +2867,9 @@
                     
                     // Update filename display
                     updateFilenameDisplay(data.data.filename || 'Example-Portfolio.csv');
+                    
+                    // Clear all application state before loading new data
+                    clearAllAppState();
                     
                     // Reload portfolio data and charts
                     loadPortfolioData();
@@ -2932,6 +3016,9 @@
                     
                     // Set flag to prevent auto-loading cumulative P&L
                     window.skipAutoLoadCumulativePnl = true;
+                    
+                    // Clear all application state before loading new data
+                    clearAllAppState();
                     
                     // Refresh all data displays
                     loadDataStats();
@@ -3505,6 +3592,9 @@
         function loadFileFromTable(filename) {
             const statusDiv = document.getElementById('savedFileStatus');
             statusDiv.innerHTML = '<small class="text-info">Loading file...</small>';
+            
+            // Clear all application state before loading new data
+            clearAllAppState();
             
             fetch(`/api/load-file/${encodeURIComponent(filename)}`)
             .then(response => response.json())
@@ -10548,8 +10638,22 @@
         }
         
         function loadMEICOverview() {
+            // Don't load if already loading or if no data
+            if (isLoadingData) {
+                console.log('⏳ MEIC overview loading already in progress, skipping...');
+                return;
+            }
+            
             const overviewContainer = document.getElementById('meicOverviewStats');
-            overviewContainer.innerHTML = '<p class="text-muted">Loading MEIC overview statistics...</p>';
+            overviewContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading MEIC overview statistics...</p></div>';
+            
+            // Set loading timeout for large datasets
+            loadingTimeout = setTimeout(() => {
+                if (isLoadingData) {
+                    console.warn('⏰ MEIC overview loading timeout - dataset may be very large');
+                    overviewContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-clock"></i> Loading is taking longer than expected. Large datasets may require more time.</div>';
+                }
+            }, 30000); // 30 second timeout
             
             // Load both stopout statistics and summary statistics
             Promise.all([
@@ -10557,6 +10661,12 @@
                 fetch('/api/meic/time-heatmap').then(response => response.json())
             ])
             .then(([stopoutData, heatmapData]) => {
+                // Clear loading timeout
+                if (loadingTimeout) {
+                    clearTimeout(loadingTimeout);
+                    loadingTimeout = null;
+                }
+                
                 if (stopoutData.success && heatmapData.success) {
                     const stopoutStats = stopoutData.data;
                     const summaryStats = heatmapData.data.summary_stats;
@@ -10671,20 +10781,33 @@
                             </div>
                         </div>
                     `;
+                    
+                    // Mark loading as complete
+                    onDataLoadComplete();
                 } else {
                     overviewContainer.innerHTML = `<div class="alert alert-warning">Error loading MEIC overview data</div>`;
+                    onDataLoadError('Failed to load MEIC overview data');
                 }
             })
             .catch(error => {
                 console.error('Error loading MEIC overview:', error);
                 overviewContainer.innerHTML = `<div class="alert alert-danger">Error loading MEIC overview: ${error.message}</div>`;
+                onDataLoadError(error);
             });
         }
         
         function loadMEICHeatmap(startDate = null, endDate = null) {
             console.log('🔧 loadMEICHeatmap() called with dates:', startDate, endDate);
             const heatmapContainer = document.getElementById('meicHeatmapChart');
-            heatmapContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading MEIC heatmap...</p></div>';
+            heatmapContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading MEIC heatmap...</p><small class="text-muted">Large datasets may take longer to process</small></div>';
+            
+            // Set loading timeout for large datasets
+            const heatmapTimeout = setTimeout(() => {
+                if (isLoadingData) {
+                    console.warn('⏰ MEIC heatmap loading timeout - dataset may be very large');
+                    heatmapContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-clock"></i> Heatmap loading is taking longer than expected. Large datasets may require more time.</div>';
+                }
+            }, 45000); // 45 second timeout for heatmap
             
             // Build URL with date parameters
             let url = '/api/meic/time-heatmap';
@@ -10696,6 +10819,9 @@
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
+                    // Clear timeout
+                    clearTimeout(heatmapTimeout);
+                    
                     console.log('🔧 MEIC heatmap API response:', data);
                     if (data.success) {
                         const heatmapData = data.data;
@@ -10836,8 +10962,12 @@
                     }
                 })
                 .catch(error => {
+                    // Clear timeout
+                    clearTimeout(heatmapTimeout);
+                    
                     console.error('Error loading MEIC heatmap:', error);
                     heatmapContainer.innerHTML = `<div class="alert alert-danger">Error loading MEIC heatmap: ${error.message}</div>`;
+                    onDataLoadError(error);
                 });
         }
 
@@ -10846,6 +10976,106 @@
         let meicDateList = [];
         let meicCurrentStartDate = null;
         let meicCurrentEndDate = null;
+
+        // Global loading state management
+        let isLoadingData = false;
+        let loadingTimeout = null;
+
+        // Global state cleanup function
+        function clearAllAppState() {
+            console.log('🧹 Clearing all application state...');
+            
+            // Set loading state
+            isLoadingData = true;
+            
+            // Clear any existing timeout
+            if (loadingTimeout) {
+                clearTimeout(loadingTimeout);
+                loadingTimeout = null;
+            }
+            
+            // Clear MEIC state
+            meicDateRange = null;
+            meicDateList = [];
+            meicCurrentStartDate = null;
+            meicCurrentEndDate = null;
+            
+            // Clear MEIC UI elements
+            const meicOverviewContainer = document.getElementById('meicOverviewStats');
+            const meicHeatmapContainer = document.getElementById('meicHeatmapChart');
+            const meicNoTradesMessage = document.getElementById('meicNoTradesMessage');
+            
+            if (meicOverviewContainer) {
+                meicOverviewContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading MEIC overview statistics...</p></div>';
+            }
+            
+            if (meicHeatmapContainer) {
+                meicHeatmapContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading MEIC heatmap...</p></div>';
+            }
+            
+            if (meicNoTradesMessage) {
+                meicNoTradesMessage.style.display = 'none';
+            }
+            
+            // Clear any existing daily totals
+            const existingTotals = document.getElementById('meicDailyTotals');
+            if (existingTotals) {
+                existingTotals.remove();
+            }
+            
+            // Reset date sliders
+            const startSlider = document.getElementById('meicStartDateSlider');
+            const endSlider = document.getElementById('meicEndDateSlider');
+            if (startSlider) startSlider.value = 0;
+            if (endSlider) endSlider.value = 100;
+            
+            // Clear date displays
+            const startDisplay = document.getElementById('meicStartDateDisplay');
+            const endDisplay = document.getElementById('meicEndDateDisplay');
+            if (startDisplay) startDisplay.textContent = 'All Dates';
+            if (endDisplay) endDisplay.textContent = 'All Dates';
+            
+            // Hide recalculation notice
+            hideRecalculationNotice();
+            
+            // Clear trade count
+            const tradeCount = document.getElementById('meicTradeCount');
+            if (tradeCount) tradeCount.textContent = 'Loading...';
+            
+            console.log('🧹 Application state cleared');
+        }
+
+        // Function to handle loading completion
+        function onDataLoadComplete() {
+            isLoadingData = false;
+            if (loadingTimeout) {
+                clearTimeout(loadingTimeout);
+                loadingTimeout = null;
+            }
+            console.log('✅ Data loading completed');
+            
+            // Hide any global loading indicators
+            const globalLoader = document.getElementById('globalLoadingIndicator');
+            if (globalLoader) {
+                globalLoader.style.display = 'none';
+            }
+        }
+
+        // Function to handle loading errors
+        function onDataLoadError(error) {
+            isLoadingData = false;
+            if (loadingTimeout) {
+                clearTimeout(loadingTimeout);
+                loadingTimeout = null;
+            }
+            console.error('❌ Data loading error:', error);
+            
+            // Hide any global loading indicators
+            const globalLoader = document.getElementById('globalLoadingIndicator');
+            if (globalLoader) {
+                globalLoader.style.display = 'none';
+            }
+        }
 
         function updateMEICDateLabels() {
             if (!meicDateRange || meicDateList.length === 0) return;
@@ -11879,6 +12109,150 @@
             console.log('🔧 Initialized', tooltipList.length, 'Bootstrap tooltips on page load');
         });
 
+    </script>
+
+    <!-- Version Info Modal -->
+    <div class="modal fade" id="versionModal" tabindex="-1" aria-labelledby="versionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="versionModalLabel">
+                        <i class="fas fa-info-circle"></i>
+                        Build Information
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-tag"></i> Version Information</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Version:</strong></td>
+                                    <td><code>{{ version_info.version }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Build Date:</strong></td>
+                                    <td>{{ version_info.build_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Build Time:</strong></td>
+                                    <td>{{ version_info.build_time_short }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Environment:</strong></td>
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if version_info.environment == 'production' else 'info' if version_info.environment == 'staging' else 'secondary' }}">
+                                            {{ version_info.environment.upper() }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fab fa-git-alt"></i> Git Information</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Branch:</strong></td>
+                                    <td><code>{{ version_info.git.branch }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Commit:</strong></td>
+                                    <td><code>{{ version_info.git.commit_short }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <span class="badge badge-{{ 'warning' if version_info.git.is_dirty else 'success' }}">
+                                            {{ 'Dirty' if version_info.git.is_dirty else 'Clean' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Python:</strong></td>
+                                    <td><code>{{ version_info.python_version }}</code></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6><i class="fas fa-server"></i> Build Details</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Build Host:</strong></td>
+                                <td><code>{{ version_info.build_host }}</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Build User:</strong></td>
+                                <td><code>{{ version_info.build_user }}</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Build Timestamp:</strong></td>
+                                <td><code>{{ version_info.build_timestamp }}</code></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="copyVersionInfo()">
+                        <i class="fas fa-copy"></i> Copy Info
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showVersionModal() {
+            const modal = new bootstrap.Modal(document.getElementById('versionModal'));
+            modal.show();
+        }
+
+        function copyVersionInfo() {
+            const versionInfo = {
+                version: '{{ version_info.version }}',
+                build_date: '{{ version_info.build_date }}',
+                build_time: '{{ version_info.build_time_short }}',
+                environment: '{{ version_info.environment }}',
+                git_branch: '{{ version_info.git.branch }}',
+                git_commit: '{{ version_info.git.commit_short }}',
+                git_status: '{{ "Dirty" if version_info.git.is_dirty else "Clean" }}',
+                python_version: '{{ version_info.python_version }}',
+                build_host: '{{ version_info.build_host }}',
+                build_user: '{{ version_info.build_user }}'
+            };
+
+            const text = `Portfolio Strategy Analytics Build Info:
+Version: ${versionInfo.version}
+Build Date: ${versionInfo.build_date} ${versionInfo.build_time}
+Environment: ${versionInfo.environment}
+Git Branch: ${versionInfo.git_branch}
+Git Commit: ${versionInfo.git_commit}
+Git Status: ${versionInfo.git_status}
+Python Version: ${versionInfo.python_version}
+Build Host: ${versionInfo.build_host}
+Build User: ${versionInfo.build_user}`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                // Show success feedback
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-primary');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy version info:', err);
+                alert('Failed to copy version info to clipboard');
+            });
+        }
     </script>
 </body>
 </html> 
