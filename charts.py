@@ -1167,117 +1167,101 @@ class ChartGenerator:
     
     @cache_chart_result()
     def create_monte_carlo_confidence_intervals_chart(self, simulation_data: Dict) -> Dict:
-        """Create Monte Carlo confidence intervals chart (optimized for data size)."""
+        """Create Monte Carlo confidence intervals chart (extreme optimization for data size)."""
         if not simulation_data or 'simulation_results' not in simulation_data:
             return self._empty_chart("No Monte Carlo simulation data available")
         
         try:
-            # Get simulation results - limit to first 10 for visualization to reduce data size
+            # Get simulation results - use minimal data for extreme optimization
             all_simulation_results = simulation_data.get('simulation_results', [])
-            simulation_results = all_simulation_results[:10]  # Reduced from 20 to 10
             
-            if not simulation_results:
+            if not all_simulation_results:
                 return self._empty_chart("No simulation results available")
             
             # Create figure
             fig = go.Figure()
             
-            # Add individual simulation paths (limited and sampled)
-            for i, result in enumerate(simulation_results):
-                if i < 10:  # Limit to first 10 for clarity and data size
-                    # Sample data points to reduce size (every 5th point for large datasets)
-                    account_balance = result['account_balance']
-                    if len(account_balance) > 100:
-                        # Sample every 5th point for large datasets
-                        x_indices = list(range(0, len(account_balance), 5))
-                        x_values = [i + 1 for i in x_indices]
-                        y_values = [account_balance[i] for i in x_indices]
-                    else:
-                        x_values = list(range(1, len(account_balance) + 1))
-                        y_values = account_balance
-                    
-                    fig.add_trace(go.Scatter(
-                        x=x_values,
-                        y=y_values,
-                        mode='lines',
-                        line=dict(color='lightgray', width=1),
-                        opacity=0.3,
-                        showlegend=False,
-                        hovertemplate='Simulation %{fullData.name}<br>Trade: %{x}<br>Balance: $%{y:,.0f}<extra></extra>',
-                        name=f'Sim {i+1}'
-                    ))
+            # Skip individual simulation paths entirely to save massive data
+            # Only show confidence bands and median line
             
-            # Calculate percentiles for confidence bands (optimized)
-            if len(simulation_results) > 0:
-                # Sample data points for percentile calculation to reduce data size
-                sample_result = simulation_results[0]
-                trade_count = len(sample_result['account_balance'])
+            # Calculate percentiles for confidence bands (extreme optimization)
+            sample_result = all_simulation_results[0]
+            trade_count = len(sample_result['account_balance'])
+            
+            # Extreme sampling for very large datasets
+            if trade_count > 200:
+                # Sample every 50th trade for extremely large datasets
+                trade_indices = list(range(0, trade_count, 50))
+                trades = [i + 1 for i in trade_indices]
+            elif trade_count > 100:
+                # Sample every 25th trade for very large datasets
+                trade_indices = list(range(0, trade_count, 25))
+                trades = [i + 1 for i in trade_indices]
+            elif trade_count > 50:
+                # Sample every 15th trade for large datasets
+                trade_indices = list(range(0, trade_count, 15))
+                trades = [i + 1 for i in trade_indices]
+            else:
+                # Sample every 5th trade for smaller datasets
+                trade_indices = list(range(0, trade_count, 5))
+                trades = [i + 1 for i in trade_indices]
+            
+            # Calculate percentiles for sampled trades only
+            p5_values = []
+            p25_values = []
+            p75_values = []
+            p95_values = []
+            median_values = []
+            
+            # Use minimal sample size for percentile calculation (max 50 simulations)
+            sample_size = min(50, len(all_simulation_results))  # Reduced from 100 to 50
+            results_for_percentiles = all_simulation_results[:sample_size]
+            
+            for trade_idx in trade_indices:
+                # Get balances at this trade index from sampled results
+                balances_at_trade = [result['account_balance'][trade_idx] for result in results_for_percentiles]
                 
-                # Sample trades for large datasets (every 10th trade for >200 trades)
-                if trade_count > 200:
-                    trade_indices = list(range(0, trade_count, 10))
-                    trades = [i + 1 for i in trade_indices]
-                else:
-                    trades = list(range(1, trade_count + 1))
-                    trade_indices = list(range(trade_count))
-                
-                # Calculate percentiles for sampled trades only
-                p5_values = []
-                p25_values = []
-                p75_values = []
-                p95_values = []
-                median_values = []
-                
-                # Use a reasonable sample size for percentile calculation (max 500 simulations)
-                all_results = simulation_data.get('simulation_results', [])
-                sample_size = min(500, len(all_results))
-                results_for_percentiles = all_results[:sample_size]
-                
-                for trade_idx in trade_indices:
-                    # Get balances at this trade index from sampled results
-                    balances_at_trade = [result['account_balance'][trade_idx] for result in results_for_percentiles]
-                    
-                    p5_values.append(np.percentile(balances_at_trade, 5))
-                    p25_values.append(np.percentile(balances_at_trade, 25))
-                    p75_values.append(np.percentile(balances_at_trade, 75))
-                    p95_values.append(np.percentile(balances_at_trade, 95))
-                    median_values.append(np.percentile(balances_at_trade, 50))
-                
-                # Add confidence bands
-                fig.add_trace(go.Scatter(
-                    x=trades + trades[::-1],
-                    y=p95_values + p5_values[::-1],
-                    fill='toself',
-                    fillcolor='rgba(135, 206, 235, 0.2)',
-                    line=dict(color='rgba(255,255,255,0)'),
-                    name='90% Confidence',
-                    hoverinfo='skip'
-                ))
-                
-                fig.add_trace(go.Scatter(
-                    x=trades + trades[::-1],
-                    y=p75_values + p25_values[::-1],
-                    fill='toself',
-                    fillcolor='rgba(135, 206, 235, 0.4)',
-                    line=dict(color='rgba(255,255,255,0)'),
-                    name='50% Confidence',
-                    hoverinfo='skip'
-                ))
-                
-                # Add median line
-                fig.add_trace(go.Scatter(
-                    x=trades,
-                    y=median_values,
-                    mode='lines',
-                    line=dict(color='blue', width=3),
-                    name='Median Path'
-                ))
+                p5_values.append(np.percentile(balances_at_trade, 5))
+                p25_values.append(np.percentile(balances_at_trade, 25))
+                p75_values.append(np.percentile(balances_at_trade, 75))
+                p95_values.append(np.percentile(balances_at_trade, 95))
+                median_values.append(np.percentile(balances_at_trade, 50))
+            
+            # Add confidence bands
+            fig.add_trace(go.Scatter(
+                x=trades + trades[::-1],
+                y=p95_values + p5_values[::-1],
+                fill='toself',
+                fillcolor='rgba(135, 206, 235, 0.2)',
+                line=dict(color='rgba(255,255,255,0)'),
+                name='90% Confidence',
+                hoverinfo='skip'
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=trades + trades[::-1],
+                y=p75_values + p25_values[::-1],
+                fill='toself',
+                fillcolor='rgba(135, 206, 235, 0.4)',
+                line=dict(color='rgba(255,255,255,0)'),
+                name='50% Confidence',
+                hoverinfo='skip'
+            ))
+            
+            # Add median line
+            fig.add_trace(go.Scatter(
+                x=trades,
+                y=median_values,
+                mode='lines',
+                line=dict(color='blue', width=3),
+                name='Median Path'
+            ))
             
             # Update layout
             total_simulations = simulation_data["simulation_summary"]["num_simulations"]
             fig.update_layout(
                 title={
-                    'text': f'Monte Carlo Simulation Paths<br><sub>Showing {len(simulation_results)} of {total_simulations:,} simulations (sampled for performance)</sub>',
+                    'text': f'Monte Carlo Confidence Intervals<br><sub>Based on {total_simulations:,} simulations (extreme sampling for performance)</sub>',
                     'x': 0.5,
                     'xanchor': 'center'
                 },

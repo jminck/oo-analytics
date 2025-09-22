@@ -8,6 +8,8 @@ import os
 from typing import Dict, Tuple, Optional
 from dataclasses import dataclass, asdict
 import re
+from functools import lru_cache
+import time
 
 @dataclass
 class CommissionRates:
@@ -37,10 +39,26 @@ class CommissionConfig:
             self.default = CommissionRates(opening_cost=1.00, closing_cost=0.00)
 
 class CommissionCalculator:
-    """Calculates commissions for trades based on configuration."""
+    """Calculates commissions for trades based on configuration (optimized)."""
     
     def __init__(self, config: CommissionConfig = None):
         self.config = config or CommissionConfig()
+        
+        # Pre-compile regex patterns for better performance
+        self._spx_pattern = re.compile(r'^\d+\s+[A-Z]{3}\s+\d{1,2}\s+\d{4,5}\s+[CP]\s+(STO|BTO)')
+        self._symbol_patterns = [
+            re.compile(r'^(SPX|SPY|QQQ|IWM|DIA)\s'),  # Common symbols at start
+            re.compile(r'^([A-Z]{2,4})\s+\d{1,2}/'),  # Symbol followed by date format MM/DD
+            re.compile(r'^([A-Z]{2,5})\s+[A-Z]{3}\s+\d'),  # Symbol followed by month abbreviation
+        ]
+        self._strike_pattern = re.compile(r'(\d{4,5})\s+[CP]')
+        self._call_pattern = re.compile(r'(\d+)\s+C\s+(STO|BTO)')
+        self._put_pattern = re.compile(r'(\d+)\s+P\s+(STO|BTO)')
+        self._strike_match_pattern = re.compile(r'(\d+)\s+[CP]\s+')
+        
+        # Cache for frequently accessed data
+        self._underlying_cache = {}
+        self._contracts_cache = {}
         
     def get_rates_for_underlying(self, underlying: str) -> CommissionRates:
         """Get commission rates for a specific underlying."""
@@ -54,51 +72,64 @@ class CommissionCalculator:
             return self.config.default
     
     def extract_underlying_from_legs(self, legs: str) -> str:
-        """Extract underlying symbol from legs string."""
+        """Extract underlying symbol from legs string (optimized with caching)."""
         if not legs:
             return 'UNKNOWN'
-            
+        
+        # Check cache first
+        legs_key = legs.strip()
+        if legs_key in self._underlying_cache:
+            return self._underlying_cache[legs_key]
+        
         # For legs format like "2 Aug 23 5650 C STO 4.15", the underlying is typically SPX
         # Since the date format suggests SPX options, let's look for patterns
         legs_upper = legs.upper().strip()
         
         # Check if this looks like SPX format (number + month + day + year)
         # Pattern: "2 AUG 23 5650 C STO" or "1 JAN 24 4000 P BTO"
-        spx_pattern = r'^\d+\s+[A-Z]{3}\s+\d{1,2}\s+\d{4,5}\s+[CP]\s+(STO|BTO)'
-        if re.match(spx_pattern, legs_upper):
-            return 'SPX'
+        if self._spx_pattern.match(legs_upper):
+            result = 'SPX'
+            self._underlying_cache[legs_key] = result
+            return result
         
-        # Look for explicit symbols at the start
+        # Look for explicit symbols at the start using pre-compiled patterns
         # Examples: "SPX 01/18/24 C4400", "QQQ 12/15/23 P320"
-        symbol_patterns = [
-            r'^(SPX|SPY|QQQ|IWM|DIA)\s',  # Common symbols at start
-            r'^([A-Z]{2,4})\s+\d{1,2}/',  # Symbol followed by date format MM/DD
-            r'^([A-Z]{2,5})\s+[A-Z]{3}\s+\d',  # Symbol followed by month abbreviation
-        ]
-        
-        for pattern in symbol_patterns:
-            match = re.search(pattern, legs_upper)
+        for pattern in self._symbol_patterns:
+            match = pattern.search(legs_upper)
             if match:
-                return match.group(1)
+                result = match.group(1)
+                self._underlying_cache[legs_key] = result
+                return result
         
         # If we can't determine from legs, check if we can infer from strike levels
         # SPX typically has strikes in 3000-6000 range
-        strike_match = re.search(r'(\d{4,5})\s+[CP]', legs_upper)
+        strike_match = self._strike_pattern.search(legs_upper)
         if strike_match:
             strike = int(strike_match.group(1))
             if 2000 <= strike <= 7000:  # Typical SPX range
-                return 'SPX'
+                result = 'SPX'
             elif 200 <= strike <= 700:  # Typical QQQ range  
-                return 'QQQ'
+                result = 'QQQ'
             elif 100 <= strike <= 600:  # Typical SPY range
-                return 'SPY'
+                result = 'SPY'
+            else:
+                result = 'UNKNOWN'
+        else:
+            result = 'UNKNOWN'
         
-        return 'UNKNOWN'
+        # Cache the result
+        self._underlying_cache[legs_key] = result
+        return result
     
     def calculate_actual_contracts_from_legs(self, legs: str) -> int:
-        """Calculate total contract count by parsing the legs string."""
+        """Calculate total contract count by parsing the legs string (optimized with caching)."""
         if not legs or legs.strip() == '':
             return 1  # Default fallback
+        
+        # Check cache first
+        legs_key = legs.strip()
+        if legs_key in self._contracts_cache:
+            return self._contracts_cache[legs_key]
         
         total_contracts = 0
         
@@ -119,8 +150,12 @@ class CommissionCalculator:
             else:
                 # Fallback: if we can't parse, assume 1 contract for this leg
                 total_contracts += 1
-                
-        return total_contracts if total_contracts > 0 else 1
+        
+        result = total_contracts if total_contracts > 0 else 1
+        
+        # Cache the result
+        self._contracts_cache[legs_key] = result
+        return result
     
     def is_trade_live_data(self, trade) -> bool:
         """Determine if trade is from live data (no commission columns) or backtest data."""
@@ -131,18 +166,19 @@ class CommissionCalculator:
         return opening_comm == 0 and closing_comm == 0
     
     def is_leg_in_the_money(self, leg_info: str, opening_price: float, closing_price: float) -> bool:
-        """Determine if a leg expired in the money and will be exercised."""
+        """Determine if a leg expired in the money and will be exercised (optimized)."""
         if not leg_info:
             return False
             
-        # Extract strike price and option type from leg info
+        # Extract strike price and option type from leg info using pre-compiled patterns
         # Example: "44 Sep 22 6370 C STO 110.95" -> Call with strike 6370
         # Format: {contracts} {month} {day} {year} {strike} {C/P} {action} {price}
-        call_match = re.search(r'(\d+)\s+C\s+(STO|BTO)', leg_info.upper())
-        put_match = re.search(r'(\d+)\s+P\s+(STO|BTO)', leg_info.upper())
+        leg_upper = leg_info.upper()
+        call_match = self._call_pattern.search(leg_upper)
+        put_match = self._put_pattern.search(leg_upper)
         
         # Extract strike price (the number before C or P)
-        strike_match = re.search(r'(\d+)\s+[CP]\s+', leg_info.upper())
+        strike_match = self._strike_match_pattern.search(leg_upper)
         if not strike_match:
             return False
             
@@ -202,21 +238,44 @@ class CommissionCalculator:
     
     
     def get_commission_summary(self, trades) -> Dict:
-        """Get comprehensive commission analysis for a list of trades."""
-        # Add commission validation diagnostics
-        total_opening_from_csv = sum(getattr(trade, 'opening_commissions', 0) for trade in trades if not self.is_trade_live_data(trade))
-        
-        # Calculate total contracts using actual legs data
+        """Get comprehensive commission analysis for a list of trades (optimized)."""
+        # Pre-process trades for better performance
+        trade_data = []
+        total_opening_from_csv = 0
         total_contracts = 0
+        
+        # Single pass through trades to collect all data
         for trade in trades:
-            if not self.is_trade_live_data(trade):
-                legs = getattr(trade, 'legs', '')
-                if legs and legs.strip():
-                    contracts = self.calculate_actual_contracts_from_legs(legs)
-                else:
-                    contracts = getattr(trade, 'contracts', 1)
+            is_live = self.is_trade_live_data(trade)
+            legs = getattr(trade, 'legs', '')
+            
+            # Calculate contracts once
+            if legs and legs.strip():
+                contracts = self.calculate_actual_contracts_from_legs(legs)
+            else:
+                contracts = getattr(trade, 'contracts', 1)
+            
+            # Collect trade data
+            trade_info = {
+                'trade': trade,
+                'is_live': is_live,
+                'legs': legs,
+                'contracts': contracts,
+                'strategy': getattr(trade, 'strategy', 'Unknown'),
+                'opening_comm': getattr(trade, 'opening_commissions', 0),
+                'closing_comm': getattr(trade, 'closing_commissions', 0),
+                'reason_for_close': getattr(trade, 'reason_for_close', '').strip().lower(),
+                'opening_price': getattr(trade, 'opening_price', 0) or 0,
+                'closing_price': getattr(trade, 'closing_price', 0) or 0
+            }
+            trade_data.append(trade_info)
+            
+            # Accumulate totals
+            if not is_live:
+                total_opening_from_csv += trade_info['opening_comm']
                 total_contracts += contracts
         
+        # Commission validation (only if needed)
         max_possible_opening = 1.78 * total_contracts  # Using highest commission rate
         
         if total_opening_from_csv > max_possible_opening:
@@ -226,27 +285,22 @@ class CommissionCalculator:
             print(f"   Ratio: {total_opening_from_csv/max_possible_opening:.2f}x over maximum")
             print(f"   This suggests commission data in CSV may be corrupted or incorrectly calculated")
             
-            # Show sample trades for analysis
-            print(f"\n📊 Sample trade commission analysis:")
-            backtest_trades = [trade for trade in trades if not self.is_trade_live_data(trade)]
-            for i, trade in enumerate(backtest_trades[:5]):  # Show first 5 trades
-                legs = getattr(trade, 'legs', '')
-                if legs and legs.strip():
-                    contracts = self.calculate_actual_contracts_from_legs(legs)
-                    csv_contracts = getattr(trade, 'contracts', 1)
-                    print(f"   Trade {i+1}: {contracts} contracts (from legs), CSV shows: {csv_contracts}")
-                    if legs:
-                        print(f"     Legs: {legs}")
-                else:
-                    contracts = getattr(trade, 'contracts', 1)
-                    print(f"   Trade {i+1}: {contracts} contracts (from CSV, no legs data)")
+            # Show sample trades for analysis (optimized)
+            backtest_trades = [t for t in trade_data if not t['is_live']]
+            for i, trade_info in enumerate(backtest_trades[:5]):  # Show first 5 trades
+                contracts = trade_info['contracts']
+                csv_contracts = getattr(trade_info['trade'], 'contracts', 1)
+                print(f"   Trade {i+1}: {contracts} contracts (from legs), CSV shows: {csv_contracts}")
+                if trade_info['legs']:
+                    print(f"     Legs: {trade_info['legs']}")
                 
-                opening_comm = getattr(trade, 'opening_commissions', 0)
-                closing_comm = getattr(trade, 'closing_commissions', 0)
+                opening_comm = trade_info['opening_comm']
+                closing_comm = trade_info['closing_comm']
                 expected_opening = 1.78 * contracts  # Max possible
                 expected_closing = 1.78 * contracts  # Max possible
                 print(f"     Opening: ${opening_comm:.2f} (expected ≤${expected_opening:.2f}, ratio: {opening_comm/expected_opening:.2f}x)")
                 print(f"     Closing: ${closing_comm:.2f} (expected ≤${expected_closing:.2f}, ratio: {closing_comm/expected_closing:.2f}x)")
+        # Initialize counters
         total_actual_opening = 0
         total_actual_closing = 0
         total_estimated_opening = 0
@@ -264,10 +318,16 @@ class CommissionCalculator:
         
         strategy_breakdown = {}
         
-        for trade in trades:
-            is_live = self.is_trade_live_data(trade)
-            strategy = getattr(trade, 'strategy', 'Unknown')
+        # Process pre-collected trade data (optimized)
+        for trade_info in trade_data:
+            is_live = trade_info['is_live']
+            strategy = trade_info['strategy']
+            contracts = trade_info['contracts']
+            legs = trade_info['legs']
+            reason_for_close = trade_info['reason_for_close']
+            is_expired = reason_for_close == 'expired'
             
+            # Initialize strategy breakdown if needed
             if strategy not in strategy_breakdown:
                 strategy_breakdown[strategy] = {
                     'count': 0,
@@ -279,26 +339,16 @@ class CommissionCalculator:
                 }
             
             strategy_breakdown[strategy]['count'] += 1
-            
-            # Calculate actual contract count from legs, fallback to CSV field
-            legs = getattr(trade, 'legs', '')
-            if legs and legs.strip():
-                contracts = self.calculate_actual_contracts_from_legs(legs)
-            else:
-                contracts = getattr(trade, 'contracts', 1)
-            
             strategy_breakdown[strategy]['contracts'] += contracts
-            exercise_cost, exercised_contracts = self.calculate_exercise_costs(trade)
+            
+            # Calculate exercise costs once per trade
+            exercise_cost, exercised_contracts = self.calculate_exercise_costs(trade_info['trade'])
             
             if is_live:
                 # Live data: calculate estimated commissions using rates
                 live_trades += 1
-                underlying = self.extract_underlying_from_legs(getattr(trade, 'legs', ''))
+                underlying = self.extract_underlying_from_legs(legs)
                 rates = self.get_rates_for_underlying(underlying)
-                
-                # Check if trade expired - no closing commissions for expired trades
-                reason_for_close = getattr(trade, 'reason_for_close', '').strip().lower()
-                is_expired = reason_for_close == 'expired'
                 
                 opening_est = rates.opening_cost * contracts
                 closing_est = 0 if is_expired else rates.closing_cost * contracts
@@ -320,12 +370,10 @@ class CommissionCalculator:
             else:
                 # Backtest data: use actual commission amounts from CSV
                 backtest_trades += 1
-                opening_actual = getattr(trade, 'opening_commissions', 0)
-                closing_actual = getattr(trade, 'closing_commissions', 0)
+                opening_actual = trade_info['opening_comm']
+                closing_actual = trade_info['closing_comm']
                 
                 # For expired trades, closing commissions should be 0
-                reason_for_close = getattr(trade, 'reason_for_close', '').strip().lower()
-                is_expired = reason_for_close == 'expired'
                 if is_expired:
                     closing_actual = 0  # Override CSV value for expired trades
                 

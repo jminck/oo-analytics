@@ -2696,17 +2696,79 @@
                 uploadFileBtn.style.display = 'none';
                 initialCapitalGroup.style.display = 'none';
             });
-            // Preview file header to detect real trade log
+            // Preview file header to detect real trade log and count lines
             function previewFile(file) {
                 window.selectedFile = file;
                 selectedFileName.textContent = file.name;
                 selectedFileInfo.style.display = '';
                 uploadContent.style.display = 'none';
-                uploadFileBtn.style.display = '';
+                uploadFileBtn.style.display = 'none'; // Hide upload button until modal is shown
+                
+                // Show loading state for file analysis
+                const originalFileName = selectedFileName.textContent;
+                selectedFileName.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing file...';
+                
                 const reader = new FileReader();
                 reader.onload = function(evt) {
-                    const firstLine = evt.target.result.split('\n')[0];
-                    if (firstLine.includes('Initial Premium')) {
+                    const content = evt.target.result;
+                    const lines = content.split('\n');
+                    const lineCount = lines.length;
+                    
+                    // Estimate trade count (subtract 1 for header, filter out empty lines)
+                    const nonEmptyLines = lines.filter(line => line.trim() !== '').length;
+                    const estimatedTradeCount = Math.max(0, nonEmptyLines - 1); // Subtract header
+                    
+                    // Get configuration from backend for trade limit
+                    fetch('/api/config')
+                        .then(response => response.json())
+                        .then(configData => {
+                            if (configData.success) {
+                                const config = configData.data;
+                                const maxTrades = config.max_trades_limit;
+                                const limitDisabled = config.disable_trade_limit;
+                                
+                                // Prepare analysis data for modal
+                                const analysisData = {
+                                    lineCount: lineCount,
+                                    estimatedTradeCount: estimatedTradeCount,
+                                    maxTrades: maxTrades,
+                                    warning: null
+                                };
+                                
+                                // Check for trade limit warning
+                                if (!limitDisabled && estimatedTradeCount > maxTrades) {
+                                    analysisData.warning = `This file contains approximately ${estimatedTradeCount.toLocaleString()} trades. The recommended limit is ${maxTrades.toLocaleString()} trades. Large files may cause performance issues.`;
+                                }
+                                
+                                // Show the modal with analysis results
+                                showFileAnalysisModal(file, analysisData);
+                                
+                            } else {
+                                // Fallback if config fetch fails
+                                const analysisData = {
+                                    lineCount: lineCount,
+                                    estimatedTradeCount: estimatedTradeCount,
+                                    maxTrades: 3000, // Default fallback
+                                    warning: null
+                                };
+                                showFileAnalysisModal(file, analysisData);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching config:', error);
+                            // Fallback if config fetch fails
+                            const analysisData = {
+                                lineCount: lineCount,
+                                estimatedTradeCount: estimatedTradeCount,
+                                maxTrades: 3000, // Default fallback
+                                warning: null
+                            };
+                            showFileAnalysisModal(file, analysisData);
+                        });
+                    
+                    // Check if it's a real trade log for initial capital
+                    const firstLine = lines[0];
+                    if (firstLine && firstLine.includes('Initial Premium')) {
                         initialCapitalGroup.style.display = '';
                         if (window.lastInitialCapital) {
                             initialCapitalInput.value = window.lastInitialCapital;
@@ -2786,6 +2848,14 @@
                     
                     const displayName = data.data.friendly_name || file.name;
                     showAlert(`Success! Uploaded ${data.data.trades_count} trades from ${data.data.strategies_count} strategies as "${displayName}"`, 'success');
+                    
+                    // Show warning if file exceeds recommended trade limit
+                    if (data.warning) {
+                        console.log('DEBUG: Showing warning alert:', data.warning);
+                        showAlert(data.warning, 'warning');
+                    } else {
+                        console.log('DEBUG: No warning in response data');
+                    }
                     
                     // Update filename display
                     updateFilenameDisplay(data.data.filename || file.name);
@@ -3006,6 +3076,14 @@
             .then(data => {
                 if (data.success) {
                     statusDiv.innerHTML = `<small class="text-success">✅ ${data.message}</small>`;
+                    
+                    // Show warning if file exceeds recommended trade limit
+                    if (data.warning) {
+                        console.log('DEBUG: Showing warning alert for saved file:', data.warning);
+                        showAlert(data.warning, 'warning');
+                    } else {
+                        console.log('DEBUG: No warning in saved file response data');
+                    }
                     
                     // Update filename display
                     updateFilenameDisplay(filename);
@@ -11204,7 +11282,7 @@
             totalsContainer.id = 'meicDailyTotals';
             totalsContainer.className = 'mt-3';
             
-            let totalsHtml = '<div class="card border-light"><div class="card-body py-2"><h6 class="card-title mb-2"><i class="fas fa-calculator"></i> Daily P&L Totals</h6><div class="row">';
+            let totalsHtml = '<div class="card border-light"><div class="card-body py-2"><h6 class="card-title mb-2"><i class="fas fa-calculator"></i> Daily P&L Totals</h6><div class="d-flex flex-wrap align-items-center gap-3">';
             
             // Calculate total P&L for color coding
             const totalPnL = Object.values(dailyPnLTotals).reduce((sum, pnl) => sum + pnl, 0);
@@ -11225,11 +11303,9 @@
                 }
                 
                 totalsHtml += `
-                    <div class="col-md-3 col-sm-6 mb-2">
-                        <div class="d-flex align-items-center">
-                            <span class="badge ${badgeClass} me-2">${day.substring(0, 3)}</span>
-                            <span class="${textClass} fw-bold">$${pnl.toLocaleString()}</span>
-                        </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge ${badgeClass} me-2">${day.substring(0, 3)}</span>
+                        <span class="${textClass} fw-bold">$${pnl.toLocaleString()}</span>
                     </div>
                 `;
             });
@@ -12204,6 +12280,33 @@
         </div>
     </div>
 
+    <!-- File Analysis Modal -->
+    <div class="modal fade" id="fileAnalysisModal" tabindex="-1" aria-labelledby="fileAnalysisModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fileAnalysisModalLabel">
+                        <i class="fas fa-file-csv text-success"></i> File Analysis Results
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="fileAnalysisContent">
+                        <!-- File analysis results will be populated here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" id="confirmUploadBtn" onclick="confirmFileUpload()">
+                        <i class="fas fa-upload"></i> Upload File
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="cancelFileUpload()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function showVersionModal() {
             const modal = new bootstrap.Modal(document.getElementById('versionModal'));
@@ -12252,6 +12355,120 @@ Build User: ${versionInfo.build_user}`;
                 console.error('Failed to copy version info:', err);
                 alert('Failed to copy version info to clipboard');
             });
+        }
+
+        // File Analysis Modal Functions
+        function showFileAnalysisModal(file, analysisData) {
+            const modal = new bootstrap.Modal(document.getElementById('fileAnalysisModal'));
+            const content = document.getElementById('fileAnalysisContent');
+            
+            // Store the file for later use
+            window.pendingFileUpload = file;
+            
+            // Build the modal content
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-file-csv text-primary"></i> File Information</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Filename:</strong></td>
+                                <td><code>${file.name}</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>File Size:</strong></td>
+                                <td>${(file.size / 1024).toFixed(1)} KB</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Lines:</strong></td>
+                                <td><span class="badge bg-info">${analysisData.lineCount.toLocaleString()}</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Estimated Trades:</strong></td>
+                                <td><span class="badge bg-primary">${analysisData.estimatedTradeCount.toLocaleString()}</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-chart-line text-success"></i> Analysis Summary</h6>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Trade Estimation:</strong> Based on non-empty lines minus header row.
+                        </div>
+            `;
+            
+            // Add warning if trade limit exceeded
+            if (analysisData.warning) {
+                html += `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Performance Warning:</strong><br>
+                            ${analysisData.warning}
+                        </div>
+                `;
+            } else {
+                html += `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>File Size OK:</strong> Within recommended limits for optimal performance.
+                        </div>
+                `;
+            }
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            // Add recommendations if needed
+            if (analysisData.estimatedTradeCount > analysisData.maxTrades) {
+                html += `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6><i class="fas fa-lightbulb text-warning"></i> Recommendations</h6>
+                            <div class="alert alert-warning">
+                                <ul class="mb-0">
+                                    <li>Consider splitting this file into smaller chunks (${analysisData.maxTrades.toLocaleString()} trades or less)</li>
+                                    <li>Large files may cause slower processing and chart rendering</li>
+                                    <li>You can still proceed, but expect longer processing times</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            content.innerHTML = html;
+            modal.show();
+        }
+
+        function confirmFileUpload() {
+            if (window.pendingFileUpload) {
+                // Close the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('fileAnalysisModal'));
+                modal.hide();
+                
+                // Proceed with upload
+                handleFileUpload(window.pendingFileUpload);
+                
+                // Clear the pending file
+                window.pendingFileUpload = null;
+            }
+        }
+
+        function cancelFileUpload() {
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('fileAnalysisModal'));
+            modal.hide();
+            
+            // Clear the pending file and reset upload area
+            window.pendingFileUpload = null;
+            window.selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('selectedFileInfo').style.display = 'none';
+            document.getElementById('uploadContent').style.display = '';
+            document.getElementById('uploadFileBtn').style.display = 'none';
+            document.getElementById('initialCapitalGroup').style.display = 'none';
         }
     </script>
 </body>

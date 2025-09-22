@@ -215,9 +215,12 @@ def append_initial_capital_to_filename(filename, initial_capital):
     base = re.sub(r'__capital=\d+', '', base)
     return f"{base}__capital={int(initial_capital)}{ext}"
 
+# Cache for parsed legs to avoid repeated parsing
+_legs_cache = {}
+
 def parse_legs_string(legs_str):
     """
-    Parse the legs string to extract individual option legs.
+    Parse the legs string to extract individual option legs (optimized with caching).
     
     Format: "quantity expiration strike type action premium | quantity expiration strike type action premium"
     Example: "118 Jul 23 560 P STO 0.75 | 118 Jul 23 570 C STO 0.56"
@@ -227,6 +230,11 @@ def parse_legs_string(legs_str):
     """
     if not legs_str or legs_str.strip() == '':
         return []
+    
+    # Check cache first
+    legs_key = legs_str.strip()
+    if legs_key in _legs_cache:
+        return _legs_cache[legs_key]
     
     legs = []
     # Split by pipe separator
@@ -252,6 +260,8 @@ def parse_legs_string(legs_str):
                 'premium': float(premium)
             })
     
+    # Cache the result
+    _legs_cache[legs_key] = legs
     return legs
 
 # Global variable to store the current debug log path for this session
@@ -1230,6 +1240,24 @@ def api_version():
             'error': str(e)
         }), 500
 
+@app.route('/api/config')
+def get_config():
+    """Get application configuration as JSON."""
+    try:
+        config = {
+            'max_trades_limit': int(os.environ.get('MAX_TRADES_LIMIT', '3000')),
+            'disable_trade_limit': os.environ.get('DISABLE_TRADE_LIMIT', 'false').lower() == 'true'
+        }
+        return jsonify({
+            'success': True,
+            'data': config
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/debug_charts.html')
 def debug_charts():
     """Debug page for chart buttons."""
@@ -1268,32 +1296,58 @@ def portfolio_overview():
         overview = metrics.get_overview_metrics()
         print("Overview metrics calculated")
         
-        # Patch starting capital logic
+        # Use the same accurate calculation logic as files overview
         global current_data_type, current_initial_capital
+        
         if current_data_type == 'real_trade' and current_initial_capital is not None:
-            # print(f"[DEBUG] For real trade, forcing starting_capital to {current_initial_capital}")
+            # For real trade files, use the provided initial capital
             overview['starting_capital'] = current_initial_capital
-        else:
-            # Find the trade with the earliest Date Closed (or Date Opened)
-            earliest_trade = None
-            for strat in portfolio.strategies.values():
-                for trade in strat.trades:
-                    trade_date = trade.date_closed or trade.date_opened
-                    if (earliest_trade is None or
-                        (trade_date and earliest_trade.date_closed and trade_date < (earliest_trade.date_closed or earliest_trade.date_opened))):
-                        earliest_trade = trade
-            if earliest_trade and hasattr(earliest_trade, 'funds_at_close') and hasattr(earliest_trade, 'pnl'):
-                overview['starting_capital'] = earliest_trade.funds_at_close - earliest_trade.pnl
-            else:
-                overview['starting_capital'] = 0
-        # print(f"[DEBUG] Returning starting_capital: {overview.get('starting_capital')}")
-        # Add ending capital to overview
-        if current_data_type == 'real_trade' and current_initial_capital is not None:
-            # For real trade files, calculate ending capital as starting_capital + total_pnl
             overview['ending_capital'] = current_initial_capital + overview.get('total_pnl', 0)
         else:
-            # For backtest files, use the calculated final_balance
-            overview['ending_capital'] = overview.get('final_balance', 0)
+            # For backtest files, use the same accurate logic as files overview
+            # Find the trade with the oldest date and time for trade closing
+            earliest_trade = None
+            latest_trade = None
+            earliest_datetime = None
+            latest_datetime = None
+            
+            for strategy in portfolio.strategies.values():
+                for trade in strategy.trades:
+                    if hasattr(trade, 'funds_at_close') and hasattr(trade, 'pnl'):
+                        # Use date_closed as primary, fall back to date_opened
+                        trade_datetime = trade.date_closed or trade.date_opened
+                        
+                        if trade_datetime:
+                            # Check if this is the earliest trade
+                            if earliest_datetime is None or trade_datetime < earliest_datetime:
+                                earliest_datetime = trade_datetime
+                                earliest_trade = trade
+                            
+                            # Check if this is the latest trade
+                            if latest_datetime is None or trade_datetime > latest_datetime:
+                                latest_datetime = trade_datetime
+                                latest_trade = trade
+            
+            if earliest_trade and latest_trade:
+                # Calculate initial capital: earliest trade's funds_at_close minus its P&L
+                if (hasattr(earliest_trade, 'funds_at_close') and earliest_trade.funds_at_close is not None and
+                    hasattr(earliest_trade, 'pnl') and earliest_trade.pnl is not None):
+                    initial_capital = float(earliest_trade.funds_at_close - earliest_trade.pnl)
+                    overview['starting_capital'] = initial_capital
+                    
+                    # Calculate total P&L as difference between final and initial funds
+                    if (hasattr(latest_trade, 'funds_at_close') and latest_trade.funds_at_close is not None):
+                        total_pnl = float(latest_trade.funds_at_close - initial_capital)
+                        overview['total_pnl'] = total_pnl
+                        overview['ending_capital'] = float(initial_capital + total_pnl)
+                    else:
+                        overview['ending_capital'] = overview.get('final_balance', 0)
+                else:
+                    overview['starting_capital'] = 0
+                    overview['ending_capital'] = overview.get('final_balance', 0)
+            else:
+                overview['starting_capital'] = 0
+                overview['ending_capital'] = overview.get('final_balance', 0)
         
         print("Portfolio overview completed successfully")
         print("=== PORTFOLIO OVERVIEW API COMPLETED ===")
@@ -1922,6 +1976,16 @@ def upload_csv():
         try:
             # Read CSV to validate columns
             df = pd.read_csv(saved_path)
+            
+            # Count trades and warn if too many (unless limit is disabled)
+            trade_count = len(df)
+            warning_message = None
+            if os.environ.get('DISABLE_TRADE_LIMIT', 'false').lower() != 'true':
+                max_trades = int(os.environ.get('MAX_TRADES_LIMIT', '3000'))
+                print(f"DEBUG: Trade count: {trade_count}, Max trades: {max_trades}")
+                if trade_count > max_trades:
+                    warning_message = f'⚠️ WARNING: This file contains {trade_count:,} trades. The recommended limit is {max_trades:,} trades. Files larger than this may produce unexpected problems and slow performance. Consider splitting your data into smaller files.'
+                    print(f"DEBUG: Warning message generated: {warning_message}")
 
             # Detect data type
             if 'Initial Premium' in df.columns:
@@ -2037,7 +2101,7 @@ def upload_csv():
                 'strategies_count': len(portfolio.strategies)
             })
             
-            return jsonify({
+            response_data = {
                 'success': True,
                 'message': f'Successfully uploaded {portfolio.total_trades} trades',
                 'data': {
@@ -2048,7 +2112,16 @@ def upload_csv():
                     'friendly_name': file_info['friendly_name'],
                     'initial_capital': initial_capital if data_type == 'real_trade' else None
                 }
-            })
+            }
+            
+            # Add warning message if file exceeds recommended trade limit
+            if warning_message:
+                response_data['warning'] = warning_message
+                print(f"DEBUG: Adding warning to response: {warning_message}")
+            else:
+                print("DEBUG: No warning message to add")
+                
+            return jsonify(response_data)
             
         except Exception as e:
             # Clean up file if error occurs during processing
@@ -2284,6 +2357,16 @@ def load_saved_file(filename):
                 'error': f'Failed to read CSV file: {str(csv_error)}'
             }), 400
         
+        # Count trades and warn if too many (unless limit is disabled)
+        trade_count = len(df)
+        warning_message = None
+        if os.environ.get('DISABLE_TRADE_LIMIT', 'false').lower() != 'true':
+            max_trades = int(os.environ.get('MAX_TRADES_LIMIT', '3000'))
+            print(f"DEBUG: Load saved file - Trade count: {trade_count}, Max trades: {max_trades}")
+            if trade_count > max_trades:
+                warning_message = f'⚠️ WARNING: This file contains {trade_count:,} trades. The recommended limit is {max_trades:,} trades. Files larger than this may produce unexpected problems and slow performance. Consider splitting your data into smaller files.'
+                print(f"DEBUG: Load saved file - Warning message generated: {warning_message}")
+        
         # Detect data type
         if 'Initial Premium' in df.columns:
             data_type = 'real_trade'
@@ -2366,7 +2449,7 @@ def load_saved_file(filename):
         current_data_type = data_type
         current_initial_capital = initial_capital if data_type == 'real_trade' else None
         
-        return jsonify({
+        response_data = {
             'success': True,
             'message': f'Loaded {portfolio.total_trades} trades',
             'data': {
@@ -2377,7 +2460,16 @@ def load_saved_file(filename):
                 'initial_capital': initial_capital if data_type == 'real_trade' else None,
                 'file_size_mb': round(file_size / 1024 / 1024, 2)
             }
-        })
+        }
+        
+        # Add warning message if file exceeds recommended trade limit
+        if warning_message:
+            response_data['warning'] = warning_message
+            print(f"DEBUG: Load saved file - Adding warning to response: {warning_message}")
+        else:
+            print("DEBUG: Load saved file - No warning message to add")
+            
+        return jsonify(response_data)
     except Exception as e:
         # Ensure portfolio is in clean state on any error
         portfolio.strategies.clear()
@@ -3153,10 +3245,23 @@ def get_pnl_by_month():
 @app.route('/api/conflicting-legs')
 @guest_mode_required
 def conflicting_legs_analysis():
-    """Analyze trades for conflicting legs (opposing positions on same contract)."""
+    """Analyze trades for conflicting legs (opposing positions on same contract) - optimized."""
     try:
+        # Generate cache key based on portfolio state
+        portfolio_id = getattr(portfolio, 'current_filename', 'default')
+        cache_key = f"conflicting_legs_{portfolio_id}"
+        
+        # Try to get from cache first
+        try:
+            from cache_manager import cache_manager
+            cached_result = cache_manager.get(cache_key)
+            if cached_result:
+                return jsonify(cached_result)
+        except ImportError:
+            pass  # Cache not available, continue with calculation
+        
         if not portfolio.strategies:
-            return jsonify({
+            result = {
                 'success': True,
                 'data': {
                     'conflicts': [],
@@ -3166,27 +3271,40 @@ def conflicting_legs_analysis():
                         'affected_strategies': 0
                     }
                 }
-            })
+            }
+            # Cache the result
+            try:
+                from cache_manager import cache_manager
+                cache_manager.set(cache_key, result)
+            except ImportError:
+                pass
+            return jsonify(result)
         
-        # Collect all trades with their legs information
+        # Pre-process all trades with legs information (optimized)
         all_trades_with_legs = []
         for strategy_name, strategy in portfolio.strategies.items():
             for trade in strategy.trades:
                 legs_str = getattr(trade, 'legs', '')
                 if legs_str and legs_str.strip():
-                    # Parse legs for this trade
+                    # Parse legs for this trade (now cached)
                     legs = parse_legs_string(legs_str)
                     if legs:
+                        # Pre-process dates to avoid repeated parsing
+                        date_opened = trade.date_opened
+                        date_closed = trade.date_closed
+                        
                         all_trades_with_legs.append({
                             'strategy': strategy_name,
                             'trade': trade,
                             'legs': legs,
-                            'date_opened': trade.date_opened,
-                            'date_closed': trade.date_closed
+                            'date_opened': date_opened,
+                            'date_closed': date_closed,
+                            'date_opened_ts': date_opened if date_opened else pd.Timestamp('1900-01-01'),
+                            'date_closed_ts': date_closed if date_closed else pd.Timestamp('1900-01-01')
                         })
         
         if not all_trades_with_legs:
-            return jsonify({
+            result = {
                 'success': True,
                 'data': {
                     'conflicts': [],
@@ -3196,121 +3314,160 @@ def conflicting_legs_analysis():
                         'affected_strategies': 0
                     }
                 }
-            })
+            }
+            # Cache the result
+            try:
+                from cache_manager import cache_manager
+                cache_manager.set(cache_key, result)
+            except ImportError:
+                pass
+            return jsonify(result)
         
         # Sort trades by date opened for chronological analysis
-        all_trades_with_legs.sort(key=lambda x: x['date_opened'] if x['date_opened'] else pd.Timestamp('1900-01-01'))
+        all_trades_with_legs.sort(key=lambda x: x['date_opened_ts'])
         
         conflicts = []
         affected_trades = set()
         affected_strategies = set()
         
-        # Compare each trade with all subsequent trades to find conflicts
-        for i, trade1 in enumerate(all_trades_with_legs):
-            for j, trade2 in enumerate(all_trades_with_legs[i+1:], i+1):
-                # Skip if same trade
-                if trade1['trade'] == trade2['trade']:
-                    continue
+        # Optimized conflict detection using contract indexing
+        contract_positions = {}  # contract_key -> list of trades with that contract
+        
+        # First pass: index all trades by their contracts
+        for trade_data in all_trades_with_legs:
+            for leg in trade_data['legs']:
+                contract_key = f"{leg['expiration']}_{leg['strike']}_{leg['type']}"
+                if contract_key not in contract_positions:
+                    contract_positions[contract_key] = []
+                contract_positions[contract_key].append({
+                    'trade_data': trade_data,
+                    'leg': leg
+                })
+        
+        # Second pass: find conflicts within each contract
+        for contract_key, positions in contract_positions.items():
+            if len(positions) < 2:
+                continue
                 
-                # Check if trades overlap in time
-                trade1_start = trade1['date_opened']
-                trade1_end = trade1['date_closed']
-                trade2_start = trade2['date_opened']
-                trade2_end = trade2['date_closed']
-                
-                # Skip if we can't determine dates
-                if not all([trade1_start, trade1_end, trade2_start, trade2_end]):
-                    continue
-                
-                # Check for time overlap (trade2 opens before trade1 closes)
-                if trade2_start <= trade1_end:
-                    # Check for conflicting legs
-                    for leg1 in trade1['legs']:
-                        for leg2 in trade2['legs']:
-                            # Check if same contract (expiration, strike, type)
-                            if (leg1['expiration'] == leg2['expiration'] and
-                                leg1['strike'] == leg2['strike'] and
-                                leg1['type'] == leg2['type']):
-                                
-                                # Check if opposing actions (STO vs BTO)
-                                if ((leg1['action'] == 'STO' and leg2['action'] == 'BTO') or
-                                    (leg1['action'] == 'BTO' and leg2['action'] == 'STO')):
-                                    
-                                    conflict = {
-                                        'conflict_id': len(conflicts) + 1,
-                                        'trade1': {
-                                            'strategy': trade1['strategy'],
-                                            'date_opened': trade1['date_opened'].strftime('%Y-%m-%d') if trade1['date_opened'] else 'N/A',
-                                            'date_closed': trade1['date_closed'].strftime('%Y-%m-%d') if trade1['date_closed'] else 'N/A',
-                                            'pnl': trade1['trade'].pnl,
-                                            'leg': {
-                                                'quantity': leg1['quantity'],
-                                                'expiration': leg1['expiration'],
-                                                'strike': leg1['strike'],
-                                                'type': leg1['type'],
-                                                'action': leg1['action'],
-                                                'premium': leg1['premium']
-                                            }
-                                        },
-                                        'trade2': {
-                                            'strategy': trade2['strategy'],
-                                            'date_opened': trade2['date_opened'].strftime('%Y-%m-%d') if trade2['date_opened'] else 'N/A',
-                                            'date_closed': trade2['date_closed'].strftime('%Y-%m-%d') if trade2['date_closed'] else 'N/A',
-                                            'pnl': trade2['trade'].pnl,
-                                            'leg': {
-                                                'quantity': leg2['quantity'],
-                                                'expiration': leg2['expiration'],
-                                                'strike': leg2['strike'],
-                                                'type': leg2['type'],
-                                                'action': leg2['action'],
-                                                'premium': leg2['premium']
-                                            }
-                                        },
-                                        'contract_details': {
-                                            'expiration': leg1['expiration'],
-                                            'strike': leg1['strike'],
-                                            'type': leg1['type'],
-                                            'description': f"{leg1['expiration']} {leg1['strike']} {leg1['type']}"
-                                        },
-                                        'conflict_type': 'opposing_positions',
-                                        'overlap_days': (min(trade1_end, trade2_end) - max(trade1_start, trade2_start)).days,
-                                        'severity': 'high' if leg1['quantity'] == leg2['quantity'] else 'medium',
-                                        'potential_impact': 'Position cancellation' if leg1['quantity'] == leg2['quantity'] else 'Partial position reduction'
+            # Sort positions by date opened
+            positions.sort(key=lambda x: x['trade_data']['date_opened_ts'])
+            
+            # Check for conflicts between positions on the same contract
+            for i, pos1 in enumerate(positions):
+                for j, pos2 in enumerate(positions[i+1:], i+1):
+                    trade1_data = pos1['trade_data']
+                    trade2_data = pos2['trade_data']
+                    leg1 = pos1['leg']
+                    leg2 = pos2['leg']
+                    
+                    # Skip if same trade
+                    if trade1_data['trade'] == trade2_data['trade']:
+                        continue
+                    
+                    # Check for time overlap (trade2 opens before trade1 closes)
+                    if (trade2_data['date_opened_ts'] <= trade1_data['date_closed_ts'] and
+                        trade1_data['date_opened'] and trade1_data['date_closed'] and
+                        trade2_data['date_opened'] and trade2_data['date_closed']):
+                        
+                        # Check if opposing actions (STO vs BTO)
+                        if ((leg1['action'] == 'STO' and leg2['action'] == 'BTO') or
+                            (leg1['action'] == 'BTO' and leg2['action'] == 'STO')):
+                            
+                            conflict = {
+                                'conflict_id': len(conflicts) + 1,
+                                'trade1': {
+                                    'strategy': trade1_data['strategy'],
+                                    'date_opened': trade1_data['date_opened'].strftime('%Y-%m-%d') if trade1_data['date_opened'] else 'N/A',
+                                    'date_closed': trade1_data['date_closed'].strftime('%Y-%m-%d') if trade1_data['date_closed'] else 'N/A',
+                                    'pnl': trade1_data['trade'].pnl,
+                                    'leg': {
+                                        'quantity': leg1['quantity'],
+                                        'expiration': leg1['expiration'],
+                                        'strike': leg1['strike'],
+                                        'type': leg1['type'],
+                                        'action': leg1['action'],
+                                        'premium': leg1['premium']
                                     }
-                                    
-                                    conflicts.append(conflict)
-                                    affected_trades.add(f"{trade1['strategy']}-{trade1['date_opened']}")
-                                    affected_trades.add(f"{trade2['strategy']}-{trade2['date_opened']}")
-                                    affected_strategies.add(trade1['strategy'])
-                                    affected_strategies.add(trade2['strategy'])
+                                },
+                                'trade2': {
+                                    'strategy': trade2_data['strategy'],
+                                    'date_opened': trade2_data['date_opened'].strftime('%Y-%m-%d') if trade2_data['date_opened'] else 'N/A',
+                                    'date_closed': trade2_data['date_closed'].strftime('%Y-%m-%d') if trade2_data['date_closed'] else 'N/A',
+                                    'pnl': trade2_data['trade'].pnl,
+                                    'leg': {
+                                        'quantity': leg2['quantity'],
+                                        'expiration': leg2['expiration'],
+                                        'strike': leg2['strike'],
+                                        'type': leg2['type'],
+                                        'action': leg2['action'],
+                                        'premium': leg2['premium']
+                                    }
+                                },
+                                'contract_details': {
+                                    'expiration': leg1['expiration'],
+                                    'strike': leg1['strike'],
+                                    'type': leg1['type'],
+                                    'description': f"{leg1['expiration']} {leg1['strike']} {leg1['type']}"
+                                },
+                                'conflict_type': 'opposing_positions',
+                                'overlap_days': (min(trade1_data['date_closed_ts'], trade2_data['date_closed_ts']) - 
+                                                max(trade1_data['date_opened_ts'], trade2_data['date_opened_ts'])).days,
+                                'severity': 'high' if leg1['quantity'] == leg2['quantity'] else 'medium',
+                                'potential_impact': 'Position cancellation' if leg1['quantity'] == leg2['quantity'] else 'Partial position reduction'
+                            }
+                            
+                            conflicts.append(conflict)
+                            affected_trades.add(f"{trade1_data['strategy']}-{trade1_data['date_opened']}")
+                            affected_trades.add(f"{trade2_data['strategy']}-{trade2_data['date_opened']}")
+                            affected_strategies.add(trade1_data['strategy'])
+                            affected_strategies.add(trade2_data['strategy'])
         
         # Sort conflicts by date
         conflicts.sort(key=lambda x: x['trade1']['date_opened'])
         
-        # Create summary statistics
+        # Create summary statistics (optimized)
+        high_severity_count = 0
+        medium_severity_count = 0
+        strategy_conflict_counts = {}
+        
+        for conflict in conflicts:
+            if conflict['severity'] == 'high':
+                high_severity_count += 1
+            else:
+                medium_severity_count += 1
+                
+            # Count conflicts per strategy
+            strategy1 = conflict['trade1']['strategy']
+            strategy2 = conflict['trade2']['strategy']
+            strategy_conflict_counts[strategy1] = strategy_conflict_counts.get(strategy1, 0) + 1
+            if strategy1 != strategy2:
+                strategy_conflict_counts[strategy2] = strategy_conflict_counts.get(strategy2, 0) + 1
+        
         summary = {
             'total_conflicts': len(conflicts),
             'affected_trades': len(affected_trades),
             'affected_strategies': len(affected_strategies),
-            'high_severity_conflicts': len([c for c in conflicts if c['severity'] == 'high']),
-            'medium_severity_conflicts': len([c for c in conflicts if c['severity'] == 'medium']),
-            'strategy_breakdown': {}
+            'high_severity_conflicts': high_severity_count,
+            'medium_severity_conflicts': medium_severity_count,
+            'strategy_breakdown': strategy_conflict_counts
         }
         
-        # Strategy-level breakdown
-        for strategy in affected_strategies:
-            strategy_conflicts = [c for c in conflicts if 
-                                c['trade1']['strategy'] == strategy or 
-                                c['trade2']['strategy'] == strategy]
-            summary['strategy_breakdown'][strategy] = len(strategy_conflicts)
-        
-        return jsonify({
+        result = {
             'success': True,
             'data': {
                 'conflicts': conflicts,
                 'summary': summary
             }
-        })
+        }
+        
+        # Cache the result
+        try:
+            from cache_manager import cache_manager
+            cache_manager.set(cache_key, result)
+        except ImportError:
+            pass
+        
+        return jsonify(result)
         
     except Exception as e:
         print(f"Error in conflicting_legs_analysis: {e}")
@@ -3324,8 +3481,21 @@ def conflicting_legs_analysis():
 @app.route('/api/commission-analysis')
 @guest_mode_required
 def commission_analysis():
-    """Get comprehensive commission analysis for all trades."""
+    """Get comprehensive commission analysis for all trades (optimized with caching)."""
     try:
+        # Generate cache key based on portfolio state
+        portfolio_id = getattr(portfolio, 'current_filename', 'default')
+        cache_key = f"commission_analysis_{portfolio_id}"
+        
+        # Try to get from cache first
+        try:
+            from cache_manager import cache_manager
+            cached_result = cache_manager.get(cache_key)
+            if cached_result:
+                return jsonify(cached_result)
+        except ImportError:
+            pass  # Cache not available, continue with calculation
+        
         # Load commission configuration
         config_manager = CommissionConfigManager()
         config = config_manager.load_config()
@@ -3339,17 +3509,18 @@ def commission_analysis():
         if not all_trades:
             return jsonify({'error': 'No trades available for analysis'}), 404
         
-        # Get comprehensive commission analysis
+        # Get comprehensive commission analysis (optimized)
         analysis = calculator.get_commission_summary(all_trades)
         
-        # Add strategy-level breakdown
-        strategy_breakdown = {}
-        for strategy_name, strategy in portfolio.strategies.items():
-            if strategy.trades:
-                strategy_analysis = calculator.get_commission_summary(strategy.trades)
-                strategy_breakdown[strategy_name] = strategy_analysis['summary']
+        # Strategy breakdown is already included in the analysis
+        # No need to recalculate for each strategy individually
         
-        analysis['strategy_breakdown'] = strategy_breakdown
+        # Cache the result
+        try:
+            from cache_manager import cache_manager
+            cache_manager.set(cache_key, analysis)
+        except ImportError:
+            pass  # Cache not available, continue without caching
         
         return jsonify(analysis)
         
