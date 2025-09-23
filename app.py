@@ -2299,6 +2299,129 @@ def load_sample_data():
             'error': f'Failed to load sample data: {str(e)}'
         }), 500
 
+
+@app.route('/api/load-sample-meic-data', methods=['POST'])
+@guest_mode_required
+def load_sample_meic_data():
+    """Load the sample MEIC portfolio data from Example-Portfolio-MEIC.csv."""
+    try:
+        print("=== LOAD SAMPLE MEIC DATA START ===")
+        
+        # Track sample MEIC data load attempt
+        app_insights.track_event('sample_meic_data_load_attempted', {
+            'user_id': get_current_user_id()
+        })
+        
+        import os
+        sample_file_path = os.path.join(os.getcwd(), 'Example-Portfolio-MEIC.csv')
+        
+        if not os.path.exists(sample_file_path):
+            app_insights.track_event('sample_meic_data_load_failed', {
+                'user_id': get_current_user_id(),
+                'error': 'file_not_found'
+            })
+            return jsonify({
+                'success': False,
+                'error': 'Sample MEIC data file not found. Please ensure Example-Portfolio-MEIC.csv exists in the project root.'
+            }), 404
+        
+        # Copy the sample file to the user's data directory with a timestamp
+        import shutil
+        from datetime import datetime
+        
+        # Generate timestamped filename
+        base_name = 'Example-Portfolio-MEIC'
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        saved_filename = f"{base_name}_{timestamp}.csv"
+        saved_path = file_manager.get_file_path(saved_filename)
+        
+        # Copy the sample file
+        shutil.copy2(sample_file_path, saved_path)
+        print(f"Copied sample MEIC file to: {saved_path}")
+        
+        # Store metadata for the copied file
+        file_manager.metadata[saved_filename] = {
+            'friendly_name': 'Example MEIC Portfolio',
+            'upload_date': datetime.now().isoformat(),
+            'original_filename': 'Example-Portfolio-MEIC.csv'
+        }
+        
+        # Load the data using the existing portfolio loading mechanism
+        # Use the global portfolio instance
+        
+        # Determine data type from filename
+        data_type = 'real_trades'  # MEIC data is typically real trades
+        
+        # Load the CSV data
+        try:
+            import pandas as pd
+            df = pd.read_csv(saved_path)
+            print(f"Loaded MEIC CSV with {len(df)} rows and columns: {list(df.columns)}")
+            
+            # Check if required columns exist (using actual column names from MEIC data)
+            required_columns = ['Date Closed', 'P/L', 'Strategy']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required columns: {missing_columns}. Available columns: {list(df.columns)}'
+                }), 400
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Failed to read MEIC CSV file: {str(e)}. Available columns: {list(df.columns)}'
+            }), 400
+        
+        # Clear existing data and load new data
+        portfolio.strategies.clear()
+        portfolio.load_from_csv(saved_path)
+        # Set current filename
+        portfolio.current_filename = saved_filename
+        # Set data type
+        global current_data_type, current_initial_capital
+        current_data_type = data_type
+        current_initial_capital = None  # Sample data doesn't need initial capital
+        
+        # Track successful sample MEIC data load
+        app_insights.track_event('sample_meic_data_load_success', {
+            'user_id': get_current_user_id(),
+            'trades_count': portfolio.total_trades,
+            'strategies_count': len(portfolio.strategies),
+            'filename': saved_filename
+        })
+        
+        print("=== LOAD SAMPLE MEIC DATA SUCCESS ===")
+        return jsonify({
+            'success': True,
+            'data': {
+                'filename': saved_filename,
+                'friendly_name': 'Example MEIC Portfolio',
+                'trades_count': portfolio.total_trades,
+                'strategies_count': len(portfolio.strategies),
+                'data_type': data_type
+            }
+        })
+        
+    except Exception as e:
+        # Clean up file if error occurs during processing
+        if os.path.exists(saved_path):
+            os.remove(saved_path)
+        raise e
+    
+    except Exception as e:
+        # Track sample MEIC data load failure
+        app_insights.track_exception(e, {
+            'user_id': get_current_user_id(),
+            'endpoint': 'load_sample_meic_data'
+        })
+        
+        print(f"=== LOAD SAMPLE MEIC DATA ERROR: {str(e)} ===")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to load sample MEIC data: {str(e)}'
+        }), 500
+
 @app.route('/api/saved-files')
 def list_saved_files():
     """Get list of saved CSV files, ordered newest to oldest."""

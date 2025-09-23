@@ -1,3 +1,0 @@
-# Force deployment refresh
-# This file forces Azure to rebuild the application
-# Generated on: 2025-01-17
