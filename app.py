@@ -1706,7 +1706,8 @@ def run_strategy_monte_carlo(strategy_name):
         data = request.get_json() or {}
         num_simulations = data.get('num_simulations', 1000)
         num_trades = data.get('num_trades', None)  # None = use historical count
-        trade_size_percent = data.get('trade_size_percent', 1.0)  # Default to 1%
+        # trade_size_percent removed - using historical position sizing
+        risk_free_rate = data.get('risk_free_rate', 4.0)  # Default to 4%
         
         # Validate parameters
         if not isinstance(num_simulations, int) or num_simulations < 100 or num_simulations > 10000:
@@ -1721,15 +1722,11 @@ def run_strategy_monte_carlo(strategy_name):
                 'error': 'Number of trades must be at least 10'
             }), 400
         
-        if not isinstance(trade_size_percent, (int, float)) or trade_size_percent <= 0 or trade_size_percent > 50:
-            return jsonify({
-                'success': False,
-                'error': 'Trade size percentage must be between 0.1 and 50'
-            }), 400
+        # trade_size_percent validation removed - using historical position sizing
         
         # Run simulation
         simulator = MonteCarloSimulator(portfolio)
-        results = simulator.run_strategy_specific_simulation(matching_strategy, num_simulations, num_trades, trade_size_percent)
+        results = simulator.run_strategy_specific_simulation(matching_strategy, num_simulations, num_trades, risk_free_rate)
         
         return jsonify({
             'success': True,
@@ -2442,7 +2439,16 @@ def load_saved_file(filename):
             chart_generator = ChartGenerator(portfolio)
             chart_generator.clear_cache()
         except Exception as cache_error:
-            print(f"Warning: Could not clear cache: {cache_error}")
+            print(f"Warning: Could not clear chart cache: {cache_error}")
+        
+        # Clear Monte Carlo simulation cache for the new portfolio
+        try:
+            from analytics import MonteCarloSimulator
+            simulator = MonteCarloSimulator(portfolio)
+            simulator.clear_cache()
+            print("🧹 Monte Carlo cache cleared due to data reload")
+        except Exception as cache_error:
+            print(f"Warning: Could not clear Monte Carlo cache: {cache_error}")
         
         # Track current data type and initial capital
         global current_data_type, current_initial_capital
@@ -2616,7 +2622,7 @@ def run_portfolio_monte_carlo():
         data = request.get_json() or {}
         num_simulations = data.get('num_simulations', 1000)
         num_trades = data.get('num_trades', None)  # None = use historical count
-        trade_size_percent = data.get('trade_size_percent', 1.0)  # Default to 1%
+        risk_free_rate = data.get('risk_free_rate', 4.0)  # Default to 4%
         
         # Validate parameters
         if not isinstance(num_simulations, int) or num_simulations < 100 or num_simulations > 10000:
@@ -2631,15 +2637,9 @@ def run_portfolio_monte_carlo():
                 'error': 'Number of trades must be at least 10'
             }), 400
         
-        if not isinstance(trade_size_percent, (int, float)) or trade_size_percent <= 0 or trade_size_percent > 50:
-            return jsonify({
-                'success': False,
-                'error': 'Trade size percentage must be between 0.1 and 50'
-            }), 400
-        
         # Run simulation
         simulator = MonteCarloSimulator(portfolio)
-        results = simulator.run_simulation(num_simulations, num_trades, trade_size_percent)
+        results = simulator.run_simulation(num_simulations, num_trades, risk_free_rate)
         
         return jsonify({
             'success': True,
@@ -2666,7 +2666,8 @@ def run_all_strategies_monte_carlo():
         data = request.get_json() or {}
         num_simulations = data.get('num_simulations', 1000)
         num_trades = data.get('num_trades', None)  # None = use historical count
-        trade_size_percent = data.get('trade_size_percent', 1.0)  # Default to 1%
+        # trade_size_percent removed - using historical position sizing
+        risk_free_rate = data.get('risk_free_rate', 4.0)  # Default to 4%
         
         # Validate parameters
         if not isinstance(num_simulations, int) or num_simulations < 100 or num_simulations > 10000:
@@ -2681,15 +2682,11 @@ def run_all_strategies_monte_carlo():
                 'error': 'Number of trades must be at least 10'
             }), 400
         
-        if not isinstance(trade_size_percent, (int, float)) or trade_size_percent <= 0 or trade_size_percent > 50:
-            return jsonify({
-                'success': False,
-                'error': 'Trade size percentage must be between 0.1 and 50'
-            }), 400
+        # trade_size_percent validation removed - using historical position sizing
         
         # Run Monte Carlo simulation for all strategies
         simulator = MonteCarloSimulator(portfolio)
-        results = simulator.run_all_strategies_simulation(num_simulations, num_trades, trade_size_percent)
+        results = simulator.run_all_strategies_simulation(num_simulations, num_trades, risk_free_rate)
         
         return jsonify({
             'success': True,
@@ -2771,9 +2768,9 @@ def get_simulation_details(simulation_id):
                     'winning_trades': len([t for t in simulated_trades if t > 0]),
                     'losing_trades': len([t for t in simulated_trades if t < 0]),
                     'win_rate': (len([t for t in simulated_trades if t > 0]) / len(simulated_trades) * 100) if simulated_trades else 0,
-                    'total_pnl': target_simulation['total_pnl'],
-                    'final_balance': target_simulation['final_balance'],
-                    'max_drawdown': target_simulation['max_drawdown']
+                    'total_pnl': target_simulation.get('total_pnl', 0),
+                    'final_balance': target_simulation.get('final_balance', 0),
+                    'max_drawdown': target_simulation.get('max_drawdown', 0)
                 },
                 'trades': trades_detail,
                 'historical_comparison': {

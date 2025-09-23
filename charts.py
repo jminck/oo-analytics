@@ -1227,7 +1227,7 @@ class ChartGenerator:
                 p95_values.append(np.percentile(balances_at_trade, 95))
                 median_values.append(np.percentile(balances_at_trade, 50))
             
-            # Add confidence bands
+            # Add 90% confidence band
             fig.add_trace(go.Scatter(
                 x=trades + trades[::-1],
                 y=p95_values + p5_values[::-1],
@@ -1238,6 +1238,32 @@ class ChartGenerator:
                 hoverinfo='skip'
             ))
             
+            # Add 90% confidence lines with tooltips
+            fig.add_trace(go.Scatter(
+                x=trades,
+                y=p95_values,
+                mode='lines',
+                line=dict(color='rgba(135, 206, 235, 0.8)', width=1, dash='dash'),
+                name='90% Upper',
+                hovertemplate='<b>90% Upper Bound</b><br>' +
+                             'Trade: %{x}<br>' +
+                             'Balance: $%{y:,.2f}<extra></extra>',
+                showlegend=False
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=trades,
+                y=p5_values,
+                mode='lines',
+                line=dict(color='rgba(135, 206, 235, 0.8)', width=1, dash='dash'),
+                name='90% Lower',
+                hovertemplate='<b>90% Lower Bound</b><br>' +
+                             'Trade: %{x}<br>' +
+                             'Balance: $%{y:,.2f}<extra></extra>',
+                showlegend=False
+            ))
+            
+            # Add 50% confidence band
             fig.add_trace(go.Scatter(
                 x=trades + trades[::-1],
                 y=p75_values + p25_values[::-1],
@@ -1248,13 +1274,41 @@ class ChartGenerator:
                 hoverinfo='skip'
             ))
             
-            # Add median line
+            # Add 50% confidence lines with tooltips
+            fig.add_trace(go.Scatter(
+                x=trades,
+                y=p75_values,
+                mode='lines',
+                line=dict(color='rgba(70, 130, 180, 0.8)', width=1, dash='dot'),
+                name='50% Upper',
+                hovertemplate='<b>50% Upper Bound</b><br>' +
+                             'Trade: %{x}<br>' +
+                             'Balance: $%{y:,.2f}<extra></extra>',
+                showlegend=False
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=trades,
+                y=p25_values,
+                mode='lines',
+                line=dict(color='rgba(70, 130, 180, 0.8)', width=1, dash='dot'),
+                name='50% Lower',
+                hovertemplate='<b>50% Lower Bound</b><br>' +
+                             'Trade: %{x}<br>' +
+                             'Balance: $%{y:,.2f}<extra></extra>',
+                showlegend=False
+            ))
+            
+            # Add median line with tooltip
             fig.add_trace(go.Scatter(
                 x=trades,
                 y=median_values,
                 mode='lines',
                 line=dict(color='blue', width=3),
-                name='Median Path'
+                name='Median Path',
+                hovertemplate='<b>Median Path</b><br>' +
+                             'Trade: %{x}<br>' +
+                             'Balance: $%{y:,.2f}<extra></extra>'
             ))
             
             # Update layout

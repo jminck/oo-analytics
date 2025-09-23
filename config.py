@@ -67,3 +67,8 @@ class Config:
         DATA_BASE_DIR = os.path.join(BASE_DIR, 'data')
         GUEST_DATA_DIR = os.path.join(BASE_DIR, 'data', 'guest')
         USER_DATA_DIR = os.path.join(BASE_DIR, 'data', 'users')
+    
+    # Monte Carlo Simulation Configuration
+    # Risk-free rate (annual percentage, default 4%)
+    RISK_FREE_RATE_PCT = float(os.environ.get('RISK_FREE_RATE_PCT', '4.0'))
+    RISK_FREE_RATE = RISK_FREE_RATE_PCT / 100.0  # Convert to decimal
