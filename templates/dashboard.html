@@ -4963,6 +4963,33 @@
                         <div class="progress-bar" style="width: ${diversification.score}%">${diversification.score}%</div>
                     </div>
                     <small class="text-muted">${diversification.status}</small>
+                    
+                    <!-- Diversification Score Explanation -->
+                    <div class="mt-2">
+                        <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#diversificationExplanation" aria-expanded="false" aria-controls="diversificationExplanation">
+                            <i class="fas fa-info-circle"></i> How is this calculated?
+                        </button>
+                        <div class="collapse mt-2" id="diversificationExplanation">
+                            <div class="card card-body bg-light">
+                                <h6><strong>Diversification Score Logic:</strong></h6>
+                                <p class="mb-2"><strong>Formula:</strong> Score = 100 - (Average Correlation × 100)</p>
+                                <ul class="mb-2">
+                                    <li><strong>Higher Score = Better Diversification</strong></li>
+                                    <li><strong>Perfect Diversification (0% correlation) = 100% score</strong></li>
+                                    <li><strong>Perfect Correlation (100% correlation) = 0% score</strong></li>
+                                </ul>
+                                <p class="mb-2"><strong>Your Score: ${diversification.score}%</strong> means your strategies have an average correlation of <strong>${(100 - diversification.score).toFixed(1)}%</strong></p>
+                                <h6><strong>Status Thresholds:</strong></h6>
+                                <ul class="mb-0">
+                                    <li><span class="text-success">≥70%:</span> Well Diversified 🟢</li>
+                                    <li><span class="text-warning">50-69%:</span> Moderately Diversified 🟡</li>
+                                    <li><span class="text-warning">30-49%:</span> Poorly Diversified 🟠</li>
+                                    <li><span class="text-danger"><30%:</span> Highly Correlated 🔴</li>
+                                </ul>
+                                <p class="mt-2 mb-0"><small class="text-muted"><strong>Why this matters:</strong> Low correlation means strategies don't all lose money at the same time, providing more stable overall portfolio performance and risk reduction.</small></p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
         }
