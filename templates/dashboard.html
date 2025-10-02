@@ -11661,6 +11661,7 @@
                                 <th>Live Close Time</th>
                                 <th>Live Reason</th>
                                 <th>P&L Diff</th>
+                                <th>P&L Diff/Contract</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -11681,6 +11682,14 @@
                                         ${trade.pnl_diff !== null ? 
                                             `<span class="badge ${trade.pnl_diff > 0 ? 'bg-success' : trade.pnl_diff < 0 ? 'bg-danger' : 'bg-secondary'}">
                                                 ${trade.pnl_diff > 0 ? '+' : ''}$${trade.pnl_diff.toFixed(2)}
+                                            </span>` : 
+                                            '<span class="text-muted">N/A</span>'
+                                        }
+                                    </td>
+                                    <td>
+                                        ${trade.pnl_diff !== null && trade.backtest && trade.live && trade.backtest.contracts > 0 && trade.live.contracts > 0 ? 
+                                            `<span class="badge ${(trade.pnl_diff / Math.max(trade.backtest.contracts, trade.live.contracts)) > 0 ? 'bg-success' : (trade.pnl_diff / Math.max(trade.backtest.contracts, trade.live.contracts)) < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                ${(trade.pnl_diff / Math.max(trade.backtest.contracts, trade.live.contracts)) > 0 ? '+' : ''}$${(trade.pnl_diff / Math.max(trade.backtest.contracts, trade.live.contracts)).toFixed(2)}
                                             </span>` : 
                                             '<span class="text-muted">N/A</span>'
                                         }
@@ -11900,6 +11909,7 @@
                                 <th>Live Close Time</th>
                                 <th>Live Reason</th>
                                 <th>P&L Diff</th>
+                                <th>P&L Diff/Contract</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -11920,6 +11930,14 @@
                                         ${trade.pnl_diff !== null ? 
                                             `<span class="badge ${trade.pnl_diff > 0 ? 'bg-success' : trade.pnl_diff < 0 ? 'bg-danger' : 'bg-secondary'}">
                                                 ${trade.pnl_diff > 0 ? '+' : ''}$${trade.pnl_diff.toFixed(2)}
+                                            </span>` : 
+                                            '<span class="text-muted">N/A</span>'
+                                        }
+                                    </td>
+                                    <td>
+                                        ${trade.pnl_diff !== null && trade.backtest && trade.live && trade.backtest.contracts > 0 && trade.live.contracts > 0 ? 
+                                            `<span class="badge ${(trade.pnl_diff / Math.max(trade.backtest.contracts, trade.live.contracts)) > 0 ? 'bg-success' : (trade.pnl_diff / Math.max(trade.backtest.contracts, trade.live.contracts)) < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                ${(trade.pnl_diff / Math.max(trade.backtest.contracts, trade.live.contracts)) > 0 ? '+' : ''}$${(trade.pnl_diff / Math.max(trade.backtest.contracts, trade.live.contracts)).toFixed(2)}
                                             </span>` : 
                                             '<span class="text-muted">N/A</span>'
                                         }
@@ -11972,8 +11990,8 @@
                     let aVal = aCell.textContent.trim();
                     let bVal = bCell.textContent.trim();
                     
-                    // Handle numeric values (Contracts, P&L columns, P&L Diff)
-                    if (columnIndex === 2 || columnIndex === 3 || columnIndex === 7 || columnIndex === 8 || columnIndex === 11) {
+                    // Handle numeric values (Contracts, P&L columns, P&L Diff, P&L Diff/Contract)
+                    if (columnIndex === 2 || columnIndex === 3 || columnIndex === 7 || columnIndex === 8 || columnIndex === 11 || columnIndex === 12) {
                         aVal = parseFloat(aVal.replace(/[$,]/g, '')) || 0;
                         bVal = parseFloat(bVal.replace(/[$,]/g, '')) || 0;
                     }
