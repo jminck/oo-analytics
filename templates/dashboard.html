@@ -3331,12 +3331,14 @@
         let filesOverviewData = [];
 
         function loadFilesOverview() {
+            console.log('🔄 loadFilesOverview called - v20241213_4');
             const container = document.getElementById('chartContainer');
             container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading files overview...</div>';
             
             // Always fetch fresh data from API to ensure we have the latest calculations
             // Add cache-busting parameter to force fresh data
-            fetch('/api/files/overview?' + new Date().getTime(), {
+            console.log('Loading files overview with cache busting...');
+            fetch('/api/files/overview?t=' + new Date().getTime(), {
                 method: 'GET',
                 cache: 'no-cache',
                 headers: {
@@ -3465,12 +3467,20 @@
                         <td class="${drawdownClass}">${file.max_drawdown_pct.toFixed(2)}%</td>
                         <td>${new Date(file.upload_date).toLocaleDateString()}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary" onclick="loadFileFromTable('${file.filename}')" title="Load this file">
-                                <i class="fas fa-play"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteFileFromTable('${file.filename}', '${file.friendly_name}')" title="Move to recycle">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div class="d-flex gap-1 flex-wrap">
+                                <button class="btn btn-sm btn-primary" onclick="loadFileFromTable('${file.filename}')" title="Load this file">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button class="btn btn-sm btn-info" onclick="showFileContent('${file.filename}')" title="Show file content">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="downloadFile('${file.filename}')" title="Download this file">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteFileFromTable('${file.filename}', '${file.friendly_name}')" title="Move to recycle">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -3522,6 +3532,8 @@
                 return 0;
             });
             
+            console.log('🔄 Rendering files overview table v20241213_4 with', sorted.length, 'files');
+            console.log('🔄 Template includes Show/Download buttons:', sorted.map(file => file.filename).slice(0, 1));
             tbody.innerHTML = sorted.map(file => `
                 <tr class="file-row" data-filename="${file.filename}">
                     <td>
@@ -3559,9 +3571,15 @@
                         <small class="text-muted">${new Date(file.upload_date).toLocaleDateString()}</small>
                     </td>
                     <td>
-                        <div class="d-flex gap-1">
+                        <div class="d-flex gap-1 flex-wrap">
                             <button class="btn btn-primary btn-sm" onclick="loadFileFromTable('${file.filename}'); event.stopPropagation();" title="Load this file">
                                 <i class="fas fa-play"></i> Load
+                            </button>
+                            <button class="btn btn-info btn-sm" onclick="showFileContent('${file.filename}'); event.stopPropagation();" title="Show file content">
+                                <i class="fas fa-eye"></i> Show
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="downloadFile('${file.filename}'); event.stopPropagation();" title="Download this file">
+                                <i class="fas fa-download"></i> Download
                             </button>
                             <button class="btn btn-outline-danger btn-sm" onclick="deleteFileFromTable('${file.filename}', '${file.friendly_name}'); event.stopPropagation();" title="Delete this file">
                                 <i class="fas fa-trash"></i>
@@ -3786,6 +3804,109 @@
                 console.error('Error loading file:', error);
                 statusDiv.innerHTML = '<small class="text-danger">❌ Error loading file</small>';
             });
+        }
+
+        function showFileContent(filename) {
+            console.log('showFileContent called for:', filename);
+            // Show loading modal
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.id = 'fileContentModal';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-xl" style="max-width: 95vw; width: 95vw; height: 95vh; margin: 2.5vh auto;">
+                    <div class="modal-content" style="height: 100%; display: flex; flex-direction: column;">
+                        <div class="modal-header" style="flex-shrink: 0;">
+                            <h5 class="modal-title">
+                                <i class="fas fa-file-csv"></i> File Content: ${filename}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body" style="flex: 1; overflow: hidden; padding: 0;">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-2">Loading file content...</p>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="flex-shrink: 0;">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-success" onclick="downloadFile('${filename}')">
+                                <i class="fas fa-download"></i> Download File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            // Fetch file content
+            fetch(`/api/files/content/${encodeURIComponent(filename)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const modalBody = modal.querySelector('.modal-body');
+                        modalBody.innerHTML = `
+                         <div class="table-responsive" style="height: 100%; overflow: auto;">
+                             <table class="table table-striped table-hover table-sm" style="table-layout: auto; width: max-content; min-width: 100%;">
+                                    <thead class="table-dark sticky-top">
+                                        <tr>
+                                            ${data.headers.map(header => `<th style="white-space: nowrap; padding: 8px 12px; min-width: 120px;">${header}</th>`).join('')}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.rows.map(row => `
+                                            <tr>
+                                                ${row.map(cell => `<td style="white-space: normal; padding: 8px 12px; min-width: 120px; max-width: 400px; word-wrap: break-word; vertical-align: top;">${cell}</td>`).join('')}
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    Showing ${data.rows.length} rows • ${data.headers.length} columns
+                                    ${data.truncated ? '<br><span class="text-warning"><i class="fas fa-exclamation-triangle"></i> File truncated to first 1000 rows for performance</span>' : ''}
+                                </small>
+                            </div>
+                        `;
+                    } else {
+                        const modalBody = modal.querySelector('.modal-body');
+                        modalBody.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Error loading file content: ${data.error}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    const modalBody = modal.querySelector('.modal-body');
+                    modalBody.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Error loading file content: ${error.message}
+                        </div>
+                    `;
+                });
+            
+            // Clean up modal when closed
+            modal.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(modal);
+            });
+        }
+        
+        function downloadFile(filename) {
+            console.log('downloadFile called for:', filename);
+            // Create a temporary link to download the file
+            const link = document.createElement('a');
+            link.href = `/api/files/download/${encodeURIComponent(filename)}`;
+            link.download = filename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function deleteFileFromTable(filename, friendlyName) {

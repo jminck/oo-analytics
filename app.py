@@ -3,9 +3,10 @@ Main Flask application for portfolio strategy analytics with authentication.
 Simple but powerful analytics platform optimized for strategy comparison and portfolio balance.
 """
 
-from flask import Flask, request, render_template, jsonify, redirect, url_for, session
+from flask import Flask, request, render_template, jsonify, redirect, url_for, session, send_file
 from flask_login import current_user, login_required
 import pandas as pd
+import numpy as np
 import os
 import glob
 import sqlite3
@@ -2771,6 +2772,84 @@ def load_saved_file(filename):
         return jsonify({
             'success': False,
             'error': f'Failed to load file: {str(e)}'
+        }), 500
+
+@app.route('/api/files/content/<filename>')
+def get_file_content(filename):
+    """Get file content for display in modal."""
+    try:
+        file_path = file_manager.get_file_path(filename)
+        if not os.path.exists(file_path):
+            return jsonify({
+                'success': False,
+                'error': 'File not found'
+            }), 404
+        
+        # Read CSV file
+        df = pd.read_csv(file_path)
+        
+        # Limit to first 1000 rows for performance
+        if len(df) > 1000:
+            df = df.head(1000)
+            truncated = True
+        else:
+            truncated = False
+        
+        # Convert to list format for JSON response
+        headers = df.columns.tolist()
+        rows = df.values.tolist()
+        
+        # Convert numpy types to Python types for JSON serialization
+        for i, row in enumerate(rows):
+            for j, cell in enumerate(row):
+                if pd.isna(cell):
+                    rows[i][j] = ''
+                elif isinstance(cell, (np.integer, np.floating)):
+                    rows[i][j] = cell.item()
+                else:
+                    rows[i][j] = str(cell)
+        
+        response_data = {
+            'success': True,
+            'headers': headers,
+            'rows': rows,
+            'total_rows': len(df),
+            'truncated': truncated
+        }
+        
+        if truncated:
+            response_data['message'] = 'Showing first 1000 rows for performance'
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to read file: {str(e)}'
+        }), 500
+
+@app.route('/api/files/download/<filename>')
+def download_file(filename):
+    """Download a file."""
+    try:
+        file_path = file_manager.get_file_path(filename)
+        if not os.path.exists(file_path):
+            return jsonify({
+                'success': False,
+                'error': 'File not found'
+            }), 404
+        
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='text/csv'
+        )
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to download file: {str(e)}'
         }), 500
 
 @app.route('/api/delete-file', methods=['POST'])
