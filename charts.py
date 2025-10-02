@@ -2043,10 +2043,12 @@ class ChartFactory:
             'margin_analysis': 'Margin requirements analysis',
             'daily_margin_analysis': 'Daily margin usage analysis',
             'monte_carlo': 'Monte Carlo simulation analysis',
+            'mfe_mae': 'MFE/MAE Analysis',
             'blackout_dates': 'Blackout dates analysis',
             'price_movement': 'Price movement analysis',
             'meic_analysis': 'MEIC (Multiple Entry Iron Condor) analysis',
             'separator': '--- Cross-File Analysis ---',
+            'live_vs_bt': 'Live vs Backtest comparison analysis',
             'cross_file_correlation': 'Cross-file strategy correlation analysis',
             'files_overview': 'Uploaded files overview and management'
         }

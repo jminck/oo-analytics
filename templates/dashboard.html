@@ -3961,8 +3961,10 @@
                 'margin_analysis': 'Margin requirements analysis',
                 'daily_margin_analysis': 'Daily margin usage analysis',
                 'monte_carlo': 'Monte Carlo simulation analysis',
+                'mfe_mae': 'MFE/MAE Analysis',
                 'blackout_dates': 'Blackout dates analysis',
                 'price_movement': 'Price movement analysis',
+                'live_vs_bt': 'Live vs Backtest comparison',
                 'cross_file_correlation': 'Analyze strategies across multiple uploaded files'
             };
             renderChartButtons();
@@ -3998,10 +4000,12 @@
                     ['margin_analysis', 'Margin requirements analysis'],
                     ['daily_margin_analysis', 'Daily margin usage analysis'],
                     ['monte_carlo', 'Monte Carlo simulation analysis'],
+                    ['mfe_mae', 'MFE/MAE Analysis'],
                     ['blackout_dates', 'Blackout dates analysis'],
                     ['price_movement', 'Price movement analysis'],
                     ['meic_analysis', 'MEIC (Multiple Entry Iron Condor) analysis'],
                     ['separator', '--- Cross-File Analysis ---'],
+                    ['live_vs_bt', 'Live vs Backtest comparison'],
                     ['cross_file_correlation', 'Analyze strategies across multiple uploaded files'],
                     ['files_overview', 'Uploaded files overview and management']
                 ];
@@ -4029,10 +4033,12 @@
                 'margin_analysis',
                 'daily_margin_analysis',
                 'monte_carlo',
+                'mfe_mae',
                 'blackout_dates',
                 'price_movement',
                 'meic_analysis',
                 'separator',
+                'live_vs_bt',
                 'cross_file_correlation',
                 'files_overview'
             ];
@@ -4097,6 +4103,7 @@
                 'win_rate': '🎯 Win Rate',
                 'win_rates_table': '📊 Win Rates Table',
                 'monte_carlo': '🎲 Monte Carlo',
+                'mfe_mae': '📈 MFE/MAE',
                 'strategy_detail': '📋 Strategy Detail',
                 'margin_analysis': '💰 Margin Analysis',
                 'daily_margin_analysis': '📊 Daily Margin Analysis',
@@ -4108,6 +4115,7 @@
                 'price_movement': '📈 Price Movement',
                 'meic_analysis': '🎯 MEIC Analysis',
                 'separator': '--- Cross-File Analysis ---',
+                'live_vs_bt': '⚖️ Live vs Backtest',
                 'cross_file_correlation': '🔗 Cross-File Correlation',
                 'files_overview': '📁 Uploaded Files Overview'
             };
@@ -4382,6 +4390,18 @@
                 return;
             }
             
+            if (chartType === 'mfe_mae') {
+                console.log('🔧 MFE/MAE ANALYSIS CONDITION REACHED');
+                loadMFEMAEAnalysis();
+                return;
+            }
+            
+            if (chartType === 'live_vs_bt') {
+                console.log('🔧 LIVE VS BT ANALYSIS CONDITION REACHED');
+                loadLiveVsBTAnalysis();
+                return;
+            }
+            
             if (chartType === 'meic_analysis') {
                 console.log('🔧 MEIC ANALYSIS CONDITION REACHED');
                 loadMEICAnalysis();
@@ -4612,7 +4632,6 @@
                     updateBalanceAnalysis(data.data);
                 }
             });
-
 
             // Auto-load cumulative P&L chart only if no chart is currently loaded and not loading a saved file
             setTimeout(() => {
@@ -4992,6 +5011,460 @@
                     </div>
                 </div>
             `;
+        }
+
+        // Load MFE/MAE Analysis
+        function loadMFEMAEAnalysis() {
+            console.log('Loading MFE/MAE analysis...');
+            
+            const container = document.getElementById('chartContainer');
+            const loading = document.getElementById('chartLoading');
+            
+            // Hide other content and show loading
+            container.style.display = 'none';
+            loading.style.display = 'block';
+            
+            // Create the MFE/MAE page content
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-chart-line"></i> MFE/MAE Analysis</h5>
+                                <small class="text-muted">Maximum Favorable Excursion & Maximum Adverse Excursion</small>
+                            </div>
+                            <div class="card-body">
+                                <div id="mfeMaeContent">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status"></div>
+                                        <p class="mt-2">Loading MFE/MAE analysis...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Show the container and hide loading
+            container.style.display = 'block';
+            loading.style.display = 'none';
+            
+            // Load the data
+            fetch('/api/portfolio/mfe-mae-analysis')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayMFEMAEAnalysis(data.data);
+                    } else {
+                        displayMFEMAEError(data.error || 'Failed to load MFE/MAE analysis');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading MFE/MAE analysis:', error);
+                    displayMFEMAEError('Error loading MFE/MAE analysis: ' + error.message);
+                });
+        }
+
+        function displayMFEMAEAnalysis(mfeMaeData) {
+            const container = document.getElementById('mfeMaeContent');
+            
+            if (!mfeMaeData.available) {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> ${mfeMaeData.message}
+                    </div>
+                `;
+                return;
+            }
+            
+            if (!mfeMaeData.strategies || mfeMaeData.strategies.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> No MFE/MAE data available for analysis.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create summary
+            const summary = mfeMaeData.summary || {};
+            const summaryHtml = `
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-chart-bar"></i> Analysis Summary</h6>
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <strong>${summary.total_strategies || 0}</strong><br>
+                                    <small class="text-muted">Strategies</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>${summary.total_trades_analyzed || 0}</strong><br>
+                                    <small class="text-muted">Total Trades</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>${summary.losing_trades_with_mfe || 0}</strong><br>
+                                    <small class="text-muted">Losing Trades with MFE</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>${summary.winning_trades_combined || 0}</strong><br>
+                                    <small class="text-muted">Winning Trades (MAE + MFE)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Create strategy table
+            const tableHtml = `
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="mfeMaeTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th rowspan="2" class="align-middle">
+                                    <i class="fas fa-sort" style="opacity: 0.3;"></i> Strategy
+                                </th>
+                                <th rowspan="2" class="align-middle text-center">
+                                    <i class="fas fa-sort" style="opacity: 0.3;"></i> Total<br><small class="text-muted">Trades</small>
+                                </th>
+                                <th colspan="3" class="text-center bg-danger bg-opacity-25 border border-danger border-2">
+                                    <i class="fas fa-arrow-down text-danger"></i> LOSING TRADES MFE ANALYSIS
+                                </th>
+                                <th colspan="5" class="text-center bg-success bg-opacity-25 border border-success border-2">
+                                    <i class="fas fa-arrow-up text-success"></i> WINNING TRADES COMBINED ANALYSIS
+                                </th>
+                            </tr>
+                            <tr>
+                                <th class="text-center bg-danger bg-opacity-10 border border-danger">
+                                    <i class="fas fa-sort" style="opacity: 0.3;"></i> Count<br>
+                                    <small class="text-muted" data-bs-toggle="tooltip" title="Number of losing trades">Losing</small>
+                                </th>
+                                <th class="text-center bg-danger bg-opacity-10 border border-danger">
+                                    <i class="fas fa-sort" style="opacity: 0.3;"></i> Avg MFE %<br>
+                                    <small class="text-muted" data-bs-toggle="tooltip" title="Average Maximum Favorable Excursion - how much profit losing trades saw before becoming losers">Missed Profit</small>
+                                </th>
+                                <th class="text-center bg-danger bg-opacity-10 border border-danger">
+                                    <i class="fas fa-sort" style="opacity: 0.3;"></i> Profit Kept %<br>
+                                    <small class="text-muted" data-bs-toggle="tooltip" title="Percentage of maximum profit that was retained (always 0% for losing trades)">Retained</small>
+                                </th>
+                                <th class="text-center bg-success bg-opacity-10 border border-success">
+                                    <i class="fas fa-sort" style="opacity: 0.3;"></i> Count<br>
+                                    <small class="text-muted" data-bs-toggle="tooltip" title="Number of winning trades">Winning</small>
+                                </th>
+                                <th class="text-center bg-success bg-opacity-10 border border-success">
+                                    <i class="fas fa-sort" style="opacity: 0.3;"></i> Avg MAE %<br>
+                                    <small class="text-muted" data-bs-toggle="tooltip" title="Average Maximum Adverse Excursion - how much pain winning trades endured before becoming profitable">Pain Endured</small>
+                                </th>
+                                <th class="text-center bg-success bg-opacity-10 border border-success">
+                                    <i class="fas fa-sort" style="opacity: 0.3;"></i> Pain/Profit<br>
+                                    <small class="text-muted" data-bs-toggle="tooltip" title="Ratio of maximum adverse excursion to final profit (lower is better)">Efficiency</small>
+                                </th>
+                                <th class="text-center bg-success bg-opacity-10 border border-success">
+                                    <i class="fas fa-sort" style="opacity: 0.3;"></i> Avg MFE %<br>
+                                    <small class="text-muted" data-bs-toggle="tooltip" title="Average Maximum Favorable Excursion - how much profit winning trades saw while open">Profit Potential</small>
+                                </th>
+                                <th class="text-center bg-success bg-opacity-10 border border-success">
+                                    <i class="fas fa-sort" style="opacity: 0.3;"></i> Profit Kept %<br>
+                                    <small class="text-muted" data-bs-toggle="tooltip" title="Percentage of maximum profit that was actually captured (higher is better)">Profit Retention</small>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${mfeMaeData.strategies.map(strategy => `
+                                <tr>
+                                    <td><strong>${strategy.strategy_name}</strong></td>
+                                    <td class="text-center">${strategy.total_trades}</td>
+                                    <td class="text-center border border-danger">${strategy.losing_mfe.count}</td>
+                                    <td class="text-center border border-danger ${strategy.losing_mfe.avg_mfe_pct > 50 ? 'text-warning' : 'text-success'}">
+                                        ${strategy.losing_mfe.avg_mfe_pct.toFixed(1)}%
+                                    </td>
+                                    <td class="text-center text-info border border-danger">
+                                        ${strategy.losing_mfe.avg_profit_kept_pct.toFixed(1)}%
+                                    </td>
+                                    <td class="text-center border border-success">${strategy.winning_combined.count}</td>
+                                    <td class="text-center border border-success ${strategy.winning_combined.avg_mae_pct > 50 ? 'text-warning' : 'text-success'}">
+                                        ${strategy.winning_combined.avg_mae_pct.toFixed(1)}%
+                                    </td>
+                                    <td class="text-center border border-success ${strategy.winning_combined.avg_pain_to_profit_ratio > 2.0 ? 'text-warning' : 'text-success'}">
+                                        ${strategy.winning_combined.avg_pain_to_profit_ratio.toFixed(2)}
+                                    </td>
+                                    <td class="text-center border border-success ${strategy.winning_combined.avg_mfe_pct > 50 ? 'text-warning' : 'text-success'}">
+                                        ${strategy.winning_combined.avg_mfe_pct.toFixed(1)}%
+                                    </td>
+                                    <td class="text-center border border-success ${strategy.winning_combined.avg_profit_kept_pct > 50 ? 'text-success' : 'text-warning'}">
+                                        ${strategy.winning_combined.avg_profit_kept_pct.toFixed(1)}%
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb"></i> Key Insights:</h6>
+                        <ul class="mb-0">
+                            <li><strong>MFE (Losing Trades):</strong> How much profit losing trades saw before becoming losers (shows missed opportunities)</li>
+                            <li><strong>Profit Kept % (Losing):</strong> Always 0% since they ended up losing (shows they didn't capture the profit they saw)</li>
+                            <li><strong>MAE (Winning Trades):</strong> How much pain winning trades endured before becoming profitable</li>
+                            <li><strong>Pain/Profit Ratio:</strong> Ratio of maximum adverse excursion to final profit (lower is better - shows efficiency of profit capture)</li>
+                            <li><strong>MFE (Winning Trades):</strong> How much profit winning trades saw while open (shows profit potential)</li>
+                            <li><strong>Profit Kept % (Winning):</strong> What percentage of maximum profit was actually captured (higher is better - shows profit retention efficiency)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                </div>
+                
+                <!-- Debug Cards Section -->
+                <div class="mt-4">
+                    <h5><i class="fas fa-info-circle"></i> Sample Trade Details by Strategy</h5>
+                    <p class="text-muted small">Detailed breakdown of one sample winner and one sample loser for each strategy</p>
+                    
+                    ${mfeMaeData.strategies.map(strategy => {
+                        const loser = strategy.debug_loser || {};
+                        const winner = strategy.debug_winner || {};
+                        
+                        if (!loser.trade_type && !winner.trade_type) {
+                            return '';
+                        }
+                        
+                        return `
+                            <div class="card mb-2">
+                                <div class="card-header py-2">
+                                    <h6 class="mb-0">${strategy.strategy_name}</h6>
+                                </div>
+                                <div class="card-body py-2">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card border-danger">
+                                                <div class="card-header bg-danger text-white py-1">
+                                                    <h6 class="mb-0 small"><i class="fas fa-arrow-down"></i> Sample Loser</h6>
+                                                </div>
+                                                <div class="card-body py-2">
+                                                    <div class="row g-1">
+                                                        <div class="col-6">
+                                                            <small><strong>Type:</strong> <span class="badge ${loser.trade_type === 'CREDIT' ? 'bg-success' : 'bg-primary'}">${loser.trade_type || 'N/A'}</span></small>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small><strong>P&L:</strong> <span class="text-danger">$${loser.pnl ? loser.pnl.toLocaleString() : '0'}</span></small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row g-1">
+                                                        <div class="col-6">
+                                                            <small><strong>Premium:</strong> $${loser.premium ? Math.abs(loser.premium).toLocaleString() : '0'}${loser.premium && loser.premium > 0 ? ' (credit)' : loser.premium && loser.premium < 0 ? ' (debit)' : ''}</small>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small><strong>Close:</strong> $${loser.avg_closing_cost ? Math.abs(loser.avg_closing_cost).toLocaleString() : '0'}${loser.avg_closing_cost && loser.avg_closing_cost > 0 ? ' (credit)' : loser.avg_closing_cost && loser.avg_closing_cost < 0 ? ' (debit)' : ''}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row g-1">
+                                                        <div class="col-6">
+                                                            <small><strong>Contracts:</strong> ${loser.contracts || '0'}</small>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small><strong>Margin/Contract:</strong> $${loser.margin_per_contract ? loser.margin_per_contract.toLocaleString() : '0'}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row g-1">
+                                                        <div class="col-4">
+                                                            <small><strong>Final P&L:</strong> <span class="text-danger">${loser.final_pnl_pct ? loser.final_pnl_pct.toFixed(1) : '0.0'}%</span></small>
+                                                        </div>
+                                                        <div class="col-4">
+                                                            <small><strong>MFE:</strong> ${loser.mfe_pct ? loser.mfe_pct.toFixed(1) : '0.0'}%</small>
+                                                        </div>
+                                                        <div class="col-4">
+                                                            <small><strong>MAE:</strong> ${loser.mae_pct ? loser.mae_pct.toFixed(1) : '0.0'}%</small>
+                                                        </div>
+                                                    </div>
+                                                    ${loser.legs ? `
+                                                    <div class="row g-1">
+                                                        <div class="col-12">
+                                                            <small><strong>Legs:</strong> <span class="text-muted">${loser.legs}</span></small>
+                                                        </div>
+                                                    </div>
+                                                    ` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card border-success">
+                                                <div class="card-header bg-success text-white py-1">
+                                                    <h6 class="mb-0 small"><i class="fas fa-arrow-up"></i> Sample Winner</h6>
+                                                </div>
+                                                <div class="card-body py-2">
+                                                    <div class="row g-1">
+                                                        <div class="col-6">
+                                                            <small><strong>Type:</strong> <span class="badge ${winner.trade_type === 'CREDIT' ? 'bg-success' : 'bg-primary'}">${winner.trade_type || 'N/A'}</span></small>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small><strong>P&L:</strong> <span class="text-success">$${winner.pnl ? winner.pnl.toLocaleString() : '0'}</span></small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row g-1">
+                                                        <div class="col-6">
+                                                            <small><strong>Premium:</strong> $${winner.premium ? Math.abs(winner.premium).toLocaleString() : '0'}${winner.premium && winner.premium > 0 ? ' (credit)' : winner.premium && winner.premium < 0 ? ' (debit)' : ''}</small>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small><strong>Close:</strong> $${winner.avg_closing_cost ? Math.abs(winner.avg_closing_cost).toLocaleString() : '0'}${winner.avg_closing_cost && winner.avg_closing_cost > 0 ? ' (credit)' : winner.avg_closing_cost && winner.avg_closing_cost < 0 ? ' (debit)' : ''}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row g-1">
+                                                        <div class="col-6">
+                                                            <small><strong>Contracts:</strong> ${winner.contracts || '0'}</small>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small><strong>Margin/Contract:</strong> $${winner.margin_per_contract ? winner.margin_per_contract.toLocaleString() : '0'}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row g-1">
+                                                        <div class="col-3">
+                                                            <small><strong>Final P&L:</strong> <span class="text-success">${winner.final_pnl_pct ? winner.final_pnl_pct.toFixed(1) : '0.0'}%</span></small>
+                                                        </div>
+                                                        <div class="col-3">
+                                                            <small><strong>MAE:</strong> ${winner.mae_pct ? winner.mae_pct.toFixed(1) : '0.0'}%</small>
+                                                        </div>
+                                                        <div class="col-3">
+                                                            <small><strong>MFE:</strong> ${winner.mfe_pct ? winner.mfe_pct.toFixed(1) : '0.0'}%</small>
+                                                        </div>
+                                                        <div class="col-3">
+                                                            <small><strong>Kept:</strong> ${winner.profit_kept_pct ? winner.profit_kept_pct.toFixed(1) : '0.0'}%</small>
+                                                        </div>
+                                                    </div>
+                                                    ${winner.legs ? `
+                                                    <div class="row g-1">
+                                                        <div class="col-12">
+                                                            <small><strong>Legs:</strong> <span class="text-muted">${winner.legs}</span></small>
+                                                        </div>
+                                                    </div>
+                                                    ` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            container.innerHTML = summaryHtml + tableHtml;
+            
+            // Initialize tooltips
+            const tooltipTriggerList = [].slice.call(container.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Initialize table sorting
+            initializeMFEMAETableSorting();
+        }
+
+        function displayMFEMAEError(errorMessage) {
+            const container = document.getElementById('mfeMaeContent');
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> ${errorMessage}
+                </div>
+            `;
+        }
+
+        function initializeMFEMAETableSorting() {
+            const table = document.getElementById('mfeMaeTable');
+            if (!table) return;
+            
+            // Get only the second row of headers (the actual column headers)
+            const headerRows = table.querySelectorAll('thead tr');
+            const headers = headerRows[1].querySelectorAll('th'); // Second row has the actual column headers
+            let sortDirection = {};
+            
+            console.log('MFE/MAE Table headers found:', headers.length);
+            
+            headers.forEach((header, index) => {
+                const sortIcon = header.querySelector('.fa-sort');
+                if (sortIcon) {
+                    header.style.cursor = 'pointer';
+                    header.addEventListener('click', () => {
+                        console.log('Sorting column:', index, header.textContent.trim());
+                        sortTable(table, index, sortDirection);
+                    });
+                }
+            });
+            
+            function sortTable(table, columnIndex, sortDirection) {
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                // Determine sort direction
+                const currentDirection = sortDirection[columnIndex] || 'asc';
+                sortDirection[columnIndex] = currentDirection === 'asc' ? 'desc' : 'asc';
+                
+                console.log(`Sorting column ${columnIndex} in ${sortDirection[columnIndex]} direction`);
+                
+                // Debug: Check the first row to see what data we're working with
+                if (rows.length > 0) {
+                    const firstRow = rows[0];
+                    console.log('First row cells:', Array.from(firstRow.cells).map((cell, idx) => `${idx}: "${cell.textContent.trim()}"`));
+                }
+                
+                // Update sort icons
+                headers.forEach((header, index) => {
+                    const icon = header.querySelector('.fa-sort');
+                    if (icon) {
+                        if (index === columnIndex) {
+                            icon.className = sortDirection[columnIndex] === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                            icon.style.opacity = '1';
+                        } else {
+                            icon.className = 'fas fa-sort';
+                            icon.style.opacity = '0.3';
+                        }
+                    }
+                });
+                
+                // Sort rows
+                rows.sort((a, b) => {
+                    const aCell = a.cells[columnIndex];
+                    const bCell = b.cells[columnIndex];
+                    
+                    let aValue, bValue;
+                    
+                    // Handle different data types
+                    if (columnIndex === 0) {
+                        // Strategy name (text)
+                        aValue = aCell.textContent.trim();
+                        bValue = bCell.textContent.trim();
+                    } else {
+                        // Numeric values - extract just the number part
+                        const aText = aCell.textContent.trim();
+                        const bText = bCell.textContent.trim();
+                        
+                        // Remove % and other non-numeric characters, keep decimal point and minus sign
+                        aValue = parseFloat(aText.replace(/[^\d.-]/g, '')) || 0;
+                        bValue = parseFloat(bText.replace(/[^\d.-]/g, '')) || 0;
+                        
+                        console.log(`Column ${columnIndex}: "${aText}" -> ${aValue}, "${bText}" -> ${bValue}`);
+                    }
+                    
+                    let result;
+                    if (aValue < bValue) {
+                        result = sortDirection[columnIndex] === 'asc' ? -1 : 1;
+                    } else if (aValue > bValue) {
+                        result = sortDirection[columnIndex] === 'asc' ? 1 : -1;
+                    } else {
+                        result = 0;
+                    }
+                    
+                    console.log(`Sorting: ${aValue} vs ${bValue}, direction: ${sortDirection[columnIndex]}, result: ${result}`);
+                    return result;
+                });
+                
+                // Re-append sorted rows
+                rows.forEach(row => tbody.appendChild(row));
+            }
         }
 
 
@@ -11022,6 +11495,526 @@
                     select.value = listName;
                 }
             }, 500);
+        }
+
+        // Load Live vs BT Analysis
+        function loadLiveVsBTAnalysis() {
+            console.log('Loading Live vs BT analysis...');
+            
+            const container = document.getElementById('chartContainer');
+            const loading = document.getElementById('chartLoading');
+            
+            // Show file selection interface first
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-balance-scale"></i> Live vs Backtest Comparison</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-4">
+                            <h6><i class="fas fa-info-circle"></i> What is Live vs Backtest Comparison?</h6>
+                            <p class="mb-2">This tool compares your live trading performance with backtest results to identify execution differences and optimization opportunities.</p>
+                            <p class="mb-2"><strong>Why is this useful?</strong></p>
+                            <ul class="mb-2">
+                                <li><strong>Execution Analysis:</strong> See how live trades performed vs backtest expectations</li>
+                                <li><strong>Strategy Validation:</strong> Verify if backtest results translate to live performance</li>
+                                <li><strong>Performance Gaps:</strong> Identify systematic differences between live and backtest</li>
+                                <li><strong>Optimization:</strong> Find opportunities to improve live execution</li>
+                            </ul>
+                            <p class="mb-0"><strong>How it works:</strong> Select one backtest file and one live trading file. The system will match trades by date/time and strategy, then show side-by-side comparisons with P&L differences.</p>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle"></i> Important Matching Rules:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Strategy Names:</strong> Backtest strategy names must be a substring of live strategy names (e.g., "Iron Condor" matches "Iron Condor (Tasty)")</li>
+                                <li><strong>Time Matching:</strong> Entry times can differ by up to 4 minutes 59 seconds between files</li>
+                                <li><strong>File Types:</strong> Select one backtest file and one live trading file for comparison</li>
+                                <li><strong>Date/Time Only:</strong> Use the checkbox to match trades based only on date/time, ignoring strategy names</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Select Backtest File:</label>
+                                <select class="form-select" id="backtestFileSelect">
+                                    <option value="">Loading backtest files...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Select Live Trading File:</label>
+                                <select class="form-select" id="liveFileSelect">
+                                    <option value="">Loading live trading files...</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="matchOnlyDateTime" onchange="updateLiveVsBtSelection()">
+                                    <label class="form-check-label" for="matchOnlyDateTime">
+                                        <strong>Match only on date/time</strong> - Skip strategy name matching (useful when strategy names differ significantly)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button class="btn btn-primary" onclick="runLiveVsBTAnalysis()" id="runLiveVsBtBtn" disabled>
+                                <i class="fas fa-balance-scale"></i> Run Live vs Backtest Analysis
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="clearLiveVsBtSelection()">
+                                <i class="fas fa-times"></i> Clear Selection
+                            </button>
+                        </div>
+                        
+                        <div id="liveVsBtResults" class="mt-4" style="display: none;">
+                            <!-- Results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Show container and hide loading
+            container.style.display = 'block';
+            loading.style.display = 'none';
+            
+            // Load available files
+            loadLiveVsBtFileSelection();
+        }
+
+        function displayLiveVsBTAnalysis(liveVsBtData) {
+            const container = document.getElementById('liveVsBtContent');
+            
+            if (!liveVsBtData.available) {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> ${liveVsBtData.message}
+                    </div>
+                `;
+                return;
+            }
+            
+            if (!liveVsBtData.comparison_data || liveVsBtData.comparison_data.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> No comparison data available.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create summary
+            const summary = liveVsBtData.summary || {};
+            const summaryHtml = `
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-chart-bar"></i> Comparison Summary</h6>
+                            <div class="row text-center">
+                                <div class="col-md-2">
+                                    <strong>${summary.total_trades || 0}</strong><br>
+                                    <small>Total Trades</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>${summary.matched_trades || 0}</strong><br>
+                                    <small>Matched</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>${summary.backtest_only || 0}</strong><br>
+                                    <small>Backtest Only</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>${summary.live_only || 0}</strong><br>
+                                    <small>Live Only</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>$${summary.avg_pnl_diff || 0}</strong><br>
+                                    <small>Avg P&L Diff</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>${summary.positive_diffs || 0}/${summary.negative_diffs || 0}</strong><br>
+                                    <small>Better/Worse</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Create comparison table
+            const tableHtml = `
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="liveVsBtTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Entry Date/Time</th>
+                                <th>BT Strategy</th>
+                                <th>BT Contracts</th>
+                                <th>BT P&L</th>
+                                <th>BT Close Time</th>
+                                <th>BT Reason</th>
+                                <th>Live Strategy</th>
+                                <th>Live Contracts</th>
+                                <th>Live P&L</th>
+                                <th>Live Close Time</th>
+                                <th>Live Reason</th>
+                                <th>P&L Diff</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${liveVsBtData.comparison_data.map(trade => `
+                                <tr>
+                                    <td><strong>${trade.entry_datetime}</strong></td>
+                                    <td>${trade.backtest ? trade.backtest.strategy : '-'}</td>
+                                    <td>${trade.backtest ? trade.backtest.contracts : '-'}</td>
+                                    <td>${trade.backtest ? `$${trade.backtest.pnl.toFixed(2)}` : '-'}</td>
+                                    <td>${trade.backtest ? trade.backtest.close_datetime : '-'}</td>
+                                    <td>${trade.backtest ? trade.backtest.reason_for_close : '-'}</td>
+                                    <td>${trade.live ? trade.live.strategy : '-'}</td>
+                                    <td>${trade.live ? trade.live.contracts : '-'}</td>
+                                    <td>${trade.live ? `$${trade.live.pnl.toFixed(2)}` : '-'}</td>
+                                    <td>${trade.live ? trade.live.close_datetime : '-'}</td>
+                                    <td>${trade.live ? trade.live.reason_for_close : '-'}</td>
+                                    <td>
+                                        ${trade.pnl_diff !== null ? 
+                                            `<span class="badge ${trade.pnl_diff > 0 ? 'bg-success' : trade.pnl_diff < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                ${trade.pnl_diff > 0 ? '+' : ''}$${trade.pnl_diff.toFixed(2)}
+                                            </span>` : 
+                                            '<span class="text-muted">N/A</span>'
+                                        }
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            container.innerHTML = summaryHtml + tableHtml;
+        }
+
+        function displayLiveVsBTError(message) {
+            const container = document.getElementById('liveVsBtContent');
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> ${message}
+                </div>
+            `;
+        }
+
+        // Live vs BT file selection functions
+        function loadLiveVsBtFileSelection() {
+            // Load files for both backtest and live selection
+            loadFilesForSelection('backtestFileSelect', 'backtest');
+            loadFilesForSelection('liveFileSelect', 'live');
+        }
+
+        function loadFilesForSelection(selectId, type) {
+            const select = document.getElementById(selectId);
+            
+            fetch('/api/saved-files')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data && data.data.length > 0) {
+                        // Filter files based on type
+                        const filteredFiles = data.data.filter(file => {
+                            if (type === 'backtest') {
+                                return file.file_type === 'backtest';
+                            } else if (type === 'live') {
+                                return file.file_type === 'live';
+                            }
+                            return true;
+                        });
+                        
+                        if (filteredFiles.length > 0) {
+                            const optionsHtml = filteredFiles.map(file => {
+                                const displayName = file.friendly_name || file.filename;
+                                return `<option value="${file.filename}">${displayName}</option>`;
+                            }).join('');
+                            
+                            select.innerHTML = `<option value="">Select a ${type} file...</option>` + optionsHtml;
+                            
+                            // Add event listener for selection changes
+                            select.addEventListener('change', updateLiveVsBtSelection);
+                        } else {
+                            select.innerHTML = `<option value="">No ${type} files found</option>`;
+                        }
+                    } else {
+                        select.innerHTML = `<option value="">No files available</option>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading files:', error);
+                    select.innerHTML = `<option value="">Error loading files</option>`;
+                });
+        }
+
+        function updateLiveVsBtSelection() {
+            const backtestSelect = document.getElementById('backtestFileSelect');
+            const liveSelect = document.getElementById('liveFileSelect');
+            const runBtn = document.getElementById('runLiveVsBtBtn');
+            
+            if (backtestSelect.value && liveSelect.value) {
+                runBtn.disabled = false;
+                runBtn.innerHTML = '<i class="fas fa-balance-scale"></i> Run Live vs Backtest Analysis';
+            } else {
+                runBtn.disabled = true;
+                runBtn.innerHTML = '<i class="fas fa-balance-scale"></i> Select Both Files';
+            }
+        }
+
+        function clearLiveVsBtSelection() {
+            document.getElementById('backtestFileSelect').value = '';
+            document.getElementById('liveFileSelect').value = '';
+            updateLiveVsBtSelection();
+            
+            const resultsDiv = document.getElementById('liveVsBtResults');
+            if (resultsDiv) {
+                resultsDiv.style.display = 'none';
+            }
+        }
+
+        function runLiveVsBTAnalysis() {
+            const backtestSelect = document.getElementById('backtestFileSelect');
+            const liveSelect = document.getElementById('liveFileSelect');
+            const matchOnlyDateTime = document.getElementById('matchOnlyDateTime').checked;
+            
+            if (!backtestSelect.value || !liveSelect.value) {
+                alert('Please select both a backtest file and a live trading file.');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('liveVsBtResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Running Live vs BT analysis...</p>
+                    <small class="text-muted">Comparing ${backtestSelect.value} with ${liveSelect.value}</small>
+                    ${matchOnlyDateTime ? '<br><small class="text-info">Matching only on date/time (strategy names ignored)</small>' : ''}
+                </div>
+            `;
+            
+            // Call the API with selected files
+            fetch('/api/portfolio/live-vs-bt-analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    backtest_file: backtestSelect.value,
+                    live_file: liveSelect.value,
+                    match_only_datetime: matchOnlyDateTime
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayLiveVsBTAnalysisResults(data.data);
+                } else {
+                    displayLiveVsBTAnalysisError(data.message || data.error || 'Failed to run Live vs BT analysis');
+                }
+            })
+            .catch(error => {
+                console.error('Error running Live vs BT analysis:', error);
+                displayLiveVsBTAnalysisError('Error running Live vs BT analysis: ' + error.message);
+            });
+        }
+
+        function displayLiveVsBTAnalysisResults(liveVsBtData) {
+            const container = document.getElementById('liveVsBtResults');
+            
+            if (!liveVsBtData.available) {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> ${liveVsBtData.message}
+                    </div>
+                `;
+                return;
+            }
+            
+            if (!liveVsBtData.comparison_data || liveVsBtData.comparison_data.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> No comparison data available.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create summary
+            const summary = liveVsBtData.summary || {};
+            const summaryHtml = `
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-chart-bar"></i> Comparison Summary</h6>
+                            <div class="row text-center">
+                                <div class="col-md-2">
+                                    <strong>${summary.total_trades || 0}</strong><br>
+                                    <small>Total Trades</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>${summary.matched_trades || 0}</strong><br>
+                                    <small>Matched</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>${summary.backtest_only || 0}</strong><br>
+                                    <small>Backtest Only</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>${summary.live_only || 0}</strong><br>
+                                    <small>Live Only</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>$${summary.avg_pnl_diff || 0}</strong><br>
+                                    <small>Avg P&L Diff</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>${summary.positive_diffs || 0}/${summary.negative_diffs || 0}</strong><br>
+                                    <small>Better/Worse</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Create comparison table
+            const tableHtml = `
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="liveVsBtTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Entry Date/Time</th>
+                                <th>BT Strategy</th>
+                                <th>BT Contracts</th>
+                                <th>BT P&L</th>
+                                <th>BT Close Time</th>
+                                <th>BT Reason</th>
+                                <th>Live Strategy</th>
+                                <th>Live Contracts</th>
+                                <th>Live P&L</th>
+                                <th>Live Close Time</th>
+                                <th>Live Reason</th>
+                                <th>P&L Diff</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${liveVsBtData.comparison_data.map(trade => `
+                                <tr>
+                                    <td><strong>${trade.entry_datetime}</strong></td>
+                                    <td>${trade.backtest ? trade.backtest.strategy : '-'}</td>
+                                    <td>${trade.backtest ? trade.backtest.contracts : '-'}</td>
+                                    <td>${trade.backtest ? `$${trade.backtest.pnl.toFixed(2)}` : '-'}</td>
+                                    <td>${trade.backtest ? trade.backtest.close_datetime : '-'}</td>
+                                    <td>${trade.backtest ? trade.backtest.reason_for_close : '-'}</td>
+                                    <td>${trade.live ? trade.live.strategy : '-'}</td>
+                                    <td>${trade.live ? trade.live.contracts : '-'}</td>
+                                    <td>${trade.live ? `$${trade.live.pnl.toFixed(2)}` : '-'}</td>
+                                    <td>${trade.live ? trade.live.close_datetime : '-'}</td>
+                                    <td>${trade.live ? trade.live.reason_for_close : '-'}</td>
+                                    <td>
+                                        ${trade.pnl_diff !== null ? 
+                                            `<span class="badge ${trade.pnl_diff > 0 ? 'bg-success' : trade.pnl_diff < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                ${trade.pnl_diff > 0 ? '+' : ''}$${trade.pnl_diff.toFixed(2)}
+                                            </span>` : 
+                                            '<span class="text-muted">N/A</span>'
+                                        }
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            container.innerHTML = summaryHtml + tableHtml;
+            
+            // Initialize table sorting
+            initializeLiveVsBtTableSorting();
+        }
+
+        function initializeLiveVsBtTableSorting() {
+            const table = document.getElementById('liveVsBtTable');
+            if (!table) return;
+            
+            // Get the headers from the single row
+            const headerRows = table.querySelectorAll('thead tr');
+            const headers = headerRows[0].querySelectorAll('th');
+            let sortDirection = {};
+            
+            headers.forEach((header, index) => {
+                header.style.cursor = 'pointer';
+                header.innerHTML += ' <i class="fas fa-sort text-muted"></i>';
+                
+                header.addEventListener('click', () => {
+                    sortLiveVsBtTable(table, index, sortDirection);
+                });
+            });
+            
+            function sortLiveVsBtTable(table, columnIndex, sortDirection) {
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                // Determine sort direction
+                const currentDirection = sortDirection[columnIndex] || 'asc';
+                const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+                sortDirection[columnIndex] = newDirection;
+                
+                // Sort rows
+                rows.sort((a, b) => {
+                    const aCell = a.cells[columnIndex];
+                    const bCell = b.cells[columnIndex];
+                    
+                    let aVal = aCell.textContent.trim();
+                    let bVal = bCell.textContent.trim();
+                    
+                    // Handle numeric values (Contracts, P&L columns, P&L Diff)
+                    if (columnIndex === 2 || columnIndex === 3 || columnIndex === 7 || columnIndex === 8 || columnIndex === 11) {
+                        aVal = parseFloat(aVal.replace(/[$,]/g, '')) || 0;
+                        bVal = parseFloat(bVal.replace(/[$,]/g, '')) || 0;
+                    }
+                    // Handle date/time sorting for Entry Date/Time column
+                    else if (columnIndex === 0) {
+                        // Parse date/time for proper sorting
+                        const aDate = new Date(aVal);
+                        const bDate = new Date(bVal);
+                        if (!isNaN(aDate.getTime()) && !isNaN(bDate.getTime())) {
+                            aVal = aDate.getTime();
+                            bVal = bDate.getTime();
+                        }
+                    }
+                    
+                    if (aVal < bVal) return newDirection === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return newDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+                
+                // Update table
+                rows.forEach(row => tbody.appendChild(row));
+                
+                // Update sort icons
+                headers.forEach((header, index) => {
+                    const icon = header.querySelector('.fa-sort');
+                    if (index === columnIndex) {
+                        icon.className = newDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                    } else {
+                        icon.className = 'fas fa-sort text-muted';
+                    }
+                });
+            }
+        }
+
+        function displayLiveVsBTAnalysisError(message) {
+            const container = document.getElementById('liveVsBtResults');
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> ${message}
+                </div>
+            `;
         }
 
         function loadMEICAnalysis() {

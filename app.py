@@ -1577,6 +1577,120 @@ def balance_analysis():
             'error': str(e)
         }), 500
 
+
+@app.route('/api/portfolio/mfe-mae-analysis')
+def mfe_mae_analysis():
+    """Get MFE/MAE analysis for portfolio strategies."""
+    try:
+        print("=== MFE/MAE ANALYSIS API CALLED ===")
+        
+        analyzer = StrategyAnalyzer(portfolio)
+        print("StrategyAnalyzer created for MFE/MAE analysis")
+        
+        mfe_mae_data = analyzer.get_mfe_mae_analysis()
+        print("MFE/MAE analysis completed")
+        
+        print("=== MFE/MAE ANALYSIS API COMPLETED ===")
+        
+        return jsonify({
+            'success': True,
+            'data': mfe_mae_data
+        })
+        
+    except Exception as e:
+        print(f"ERROR in mfe_mae_analysis: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/portfolio/live-vs-bt-analysis', methods=['GET', 'POST'])
+def live_vs_bt_analysis():
+    """Get Live vs Backtest comparison analysis."""
+    try:
+        print("=== LIVE VS BT ANALYSIS API CALLED ===")
+        
+        if request.method == 'GET':
+            # GET request - return message that files need to be selected
+            return jsonify({
+                'success': False,
+                'message': 'Please select both a backtest file and a live trading file to run the comparison.'
+            })
+        
+        # POST request - handle file selection
+        data = request.get_json()
+        backtest_file = data.get('backtest_file')
+        live_file = data.get('live_file')
+        match_only_datetime = data.get('match_only_datetime', False)
+        
+        if not backtest_file or not live_file:
+            return jsonify({
+                'success': False,
+                'message': 'Both backtest and live files must be selected.'
+            })
+        
+        print(f"Comparing files: {backtest_file} (backtest) vs {live_file} (live)")
+        
+        # Load both portfolios
+        try:
+            # Get file paths from file manager
+            backtest_path = file_manager.get_file_path(backtest_file)
+            live_path = file_manager.get_file_path(live_file)
+            
+            if not backtest_path:
+                return jsonify({
+                    'success': False,
+                    'message': f'Backtest file not found: {backtest_file}'
+                })
+            
+            if not live_path:
+                return jsonify({
+                    'success': False,
+                    'message': f'Live file not found: {live_file}'
+                })
+            
+            # Load backtest portfolio
+            from models import Portfolio
+            backtest_portfolio = Portfolio()
+            backtest_portfolio.load_from_csv(backtest_path)
+            
+            # Load live portfolio  
+            live_portfolio = Portfolio()
+            live_portfolio.load_from_csv(live_path)
+            
+            print(f"Loaded {len(backtest_portfolio.strategies)} strategies from backtest file")
+            print(f"Loaded {len(live_portfolio.strategies)} strategies from live file")
+            
+            # Run the comparison analysis
+            analyzer = StrategyAnalyzer(backtest_portfolio)
+            comparison_data = analyzer.get_live_vs_bt_analysis(live_portfolio, match_only_datetime)
+            
+            print("Live vs BT analysis completed successfully")
+            
+            return jsonify({
+                'success': True,
+                'data': comparison_data
+            })
+            
+        except Exception as file_error:
+            print(f"Error loading files: {file_error}")
+            return jsonify({
+                'success': False,
+                'message': f'Error loading files: {str(file_error)}'
+            })
+        
+    except Exception as e:
+        print(f"ERROR in live_vs_bt_analysis: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/api/portfolio/position-sizing')
 def position_sizing_suggestions():
     """Get position sizing suggestions based on strategy performance."""
@@ -2428,7 +2542,40 @@ def list_saved_files():
     try:
         print("=== SAVED FILES API CALLED ===")
         file_info = file_manager.get_file_list()
-        print(f"Returning {len(file_info)} files")
+        
+        # Detect file type for each file
+        for file in file_info:
+            filename = file['filename']
+            file_path = file_manager.get_file_path(filename)
+            
+            if os.path.exists(file_path):
+                try:
+                    # Read just the header to detect columns
+                    df = pd.read_csv(file_path, nrows=0)
+                    columns = list(df.columns)
+                    
+                    # Debug: Print columns for all files
+                    print(f"DEBUG: File {filename} columns: {columns}")
+                    
+                    # Detection logic: "Initial Premium" = live, otherwise = backtest
+                    has_initial_premium = 'Initial Premium' in columns
+                    print(f"DEBUG: File {filename} has 'Initial Premium': {has_initial_premium}")
+                    
+                    if has_initial_premium:
+                        file['file_type'] = 'live'
+                    else:
+                        file['file_type'] = 'backtest'
+                    
+                    # Debug: Print detection result
+                    print(f"DEBUG: File {filename} detected as: {file['file_type']}")
+                        
+                except Exception as e:
+                    print(f"Error detecting file type for {filename}: {e}")
+                    file['file_type'] = 'unknown'
+            else:
+                file['file_type'] = 'unknown'
+        
+        print(f"Returning {len(file_info)} files with type detection")
         print("=== SAVED FILES API COMPLETED ===")
         
         return jsonify({

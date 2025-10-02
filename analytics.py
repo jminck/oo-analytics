@@ -343,6 +343,544 @@ class StrategyAnalyzer:
             return "DECREASE - High risk or poor performance"
         else:
             return "MAINTAIN - Balanced allocation"
+    
+    def get_mfe_mae_analysis(self) -> Dict:
+        """Analyze Maximum Favorable Excursion (MFE) and Maximum Adverse Excursion (MAE)."""
+        try:
+            # Check if we have the required columns for MFE/MAE analysis
+            if not self._has_mfe_mae_columns():
+                return {
+                    'available': False,
+                    'message': 'MFE/MAE analysis is only available for backtesting data with "Max Profit" and "Max Loss" columns.'
+                }
+            
+            mfe_mae_data = []
+            
+            for strategy_name, strategy in self.portfolio.strategies.items():
+                if not strategy.trades:
+                    continue
+                
+                # Filter trades that have MFE/MAE data
+                valid_trades = []
+                for trade in strategy.trades:
+                    if hasattr(trade, 'max_profit') and hasattr(trade, 'max_loss') and hasattr(trade, 'margin_req'):
+                        if trade.max_profit is not None and trade.max_loss is not None and trade.margin_req and trade.margin_req > 0:
+                            valid_trades.append(trade)
+                
+                if not valid_trades:
+                    continue
+                
+                # Separate winning and losing trades
+                winning_trades = [t for t in valid_trades if t.pnl > 0]
+                losing_trades = [t for t in valid_trades if t.pnl <= 0]
+                
+                # Calculate MFE for losing trades (how much profit they saw before losing)
+                losing_mfe_data = []
+                losing_mae_data = []
+                debug_loser_shown = False
+                for trade in losing_trades:
+                    # Use 0 for missing MFE and MAE data
+                    mfe_pct = trade.max_profit if trade.max_profit and trade.max_profit > 0 else 0.0
+                    mae_pct = abs(trade.max_loss) if trade.max_loss and trade.max_loss < 0 else 0.0
+                    
+                    # Calculate Final P&L % based on trade type
+                    if hasattr(trade, 'premium') and trade.premium:
+                        if trade.premium > 0:
+                            # Credit trade: P&L as % of total premium (premium * contracts)
+                            total_premium = trade.premium * trade.contracts
+                            final_pnl_pct = (trade.pnl / total_premium) * 100
+                        else:
+                            # Debit trade: P&L as % of total initial investment (abs premium * contracts)
+                            total_premium = abs(trade.premium) * trade.contracts
+                            final_pnl_pct = (trade.pnl / total_premium) * 100
+                    else:
+                        # Fallback to margin-based calculation
+                        final_pnl_pct = (trade.pnl / trade.margin_req) * 100
+                    # For losing trades, show how much profit they saw vs how much they lost
+                    # This gives insight into "missed opportunities"
+                    profit_kept_pct = 0.0  # Losing trades kept 0% of the profit they saw
+                    
+                    # Store debug data for card format
+                    if not debug_loser_shown:
+                        margin_per_contract = trade.margin_req / trade.contracts if trade.contracts > 0 else 0
+                        trade_type = "CREDIT" if trade.premium and trade.premium > 0 else "DEBIT" if trade.premium and trade.premium < 0 else "UNKNOWN"
+                        debug_loser_data = {
+                            'trade_type': trade_type,
+                            'pnl': trade.pnl,
+                            'premium': trade.premium,
+                            'avg_closing_cost': trade.avg_closing_cost,
+                            'max_profit': trade.max_profit,
+                            'max_loss': trade.max_loss,
+                            'contracts': trade.contracts,
+                            'margin_req': trade.margin_req,
+                            'margin_per_contract': margin_per_contract,
+                            'final_pnl_pct': final_pnl_pct,
+                            'mfe_pct': mfe_pct,
+                            'mae_pct': mae_pct,
+                            'legs': getattr(trade, 'legs', '')
+                        }
+                        debug_loser_shown = True
+                    
+                    losing_mfe_data.append({
+                        'mfe_pct': mfe_pct,
+                        'final_pnl_pct': final_pnl_pct,
+                        'profit_kept_pct': profit_kept_pct
+                    })
+                    
+                    losing_mae_data.append({
+                        'mae_pct': mae_pct,
+                        'final_pnl_pct': final_pnl_pct
+                    })
+                
+                # Calculate combined MAE and MFE for winning trades
+                winning_combined_data = []
+                debug_winner_shown = False
+                for trade in winning_trades:
+                    # Use 0 for missing MAE or MFE data
+                    mae_pct = abs(trade.max_loss) if trade.max_loss and trade.max_loss < 0 else 0.0
+                    mfe_pct = trade.max_profit if trade.max_profit and trade.max_profit > 0 else 0.0
+                    
+                    # Calculate Final P&L % based on trade type
+                    if hasattr(trade, 'premium') and trade.premium:
+                        if trade.premium > 0:
+                            # Credit trade: P&L as % of total premium (premium * contracts)
+                            total_premium = trade.premium * trade.contracts
+                            final_pnl_pct = (trade.pnl / total_premium) * 100
+                        else:
+                            # Debit trade: P&L as % of total initial investment (abs premium * contracts)
+                            total_premium = abs(trade.premium) * trade.contracts
+                            final_pnl_pct = (trade.pnl / total_premium) * 100
+                    else:
+                        # Fallback to margin-based calculation
+                        final_pnl_pct = (trade.pnl / trade.margin_req) * 100
+                    
+                    # Pain/Profit ratio: how much pain (MAE) relative to final profit
+                    pain_to_profit_ratio = mae_pct / final_pnl_pct if final_pnl_pct > 0 else 0
+                    
+                    # Profit kept percentage: use premium vs closing cost, but cap by MFE
+                    if hasattr(trade, 'premium') and hasattr(trade, 'avg_closing_cost') and trade.premium:
+                        if trade.premium > 0:
+                            # Credit trade: premium is positive, avg_closing_cost is what we paid to close (positive)
+                            if trade.avg_closing_cost == 0:
+                                # If closing cost is 0, we kept 100% of the premium (expired worthless)
+                                premium_based_profit_kept = 100.0
+                            elif trade.avg_closing_cost < trade.premium:
+                                # Profitable trade: we kept (premium - closing_cost) / premium * 100
+                                premium_based_profit_kept = ((trade.premium - trade.avg_closing_cost) / trade.premium) * 100
+                            else:
+                                # Losing trade: we lost more than we collected
+                                premium_based_profit_kept = 0.0
+                        else:
+                            # Debit trade: premium is negative (what we paid), avg_closing_cost is negative (what we received)
+                            # For debit trades, profit kept = (closing_cost - premium) / premium * 100
+                            # But since both are negative, we need to handle the signs carefully
+                            if trade.avg_closing_cost == 0:
+                                # If we received nothing back, we kept 0% (total loss)
+                                premium_based_profit_kept = 0.0
+                            else:
+                                # Calculate profit as percentage of initial investment
+                                # profit = closing_cost - premium (both negative, so profit is positive)
+                                # profit_kept = profit / abs(premium) * 100
+                                profit = abs(trade.avg_closing_cost) - abs(trade.premium)
+                                premium_based_profit_kept = (profit / abs(trade.premium)) * 100
+                        
+                        # Use the premium-based calculation directly
+                        # MFE and Profit Kept measure different things:
+                        # - MFE: Maximum profit seen while trade was open
+                        # - Profit Kept: Percentage of premium retained after closing costs
+                        profit_kept_pct = premium_based_profit_kept
+                    else:
+                        # Fallback to MFE-based calculation if premium data not available
+                        profit_kept_pct = (final_pnl_pct / mfe_pct) * 100 if mfe_pct > 0 else 0
+                    
+                    # Store debug data for card format
+                    if not debug_winner_shown:
+                        margin_per_contract = trade.margin_req / trade.contracts if trade.contracts > 0 else 0
+                        trade_type = "CREDIT" if trade.premium and trade.premium > 0 else "DEBIT" if trade.premium and trade.premium < 0 else "UNKNOWN"
+                        debug_winner_data = {
+                            'trade_type': trade_type,
+                            'pnl': trade.pnl,
+                            'premium': trade.premium,
+                            'avg_closing_cost': trade.avg_closing_cost,
+                            'max_profit': trade.max_profit,
+                            'max_loss': trade.max_loss,
+                            'contracts': trade.contracts,
+                            'margin_req': trade.margin_req,
+                            'margin_per_contract': margin_per_contract,
+                            'final_pnl_pct': final_pnl_pct,
+                            'mae_pct': mae_pct,
+                            'mfe_pct': mfe_pct,
+                            'profit_kept_pct': profit_kept_pct,
+                            'legs': getattr(trade, 'legs', '')
+                        }
+                        debug_winner_shown = True
+                    
+                    winning_combined_data.append({
+                        'mae_pct': mae_pct,
+                        'mfe_pct': mfe_pct,
+                        'final_pnl_pct': final_pnl_pct,
+                        'pain_to_profit_ratio': pain_to_profit_ratio,
+                        'profit_kept_pct': profit_kept_pct
+                    })
+                
+                
+                # Calculate summary statistics
+                strategy_data = {
+                    'strategy_name': strategy_name,
+                    'total_trades': len(valid_trades),
+                    'winning_trades': len(winning_trades),
+                    'losing_trades': len(losing_trades),
+                    'debug_loser': debug_loser_data if 'debug_loser_data' in locals() else {},
+                    'debug_winner': debug_winner_data if 'debug_winner_data' in locals() else {},
+                    'losing_mfe': {
+                        'count': len(losing_trades),  # Now includes all losing trades
+                        'avg_mfe_pct': np.mean([d['mfe_pct'] for d in losing_mfe_data]) if losing_mfe_data else 0,
+                        'avg_profit_kept_pct': np.mean([d['profit_kept_pct'] for d in losing_mfe_data]) if losing_mfe_data else 0,
+                        'max_mfe_pct': max([d['mfe_pct'] for d in losing_mfe_data]) if losing_mfe_data else 0
+                    },
+                    'losing_mae': {
+                        'count': len(losing_trades),
+                        'avg_mae_pct': np.mean([d['mae_pct'] for d in losing_mae_data]) if losing_mae_data else 0,
+                        'avg_final_pnl_pct': np.mean([d['final_pnl_pct'] for d in losing_mae_data]) if losing_mae_data else 0,
+                        'max_mae_pct': max([d['mae_pct'] for d in losing_mae_data]) if losing_mae_data else 0
+                    },
+                    'winning_combined': {
+                        'count': len(winning_trades),  # Now includes all winning trades
+                        'avg_mae_pct': np.mean([d['mae_pct'] for d in winning_combined_data]) if winning_combined_data else 0,
+                        'avg_mfe_pct': np.mean([d['mfe_pct'] for d in winning_combined_data]) if winning_combined_data else 0,
+                        'avg_pain_to_profit_ratio': np.mean([d['pain_to_profit_ratio'] for d in winning_combined_data]) if winning_combined_data else 0,
+                        'avg_profit_kept_pct': np.mean([d['profit_kept_pct'] for d in winning_combined_data]) if winning_combined_data else 0,
+                        'max_mae_pct': max([d['mae_pct'] for d in winning_combined_data]) if winning_combined_data else 0,
+                        'max_mfe_pct': max([d['mfe_pct'] for d in winning_combined_data]) if winning_combined_data else 0
+                    }
+                }
+                
+                mfe_mae_data.append(strategy_data)
+            
+            # Print debug data as cards
+            self._print_debug_cards(mfe_mae_data)
+            
+            return {
+                'available': True,
+                'strategies': mfe_mae_data,
+                'summary': self._calculate_mfe_mae_summary(mfe_mae_data)
+            }
+            
+        except Exception as e:
+            print(f"Error in MFE/MAE analysis: {e}")
+            return {
+                'available': False,
+                'message': f'Error analyzing MFE/MAE data: {str(e)}'
+            }
+    
+    def _has_mfe_mae_columns(self) -> bool:
+        """Check if the data has the required MFE/MAE columns."""
+        if not self.portfolio.strategies:
+            return False
+        
+        # Check a few trades to see if they have the required attributes
+        for strategy in self.portfolio.strategies.values():
+            for trade in strategy.trades[:5]:  # Check first 5 trades
+                if (hasattr(trade, 'max_profit') and hasattr(trade, 'max_loss') and 
+                    trade.max_profit is not None and trade.max_loss is not None):
+                    return True
+        return False
+    
+    def _print_debug_cards(self, mfe_mae_data: List[Dict]):
+        """Print debug data as cards - one row per strategy with loser and winner cards."""
+        print("\n" + "="*120)
+        print("MFE/MAE ANALYSIS - SAMPLE TRADES BY STRATEGY")
+        print("="*120)
+        
+        for strategy in mfe_mae_data:
+            strategy_name = strategy['strategy_name']
+            print(f"\n{strategy_name}")
+            print("-" * 80)
+            
+            # Print cards side by side
+            loser = strategy.get('debug_loser', {})
+            winner = strategy.get('debug_winner', {})
+            
+            if loser and winner:
+                # Card headers
+                print(f"{'LOSER':<40} | {'WINNER':<40}")
+                print("-" * 40 + " | " + "-" * 40)
+                
+                # Trade type
+                print(f"Type: {loser.get('trade_type', 'N/A'):<35} | Type: {winner.get('trade_type', 'N/A'):<35}")
+                
+                # P&L
+                print(f"P&L: ${loser.get('pnl', 0):,.2f}{'':<25} | P&L: ${winner.get('pnl', 0):,.2f}{'':<25}")
+                
+                # Premium
+                print(f"Premium: ${loser.get('premium', 0):,.2f}{'':<22} | Premium: ${winner.get('premium', 0):,.2f}{'':<22}")
+                
+                # Closing Cost
+                print(f"Closing Cost: ${loser.get('avg_closing_cost', 0):,.2f}{'':<18} | Closing Cost: ${winner.get('avg_closing_cost', 0):,.2f}{'':<18}")
+                
+                # Contracts
+                print(f"Contracts: {loser.get('contracts', 0):<30} | Contracts: {winner.get('contracts', 0):<30}")
+                
+                # Margin per Contract
+                print(f"Margin/Contract: ${loser.get('margin_per_contract', 0):,.2f}{'':<17} | Margin/Contract: ${winner.get('margin_per_contract', 0):,.2f}{'':<17}")
+                
+                # Final P&L %
+                print(f"Final P&L %: {loser.get('final_pnl_pct', 0):.1f}%{'':<26} | Final P&L %: {winner.get('final_pnl_pct', 0):.1f}%{'':<26}")
+                
+                # MFE %
+                print(f"MFE %: {loser.get('mfe_pct', 0):.1f}%{'':<30} | MFE %: {winner.get('mfe_pct', 0):.1f}%{'':<30}")
+                
+                # MAE %
+                print(f"MAE %: {loser.get('mae_pct', 0):.1f}%{'':<30} | MAE %: {winner.get('mae_pct', 0):.1f}%{'':<30}")
+                
+                # Profit Kept % (only for winner)
+                print(f"{'':<40} | Profit Kept %: {winner.get('profit_kept_pct', 0):.1f}%{'':<22}")
+            
+            print()
+    
+    def _calculate_mfe_mae_summary(self, mfe_mae_data: List[Dict]) -> Dict:
+        """Calculate summary statistics for MFE/MAE analysis."""
+        if not mfe_mae_data:
+            return {}
+        
+        return {
+            'total_strategies': len(mfe_mae_data),
+            'total_trades_analyzed': sum(s['total_trades'] for s in mfe_mae_data),
+            'losing_trades_with_mfe': sum(s['losing_mfe']['count'] for s in mfe_mae_data),
+            'winning_trades_combined': sum(s['winning_combined']['count'] for s in mfe_mae_data)
+        }
+    
+    def get_live_vs_bt_analysis(self, live_portfolio: Portfolio, match_only_datetime: bool = False) -> Dict:
+        """Compare live trading data with backtest data side by side."""
+        try:
+            # Get all trades from both portfolios
+            backtest_trades = []
+            live_trades = []
+            
+            # Collect backtest trades
+            for strategy_name, strategy in self.portfolio.strategies.items():
+                for trade in strategy.trades:
+                    reason = trade.reason_for_close or 'N/A'
+                    backtest_trades.append({
+                        'strategy_name': strategy_name,
+                        'date_opened': trade.date_opened,
+                        'time_opened': trade.time_opened,
+                        'contracts': trade.contracts,
+                        'pnl': trade.pnl,
+                        'date_closed': trade.date_closed,
+                        'time_closed': trade.time_closed,
+                        'reason_for_close': reason,
+                        'source': 'backtest'
+                    })
+            
+            # Collect live trades
+            for strategy_name, strategy in live_portfolio.strategies.items():
+                for trade in strategy.trades:
+                    reason = trade.reason_for_close or 'N/A'
+                    live_trades.append({
+                        'strategy_name': strategy_name,
+                        'date_opened': trade.date_opened,
+                        'time_opened': trade.time_opened,
+                        'contracts': trade.contracts,
+                        'pnl': trade.pnl,
+                        'date_closed': trade.date_closed,
+                        'time_closed': trade.time_closed,
+                        'reason_for_close': reason,
+                        'source': 'live'
+                    })
+            
+            # Create comparison data
+            comparison_data = self._match_trades(backtest_trades, live_trades, match_only_datetime)
+            
+            return {
+                'available': True,
+                'comparison_data': comparison_data,
+                'summary': self._calculate_live_vs_bt_summary(comparison_data)
+            }
+            
+        except Exception as e:
+            return {
+                'available': False,
+                'message': f'Error analyzing Live vs BT data: {str(e)}'
+            }
+    
+    def _match_trades(self, backtest_trades: List[Dict], live_trades: List[Dict], match_only_datetime: bool = False) -> List[Dict]:
+        """Match trades between backtest and live data based on date/time and strategy."""
+        matched_trades = []
+        used_live_indices = set()
+        
+        for bt_trade in backtest_trades:
+            # Find matching live trade
+            live_match = None
+            live_index = None
+            
+            for i, live_trade in enumerate(live_trades):
+                if i in used_live_indices:
+                    continue
+                    
+                # Check if trades match (same date, time to minute, and similar strategy)
+                if (self._trades_match(bt_trade, live_trade, match_only_datetime)):
+                    live_match = live_trade
+                    live_index = i
+                    break
+            
+            if live_match:
+                # Both trades found
+                matched_trades.append({
+                    'entry_datetime': f"{bt_trade['date_opened']} {bt_trade['time_opened']}",
+                    'backtest': {
+                        'strategy': bt_trade['strategy_name'],
+                        'contracts': bt_trade['contracts'],
+                        'pnl': bt_trade['pnl'],
+                        'close_datetime': f"{bt_trade['date_closed']} {bt_trade['time_closed']}",
+                        'reason_for_close': bt_trade['reason_for_close']
+                    },
+                    'live': {
+                        'strategy': live_match['strategy_name'],
+                        'contracts': live_match['contracts'],
+                        'pnl': live_match['pnl'],
+                        'close_datetime': f"{live_match['date_closed']} {live_match['time_closed']}",
+                        'reason_for_close': live_match['reason_for_close']
+                    },
+                    'pnl_diff': round(live_match['pnl'] - bt_trade['pnl'], 2)
+                })
+                used_live_indices.add(live_index)
+            else:
+                # Only backtest trade found
+                matched_trades.append({
+                    'entry_datetime': f"{bt_trade['date_opened']} {bt_trade['time_opened']}",
+                    'backtest': {
+                        'strategy': bt_trade['strategy_name'],
+                        'contracts': bt_trade['contracts'],
+                        'pnl': bt_trade['pnl'],
+                        'close_datetime': f"{bt_trade['date_closed']} {bt_trade['time_closed']}",
+                        'reason_for_close': bt_trade['reason_for_close']
+                    },
+                    'live': None,
+                    'pnl_diff': None
+                })
+        
+        # Add remaining live trades that weren't matched
+        for i, live_trade in enumerate(live_trades):
+            if i not in used_live_indices:
+                matched_trades.append({
+                    'entry_datetime': f"{live_trade['date_opened']} {live_trade['time_opened']}",
+                    'backtest': None,
+                    'live': {
+                        'strategy': live_trade['strategy_name'],
+                        'contracts': live_trade['contracts'],
+                        'pnl': live_trade['pnl'],
+                        'close_datetime': f"{live_trade['date_closed']} {live_trade['time_closed']}",
+                        'reason_for_close': live_trade['reason_for_close']
+                    },
+                    'pnl_diff': None
+                })
+        
+        # Sort by entry datetime
+        matched_trades.sort(key=lambda x: x['entry_datetime'])
+        return matched_trades
+    
+    def _trades_match(self, bt_trade: Dict, live_trade: Dict, match_only_datetime: bool = False) -> bool:
+        """Check if two trades match based on date, time (within 1 minute), and optionally strategy."""
+        # Check date
+        if bt_trade['date_opened'] != live_trade['date_opened']:
+            return False
+        
+        # Check time difference (allow up to 1 minute difference)
+        try:
+            from datetime import datetime
+            
+            # Parse times
+            bt_time_str = bt_trade['time_opened']
+            live_time_str = live_trade['time_opened']
+            
+            # Handle different time formats
+            if ':' in bt_time_str and ':' in live_time_str:
+                # Parse HH:MM:SS or HH:MM format
+                bt_time = datetime.strptime(bt_time_str, '%H:%M:%S' if len(bt_time_str.split(':')) == 3 else '%H:%M')
+                live_time = datetime.strptime(live_time_str, '%H:%M:%S' if len(live_time_str.split(':')) == 3 else '%H:%M')
+                
+                # Calculate time difference in minutes
+                time_diff = abs((bt_time - live_time).total_seconds() / 60)
+                
+                # Allow up to 4 minutes 59 seconds difference (4.983 minutes)
+                if time_diff > 4.983:
+                    return False
+            else:
+                # Fallback to exact minute matching if parsing fails
+                bt_time = bt_trade['time_opened'][:5]  # HH:MM
+                live_time = live_trade['time_opened'][:5]  # HH:MM
+                if bt_time != live_time:
+                    return False
+        except Exception as e:
+            # If time parsing fails, fall back to exact minute matching
+            bt_time = bt_trade['time_opened'][:5]  # HH:MM
+            live_time = live_trade['time_opened'][:5]  # HH:MM
+            if bt_time != live_time:
+                return False
+        
+        # If match_only_datetime is True, skip strategy name matching
+        if match_only_datetime:
+            return True
+        
+        # Check if backtest strategy name is a substring of live strategy name
+        bt_strategy = bt_trade['strategy_name']
+        live_strategy = live_trade['strategy_name']
+        
+        # Debug: Print strategy comparison for first few attempts
+        if not hasattr(self, '_debug_count'):
+            self._debug_count = 0
+        if self._debug_count < 10:  # Increased debug count
+            print(f"DEBUG: Strategy comparison:")
+            print(f"  BT: '{bt_strategy}'")
+            print(f"  Live: '{live_strategy}'")
+            print(f"  BT in Live: {bt_strategy in live_strategy}")
+            self._debug_count += 1
+        
+        # First try exact substring match
+        if bt_strategy in live_strategy:
+            return True
+        
+        # If that fails, try normalizing both names (remove extra spaces, normalize brackets)
+        bt_normalized = self._normalize_strategy_name(bt_strategy)
+        live_normalized = self._normalize_strategy_name(live_strategy)
+        
+        if self._debug_count < 5:
+            print(f"  BT Normalized: '{bt_normalized}'")
+            print(f"  Live Normalized: '{live_normalized}'")
+            print(f"  BT Normalized in Live Normalized: {bt_normalized in live_normalized}")
+        
+        return bt_normalized in live_normalized
+    
+    def _normalize_strategy_name(self, strategy_name: str) -> str:
+        """Normalize strategy names for comparison."""
+        # Remove common suffixes and normalize
+        normalized = strategy_name.replace('(Tasty)', '').strip()
+        normalized = normalized.replace('  ', ' ')  # Remove double spaces
+        normalized = normalized.replace('  ', ' ')  # Remove any remaining double spaces
+        # Remove extra spaces around brackets
+        normalized = normalized.replace('[ ', '[').replace(' ]', ']')
+        return normalized
+    
+    def _calculate_live_vs_bt_summary(self, comparison_data: List[Dict]) -> Dict:
+        """Calculate summary statistics for Live vs BT comparison."""
+        total_trades = len(comparison_data)
+        matched_trades = [t for t in comparison_data if t['backtest'] and t['live']]
+        backtest_only = [t for t in comparison_data if t['backtest'] and not t['live']]
+        live_only = [t for t in comparison_data if not t['backtest'] and t['live']]
+        
+        # Calculate P&L differences for matched trades
+        pnl_diffs = [t['pnl_diff'] for t in matched_trades if t['pnl_diff'] is not None]
+        
+        return {
+            'total_trades': total_trades,
+            'matched_trades': len(matched_trades),
+            'backtest_only': len(backtest_only),
+            'live_only': len(live_only),
+            'avg_pnl_diff': round(sum(pnl_diffs) / len(pnl_diffs), 2) if pnl_diffs else 0,
+            'positive_diffs': len([d for d in pnl_diffs if d > 0]),
+            'negative_diffs': len([d for d in pnl_diffs if d < 0])
+        }
 
 class PortfolioMetrics:
     """Calculate comprehensive portfolio-level metrics."""
@@ -3172,4 +3710,4 @@ class MEICAnalyzer:
                 },
                 'date_range': date_range
             }
-        } 
+        }

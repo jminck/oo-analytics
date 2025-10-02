@@ -124,6 +124,10 @@ class Trade:
         self.reason_for_close = kwargs.get('reason_for_close', '')  # Add reason for close field
         self.opening_price = kwargs.get('opening_price')  # Add opening price field
         self.closing_price = kwargs.get('closing_price')  # Add closing price field
+        self.premium = kwargs.get('premium')  # Add premium field for credit/debit calculation
+        self.avg_closing_cost = kwargs.get('avg_closing_cost')  # Add average closing cost field
+        self.max_profit = kwargs.get('max_profit')  # Add max profit field for MFE/MAE analysis
+        self.max_loss = kwargs.get('max_loss')  # Add max loss field for MFE/MAE analysis
     
     @property
     def is_winner(self) -> bool:
@@ -733,8 +737,32 @@ class Portfolio:
                     # Get legs data if present
                     legs = row.get('Legs', '').strip() if 'Legs' in row else ''
                     
-                    # Get reason for close if present
-                    reason_for_close = row.get('Reason For Close', '').strip() if 'Reason For Close' in row else ''
+                    # Get reason for close if present - try multiple possible column names
+                    reason_for_close = ''
+                    possible_columns = ['Reason For Close', 'Reason for Close', 'ReasonForClose', 'Reason_For_Close', 'Close Reason', 'Exit Reason']
+                    
+                    for col_name in possible_columns:
+                        if col_name in row:
+                            value = row.get(col_name, '')
+                            if value and str(value).strip() and str(value).strip() != 'nan':
+                                reason_for_close = str(value).strip()
+                                break
+                    
+                    # If still empty, try to get any column that contains 'reason' or 'close'
+                    if not reason_for_close:
+                        for col_name, value in row.items():
+                            if ('reason' in col_name.lower() or 'close' in col_name.lower()):
+                                if value and str(value).strip() and str(value).strip() != 'nan':
+                                    reason_for_close = str(value).strip()
+                                    break
+                    
+                    # Get premium and avg closing cost for profit kept calculation
+                    premium = float(row.get('Premium', 0)) if 'Premium' in row and row.get('Premium') else None
+                    avg_closing_cost = float(row.get('Avg. Closing Cost', 0)) if 'Avg. Closing Cost' in row and row.get('Avg. Closing Cost') else None
+                    
+                    # Get max profit and max loss for MFE/MAE analysis
+                    max_profit = float(row.get('Max Profit', 0)) if 'Max Profit' in row and row.get('Max Profit') else None
+                    max_loss = float(row.get('Max Loss', 0)) if 'Max Loss' in row and row.get('Max Loss') else None
                     
                     # Create trade
                     trade = Trade(
@@ -753,7 +781,11 @@ class Portfolio:
                         margin_req=margin_req,  # Add margin requirement
                         reason_for_close=reason_for_close,  # Add reason for close
                         opening_price=opening_price,  # Add opening price
-                        closing_price=closing_price  # Add closing price
+                        closing_price=closing_price,  # Add closing price
+                        premium=premium,  # Add premium for credit/debit calculation
+                        avg_closing_cost=avg_closing_cost,  # Add average closing cost
+                        max_profit=max_profit,  # Add max profit for MFE/MAE analysis
+                        max_loss=max_loss  # Add max loss for MFE/MAE analysis
                     )
                     
                     self.strategies[strategy_name].add_trade(trade)
@@ -907,8 +939,32 @@ class Portfolio:
                 # Get legs data if present
                 legs = str(row_dict.get('Legs', '')).strip() if 'Legs' in row_dict and pd.notna(row_dict['Legs']) else ''
                 
-                # Get reason for close if present
-                reason_for_close = str(row_dict.get('Reason For Close', '')).strip() if 'Reason For Close' in row_dict and pd.notna(row_dict['Reason For Close']) else ''
+                # Get reason for close if present - try multiple possible column names
+                reason_for_close = ''
+                possible_columns = ['Reason For Close', 'Reason for Close', 'ReasonForClose', 'Reason_For_Close', 'Close Reason', 'Exit Reason']
+                
+                for col_name in possible_columns:
+                    if col_name in row_dict:
+                        value = row_dict.get(col_name, '')
+                        if pd.notna(value) and str(value).strip() and str(value).strip() != 'nan':
+                            reason_for_close = str(value).strip()
+                            break
+                
+                # If still empty, try to get any column that contains 'reason' or 'close'
+                if not reason_for_close:
+                    for col_name, value in row_dict.items():
+                        if ('reason' in col_name.lower() or 'close' in col_name.lower()):
+                            if pd.notna(value) and str(value).strip() and str(value).strip() != 'nan':
+                                reason_for_close = str(value).strip()
+                                break
+                
+                # Get premium and avg closing cost for profit kept calculation
+                premium = float(row_dict.get('Premium', 0)) if 'Premium' in row_dict and pd.notna(row_dict.get('Premium')) else None
+                avg_closing_cost = float(row_dict.get('Avg. Closing Cost', 0)) if 'Avg. Closing Cost' in row_dict and pd.notna(row_dict.get('Avg. Closing Cost')) else None
+                
+                # Get max profit and max loss for MFE/MAE analysis
+                max_profit = float(row_dict.get('Max Profit', 0)) if 'Max Profit' in row_dict and pd.notna(row_dict.get('Max Profit')) else None
+                max_loss = float(row_dict.get('Max Loss', 0)) if 'Max Loss' in row_dict and pd.notna(row_dict.get('Max Loss')) else None
                 
                 # Create trade
                 trade = Trade(
@@ -927,7 +983,11 @@ class Portfolio:
                     margin_req=margin_req,
                     reason_for_close=reason_for_close,
                     opening_price=opening_price,
-                    closing_price=closing_price
+                    closing_price=closing_price,
+                    premium=premium,  # Add premium for credit/debit calculation
+                    avg_closing_cost=avg_closing_cost,  # Add average closing cost
+                    max_profit=max_profit,  # Add max profit for MFE/MAE analysis
+                    max_loss=max_loss  # Add max loss for MFE/MAE analysis
                 )
                 
                 self.strategies[strategy_name].add_trade(trade)
