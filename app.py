@@ -1277,7 +1277,7 @@ def portfolio_overview():
         
         if not portfolio.strategies:
             print("No strategies found, returning empty data")
-            return jsonify({
+            response = jsonify({
                 'success': True,
                 'data': {
                     'total_pnl': 0,
@@ -1352,10 +1352,14 @@ def portfolio_overview():
         print("Portfolio overview completed successfully")
         print("=== PORTFOLIO OVERVIEW API COMPLETED ===")
         
-        return jsonify({
+        response = jsonify({
             'success': True,
             'data': overview
         })
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         print(f"ERROR in portfolio_overview: {e}")
         import traceback
@@ -1529,10 +1533,14 @@ def strategy_summary_simple():
         print(f"Simple strategy summary completed: {len(basic_data)} strategies")
         print(f"=== SIMPLE STRATEGY SUMMARY END ===")
         
-        return jsonify({
+        response = jsonify({
             'success': True,
             'data': basic_data
         })
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
         
     except Exception as e:
         print(f"ERROR in simple strategy summary: {e}")
@@ -2719,6 +2727,15 @@ def load_saved_file(filename):
             print("🧹 Monte Carlo cache cleared due to data reload")
         except Exception as cache_error:
             print(f"Warning: Could not clear Monte Carlo cache: {cache_error}")
+        
+        # Clear any additional caches
+        try:
+            from cache_manager import CacheManager
+            cache_manager = CacheManager()
+            cache_manager.clear_all_caches()
+            print("🧹 All caches cleared due to data reload")
+        except Exception as cache_error:
+            print(f"Warning: Could not clear all caches: {cache_error}")
         
         # Track current data type and initial capital
         global current_data_type, current_initial_capital

@@ -4593,7 +4593,7 @@
             
             // Load overview metrics
             console.log('Fetching /api/portfolio/overview...');
-            fetch('/api/portfolio/overview')
+            fetch(`/api/portfolio/overview?t=${Date.now()}`)
             .then(response => {
                 console.log('Overview response received:', response.status);
                 return response.json();
@@ -4607,7 +4607,7 @@
 
             // Load strategy summary
             console.log('Fetching /api/portfolio/strategies...');
-            fetch('/api/portfolio/strategies')
+            fetch(`/api/portfolio/strategies?t=${Date.now()}`)
             .then(response => {
                 console.log('Strategies response received:', response.status);
                 return response.json();
@@ -4621,7 +4621,7 @@
 
             // Load balance analysis
             console.log('Fetching /api/portfolio/balance-analysis...');
-            fetch('/api/portfolio/balance-analysis')
+            fetch(`/api/portfolio/balance-analysis?t=${Date.now()}`)
             .then(response => {
                 console.log('Balance analysis response received:', response.status);
                 return response.json();
@@ -12445,6 +12445,31 @@
                 loadingTimeout = null;
             }
             
+            // Clear all global variables that store cached data
+            currentChart = null;
+            availableCharts = {};
+            chartsLoadedSuccessfully = false;
+            currentSimulationData = null;
+            strategyCurrentPage = 1;
+            currentPaginationData = null;
+            currentTableData = null;
+            currentPage = 1;
+            currentSortColumn = null;
+            currentSortDirection = 'desc';
+            
+            // Clear window-level cached data
+            if (window.pnlByDayOfWeekData) window.pnlByDayOfWeekData = null;
+            if (window.pnlByDayOfWeekChartData) window.pnlByDayOfWeekChartData = null;
+            if (window.conflictsData) window.conflictsData = null;
+            if (window.monthlyPnlData) window.monthlyPnlData = null;
+            if (window.monthlyPnlSortKey) window.monthlyPnlSortKey = 'strategy';
+            if (window.monthlyPnlSortAsc) window.monthlyPnlSortAsc = true;
+            if (window.blackoutResults) window.blackoutResults = null;
+            if (window.blackoutTrades) window.blackoutTrades = null;
+            if (window.pendingFileUpload) window.pendingFileUpload = null;
+            if (window.selectedFile) window.selectedFile = null;
+            if (window.skipAutoLoadCumulativePnl) window.skipAutoLoadCumulativePnl = false;
+            
             // Clear MEIC state
             meicDateRange = null;
             meicDateList = [];
@@ -12492,6 +12517,17 @@
             // Clear trade count
             const tradeCount = document.getElementById('meicTradeCount');
             if (tradeCount) tradeCount.textContent = 'Loading...';
+            
+            // Clear chart container to prevent stale data
+            const chartContainer = document.getElementById('chartContainer');
+            if (chartContainer) {
+                chartContainer.innerHTML = '<div class="text-center text-muted"><h4>📊 Data loaded! Select a chart to view analytics</h4></div>';
+            }
+            
+            // Force garbage collection if available
+            if (window.gc) {
+                window.gc();
+            }
             
             console.log('🧹 Application state cleared');
         }
