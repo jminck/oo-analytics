@@ -757,7 +757,12 @@ class Portfolio:
                                     break
                     
                     # Get premium and avg closing cost for profit kept calculation
-                    premium = float(row.get('Premium', 0)) if 'Premium' in row and row.get('Premium') else None
+                    # Check for both 'Premium' (backtest) and 'Initial Premium' (live) columns
+                    premium = None
+                    if 'Premium' in row and row.get('Premium'):
+                        premium = float(row.get('Premium', 0))
+                    elif 'Initial Premium' in row and row.get('Initial Premium'):
+                        premium = float(row.get('Initial Premium', 0))
                     avg_closing_cost = float(row.get('Avg. Closing Cost', 0)) if 'Avg. Closing Cost' in row and row.get('Avg. Closing Cost') else None
                     
                     # Get max profit and max loss for MFE/MAE analysis
@@ -959,7 +964,12 @@ class Portfolio:
                                 break
                 
                 # Get premium and avg closing cost for profit kept calculation
-                premium = float(row_dict.get('Premium', 0)) if 'Premium' in row_dict and pd.notna(row_dict.get('Premium')) else None
+                # Check for both 'Premium' (backtest) and 'Initial Premium' (live) columns
+                premium = None
+                if 'Premium' in row_dict and pd.notna(row_dict.get('Premium')):
+                    premium = float(row_dict.get('Premium', 0))
+                elif 'Initial Premium' in row_dict and pd.notna(row_dict.get('Initial Premium')):
+                    premium = float(row_dict.get('Initial Premium', 0))
                 avg_closing_cost = float(row_dict.get('Avg. Closing Cost', 0)) if 'Avg. Closing Cost' in row_dict and pd.notna(row_dict.get('Avg. Closing Cost')) else None
                 
                 # Get max profit and max loss for MFE/MAE analysis

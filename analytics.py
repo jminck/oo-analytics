@@ -661,6 +661,14 @@ class StrategyAnalyzer:
             for strategy_name, strategy in self.portfolio.strategies.items():
                 for trade in strategy.trades:
                     reason = trade.reason_for_close or 'N/A'
+                    # For backtest, use Avg. Closing Cost / 100 for exit price
+                    bt_closing_price = None
+                    if hasattr(trade, 'avg_closing_cost') and trade.avg_closing_cost is not None:
+                        try:
+                            bt_closing_price = float(trade.avg_closing_cost) / 100
+                        except (ValueError, TypeError):
+                            bt_closing_price = None
+                    
                     backtest_trades.append({
                         'strategy_name': strategy_name,
                         'date_opened': trade.date_opened,
@@ -670,6 +678,9 @@ class StrategyAnalyzer:
                         'date_closed': trade.date_closed,
                         'time_closed': trade.time_closed,
                         'reason_for_close': reason,
+                        'opening_price': trade.opening_price,
+                        'closing_price': bt_closing_price,
+                        'legs': trade.legs,
                         'source': 'backtest'
                     })
             
@@ -677,6 +688,16 @@ class StrategyAnalyzer:
             for strategy_name, strategy in live_portfolio.strategies.items():
                 for trade in strategy.trades:
                     reason = trade.reason_for_close or 'N/A'
+                    
+                    
+                    # For live, use Avg. Closing Cost for exit price
+                    live_closing_price = None
+                    if hasattr(trade, 'avg_closing_cost') and trade.avg_closing_cost is not None:
+                        try:
+                            live_closing_price = float(trade.avg_closing_cost)
+                        except (ValueError, TypeError):
+                            live_closing_price = None
+                    
                     live_trades.append({
                         'strategy_name': strategy_name,
                         'date_opened': trade.date_opened,
@@ -686,6 +707,8 @@ class StrategyAnalyzer:
                         'date_closed': trade.date_closed,
                         'time_closed': trade.time_closed,
                         'reason_for_close': reason,
+                        'premium': getattr(trade, 'premium', None),  # Use premium field for live data
+                        'closing_price': live_closing_price,
                         'source': 'live'
                     })
             
@@ -726,6 +749,46 @@ class StrategyAnalyzer:
             
             if live_match:
                 # Both trades found
+                # Calculate price differences
+                bt_opening = None
+                live_opening = None
+                bt_closing = None
+                live_closing = None
+                
+                
+                # Safely parse opening prices
+                # For backtest data, always calculate from legs using sum(legs) / contracts
+                bt_opening = self._calculate_opening_premium_from_legs(bt_trade.get('legs', ''), bt_trade.get('contracts', 1))
+                        
+                # For live data, use the premium field (Initial Premium from CSV)
+                if live_match.get('premium') is not None and live_match.get('premium') != '':
+                    try:
+                        live_opening = float(live_match.get('premium'))
+                    except (ValueError, TypeError):
+                        live_opening = None
+                else:
+                    live_opening = None
+                
+                # Safely parse closing prices
+                if bt_trade.get('closing_price') is not None and bt_trade.get('closing_price') != '':
+                    try:
+                        bt_closing = float(bt_trade.get('closing_price'))
+                    except (ValueError, TypeError):
+                        bt_closing = None
+                        
+                if live_match.get('closing_price') is not None and live_match.get('closing_price') != '':
+                    try:
+                        live_closing = float(live_match.get('closing_price'))
+                    except (ValueError, TypeError):
+                        live_closing = None
+                
+                opening_diff = None
+                closing_diff = None
+                if bt_opening is not None and live_opening is not None:
+                    opening_diff = round(live_opening - bt_opening, 2)
+                if bt_closing is not None and live_closing is not None:
+                    closing_diff = round(live_closing - bt_closing, 2)
+                
                 matched_trades.append({
                     'entry_datetime': f"{bt_trade['date_opened']} {bt_trade['time_opened']}",
                     'backtest': {
@@ -733,16 +796,22 @@ class StrategyAnalyzer:
                         'contracts': bt_trade['contracts'],
                         'pnl': bt_trade['pnl'],
                         'close_datetime': f"{bt_trade['date_closed']} {bt_trade['time_closed']}",
-                        'reason_for_close': bt_trade['reason_for_close']
+                        'reason_for_close': bt_trade['reason_for_close'],
+                        'opening_price': bt_opening,
+                        'closing_price': bt_closing
                     },
                     'live': {
                         'strategy': live_match['strategy_name'],
                         'contracts': live_match['contracts'],
                         'pnl': live_match['pnl'],
                         'close_datetime': f"{live_match['date_closed']} {live_match['time_closed']}",
-                        'reason_for_close': live_match['reason_for_close']
+                        'reason_for_close': live_match['reason_for_close'],
+                        'opening_price': live_opening,
+                        'closing_price': live_closing
                     },
-                    'pnl_diff': round(live_match['pnl'] - bt_trade['pnl'], 2)
+                    'pnl_diff': round(live_match['pnl'] - bt_trade['pnl'], 2),
+                    'opening_diff': opening_diff,
+                    'closing_diff': closing_diff
                 })
                 used_live_indices.add(live_index)
             else:
@@ -861,6 +930,50 @@ class StrategyAnalyzer:
         # Remove extra spaces around brackets
         normalized = normalized.replace('[ ', '[').replace(' ]', ']')
         return normalized
+    
+    def _calculate_opening_premium_from_legs(self, legs_str: str, contracts: int) -> float:
+        """Calculate opening premium from legs data."""
+        if not legs_str or legs_str.strip() == '':
+            return None
+            
+        try:
+            # Split legs by pipe separator
+            legs = legs_str.split('|')
+            total_premium = 0.0
+            
+            for leg in legs:
+                leg = leg.strip()
+                if not leg:
+                    continue
+                    
+                # Parse leg format: "Date Strike Type Action Price"
+                # Example: "1 Sep 26 6605 P BTO 6.65"
+                parts = leg.split()
+                if len(parts) < 6:
+                    continue
+                    
+                # Get the action (BTO/STO) and price
+                action = parts[-2]  # BTO or STO
+                price_str = parts[-1]  # Price
+                
+                try:
+                    price = float(price_str)
+                    
+                    # BTO (Buy to Open) = debit (negative)
+                    # STO (Sell to Open) = credit (positive)
+                    if action == 'BTO':
+                        total_premium -= price
+                    elif action == 'STO':
+                        total_premium += price
+                        
+                except (ValueError, IndexError):
+                    continue
+            
+            # For backtest data, return total premium without dividing by contracts
+            return round(total_premium, 2)
+                
+        except Exception:
+            return None
     
     def _calculate_live_vs_bt_summary(self, comparison_data: List[Dict]) -> Dict:
         """Calculate summary statistics for Live vs BT comparison."""

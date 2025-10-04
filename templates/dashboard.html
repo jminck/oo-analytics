@@ -11770,19 +11770,24 @@
                     <table class="table table-striped table-hover" id="liveVsBtTable">
                         <thead class="table-dark">
                             <tr>
-                                <th>Entry Date/Time</th>
-                                <th>BT Strategy</th>
-                                <th>BT Contracts</th>
-                                <th>BT P&L</th>
-                                <th>BT Close Time</th>
-                                <th>BT Reason</th>
-                                <th>Live Strategy</th>
-                                <th>Live Contracts</th>
-                                <th>Live P&L</th>
-                                <th>Live Close Time</th>
-                                <th>Live Reason</th>
-                                <th>P&L Diff</th>
-                                <th>P&L Diff/Contract</th>
+                                <th class="custom-tooltip" data-tooltip="Date and time when the trade was opened"><i class="fas fa-sort" style="opacity: 0.3;"></i> Entry Date/Time</th>
+                                <th class="custom-tooltip" data-tooltip="Trading strategy name from backtest data"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Strategy</th>
+                                <th class="custom-tooltip" data-tooltip="Number of contracts traded in backtest"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Contracts</th>
+                                <th class="custom-tooltip" data-tooltip="Entry price from backtest (slippage removed)"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Entry Price</th>
+                                <th class="custom-tooltip" data-tooltip="Exit price from backtest (slippage NOT removed)"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Exit Price</th>
+                                <th class="custom-tooltip" data-tooltip="Profit/Loss from backtest trade"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT P&L</th>
+                                <th class="custom-tooltip" data-tooltip="Date and time when the backtest trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Close Time</th>
+                                <th class="custom-tooltip" data-tooltip="Reason why the backtest trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Reason</th>
+                                <th class="custom-tooltip" data-tooltip="Trading strategy name from live data"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Strategy</th>
+                                <th class="custom-tooltip" data-tooltip="Number of contracts traded in live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Contracts</th>
+                                <th class="custom-tooltip" data-tooltip="Entry price from live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Entry Price</th>
+                                <th class="custom-tooltip" data-tooltip="Exit price from live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Exit Price</th>
+                                <th class="custom-tooltip" data-tooltip="Profit/Loss from live trade"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live P&L</th>
+                                <th class="custom-tooltip" data-tooltip="Date and time when the live trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Close Time</th>
+                                <th class="custom-tooltip" data-tooltip="Reason why the live trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Reason</th>
+                                <th class="custom-tooltip" data-tooltip="Difference between live and backtest entry prices (green=better live execution, red=worse)"><i class="fas fa-sort" style="opacity: 0.3;"></i> Entry Diff</th>
+                                <th class="custom-tooltip" data-tooltip="Difference between live and backtest P&L (green=better live performance, red=worse)"><i class="fas fa-sort" style="opacity: 0.3;"></i> P&L Diff</th>
+                                <th class="custom-tooltip" data-tooltip="P&L difference normalized per contract"><i class="fas fa-sort" style="opacity: 0.3;"></i> P&L Diff/Contract</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -11791,14 +11796,44 @@
                                     <td><strong>${trade.entry_datetime}</strong></td>
                                     <td>${trade.backtest ? trade.backtest.strategy : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.contracts : '-'}</td>
+                                    <td>${trade.backtest && trade.backtest.opening_price !== null && trade.backtest.opening_price !== undefined ? `$${parseFloat(trade.backtest.opening_price).toFixed(2)}` : '-'}</td>
+                                    <td>${trade.backtest && trade.backtest.closing_price !== null && trade.backtest.closing_price !== undefined ? `$${parseFloat(trade.backtest.closing_price).toFixed(2)}` : '-'}</td>
                                     <td>${trade.backtest ? `$${trade.backtest.pnl.toFixed(2)}` : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.close_datetime : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.reason_for_close : '-'}</td>
                                     <td>${trade.live ? trade.live.strategy : '-'}</td>
                                     <td>${trade.live ? trade.live.contracts : '-'}</td>
+                                    <td>${trade.live && trade.live.opening_price !== null && trade.live.opening_price !== undefined ? `$${parseFloat(trade.live.opening_price).toFixed(2)}` : '-'}</td>
+                                    <td>${trade.live && trade.live.closing_price !== null && trade.live.closing_price !== undefined ? `$${parseFloat(trade.live.closing_price).toFixed(2)}` : '-'}</td>
                                     <td>${trade.live ? `$${trade.live.pnl.toFixed(2)}` : '-'}</td>
                                     <td>${trade.live ? trade.live.close_datetime : '-'}</td>
                                     <td>${trade.live ? trade.live.reason_for_close : '-'}</td>
+                                    <td>
+                                        ${trade.opening_diff !== null && trade.opening_diff !== undefined ? 
+                                            (() => {
+                                                const btPrice = trade.backtest && trade.backtest.opening_price !== null ? parseFloat(trade.backtest.opening_price) : 0;
+                                                const livePrice = trade.live && trade.live.opening_price !== null ? parseFloat(trade.live.opening_price) : 0;
+                                                const isCredit = btPrice > 0; // Positive opening price = credit trade
+                                                let badgeClass = 'bg-secondary';
+                                                
+                                                if (trade.opening_diff !== 0) {
+                                                    if (isCredit) {
+                                                        // For credit trades: Live credit > BT credit = better (green)
+                                                        badgeClass = trade.opening_diff > 0 ? 'bg-success' : 'bg-danger';
+                                                    } else {
+                                                        // For debit trades: Live debit > BT debit = better (green)
+                                                        // Entry Diff > 0 means Live paid less (better)
+                                                        badgeClass = trade.opening_diff > 0 ? 'bg-success' : 'bg-danger';
+                                                    }
+                                                }
+                                                
+                                                return `<span class="badge ${badgeClass}">
+                                                    ${trade.opening_diff > 0 ? '+' : ''}$${parseFloat(trade.opening_diff).toFixed(2)}
+                                                </span>`;
+                                            })() : 
+                                            '<span class="text-muted">N/A</span>'
+                                        }
+                                    </td>
                                     <td>
                                         ${trade.pnl_diff !== null ? 
                                             `<span class="badge ${trade.pnl_diff > 0 ? 'bg-success' : trade.pnl_diff < 0 ? 'bg-danger' : 'bg-secondary'}">
@@ -11953,6 +11988,59 @@
             });
         }
 
+        function calculateEntryDiffSummary(comparisonData) {
+            const strategyStats = {};
+            
+            comparisonData.forEach(trade => {
+                if (trade.backtest && trade.live && trade.opening_diff !== null && trade.opening_diff !== undefined) {
+                    const strategy = trade.backtest.strategy;
+                    const btPrice = parseFloat(trade.backtest.opening_price) || 0;
+                    const isCredit = btPrice > 0;
+                    const entryDiff = parseFloat(trade.opening_diff);
+                    
+                    if (!strategyStats[strategy]) {
+                        strategyStats[strategy] = {
+                            strategy: strategy,
+                            trades: 0,
+                            entryDiffs: [],
+                            betterCount: 0,
+                            worseCount: 0
+                        };
+                    }
+                    
+                    strategyStats[strategy].trades++;
+                    strategyStats[strategy].entryDiffs.push(entryDiff);
+                    
+                    // Determine if this was better or worse
+                    if (isCredit) {
+                        // For credit trades: positive diff = better
+                        if (entryDiff > 0) strategyStats[strategy].betterCount++;
+                        else if (entryDiff < 0) strategyStats[strategy].worseCount++;
+                    } else {
+                        // For debit trades: positive diff = better (paid less)
+                        if (entryDiff > 0) strategyStats[strategy].betterCount++;
+                        else if (entryDiff < 0) strategyStats[strategy].worseCount++;
+                    }
+                }
+            });
+            
+            return Object.values(strategyStats).map(stats => {
+                const avgDiff = stats.entryDiffs.reduce((sum, diff) => sum + diff, 0) / stats.entryDiffs.length;
+                const bestDiff = Math.max(...stats.entryDiffs);
+                const worstDiff = Math.min(...stats.entryDiffs);
+                
+                return {
+                    strategy: stats.strategy,
+                    trades: stats.trades,
+                    avgDiff: avgDiff,
+                    bestDiff: bestDiff,
+                    worstDiff: worstDiff,
+                    betterCount: stats.betterCount,
+                    worseCount: stats.worseCount
+                };
+            }).sort((a, b) => b.trades - a.trades);
+        }
+
         function displayLiveVsBTAnalysisResults(liveVsBtData) {
             const container = document.getElementById('liveVsBtResults');
             
@@ -11973,6 +12061,65 @@
                 `;
                 return;
             }
+
+            // Create summary statistics
+            const summaryData = calculateEntryDiffSummary(liveVsBtData.comparison_data);
+            const entryDiffSummaryHtml = `
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#entryDiffSummary" aria-expanded="true" aria-controls="entryDiffSummary">
+                                <i class="fas fa-chart-bar me-2"></i>Entry Diff Summary by Strategy
+                                <i class="fas fa-chevron-down ms-2"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse show" id="entryDiffSummary">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Strategy</th>
+                                            <th>Trades</th>
+                                            <th>Avg Entry Diff</th>
+                                            <th>Best Entry Diff</th>
+                                            <th>Worst Entry Diff</th>
+                                            <th>Better Executions</th>
+                                            <th>Worse Executions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${summaryData.map(strategy => `
+                                            <tr>
+                                                <td><strong>${strategy.strategy}</strong></td>
+                                                <td>${strategy.trades}</td>
+                                                <td>
+                                                    <span class="badge ${strategy.avgDiff > 0 ? 'bg-success' : strategy.avgDiff < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                        ${strategy.avgDiff > 0 ? '+' : ''}$${strategy.avgDiff.toFixed(2)}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge ${strategy.bestDiff > 0 ? 'bg-success' : 'bg-secondary'}">
+                                                        ${strategy.bestDiff > 0 ? '+' : ''}$${strategy.bestDiff.toFixed(2)}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge ${strategy.worstDiff < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                        ${strategy.worstDiff > 0 ? '+' : ''}$${strategy.worstDiff.toFixed(2)}
+                                                    </span>
+                                                </td>
+                                                <td><span class="badge bg-success">${strategy.betterCount}</span></td>
+                                                <td><span class="badge bg-danger">${strategy.worseCount}</span></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
             
             // Create summary
             const summary = liveVsBtData.summary || {};
@@ -12018,19 +12165,24 @@
                     <table class="table table-striped table-hover" id="liveVsBtTable">
                         <thead class="table-dark">
                             <tr>
-                                <th>Entry Date/Time</th>
-                                <th>BT Strategy</th>
-                                <th>BT Contracts</th>
-                                <th>BT P&L</th>
-                                <th>BT Close Time</th>
-                                <th>BT Reason</th>
-                                <th>Live Strategy</th>
-                                <th>Live Contracts</th>
-                                <th>Live P&L</th>
-                                <th>Live Close Time</th>
-                                <th>Live Reason</th>
-                                <th>P&L Diff</th>
-                                <th>P&L Diff/Contract</th>
+                                <th class="custom-tooltip" data-tooltip="Date and time when the trade was opened"><i class="fas fa-sort" style="opacity: 0.3;"></i> Entry Date/Time</th>
+                                <th class="custom-tooltip" data-tooltip="Trading strategy name from backtest data"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Strategy</th>
+                                <th class="custom-tooltip" data-tooltip="Number of contracts traded in backtest"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Contracts</th>
+                                <th class="custom-tooltip" data-tooltip="Entry price from backtest (slippage removed)"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Entry Price</th>
+                                <th class="custom-tooltip" data-tooltip="Exit price from backtest (slippage NOT removed)"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Exit Price</th>
+                                <th class="custom-tooltip" data-tooltip="Profit/Loss from backtest trade"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT P&L</th>
+                                <th class="custom-tooltip" data-tooltip="Date and time when the backtest trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Close Time</th>
+                                <th class="custom-tooltip" data-tooltip="Reason why the backtest trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Reason</th>
+                                <th class="custom-tooltip" data-tooltip="Trading strategy name from live data"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Strategy</th>
+                                <th class="custom-tooltip" data-tooltip="Number of contracts traded in live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Contracts</th>
+                                <th class="custom-tooltip" data-tooltip="Entry price from live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Entry Price</th>
+                                <th class="custom-tooltip" data-tooltip="Exit price from live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Exit Price</th>
+                                <th class="custom-tooltip" data-tooltip="Profit/Loss from live trade"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live P&L</th>
+                                <th class="custom-tooltip" data-tooltip="Date and time when the live trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Close Time</th>
+                                <th class="custom-tooltip" data-tooltip="Reason why the live trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Reason</th>
+                                <th class="custom-tooltip" data-tooltip="Difference between live and backtest entry prices (green=better live execution, red=worse)"><i class="fas fa-sort" style="opacity: 0.3;"></i> Entry Diff</th>
+                                <th class="custom-tooltip" data-tooltip="Difference between live and backtest P&L (green=better live performance, red=worse)"><i class="fas fa-sort" style="opacity: 0.3;"></i> P&L Diff</th>
+                                <th class="custom-tooltip" data-tooltip="P&L difference normalized per contract"><i class="fas fa-sort" style="opacity: 0.3;"></i> P&L Diff/Contract</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -12039,14 +12191,44 @@
                                     <td><strong>${trade.entry_datetime}</strong></td>
                                     <td>${trade.backtest ? trade.backtest.strategy : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.contracts : '-'}</td>
+                                    <td>${trade.backtest && trade.backtest.opening_price !== null && trade.backtest.opening_price !== undefined ? `$${parseFloat(trade.backtest.opening_price).toFixed(2)}` : '-'}</td>
+                                    <td>${trade.backtest && trade.backtest.closing_price !== null && trade.backtest.closing_price !== undefined ? `$${parseFloat(trade.backtest.closing_price).toFixed(2)}` : '-'}</td>
                                     <td>${trade.backtest ? `$${trade.backtest.pnl.toFixed(2)}` : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.close_datetime : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.reason_for_close : '-'}</td>
                                     <td>${trade.live ? trade.live.strategy : '-'}</td>
                                     <td>${trade.live ? trade.live.contracts : '-'}</td>
+                                    <td>${trade.live && trade.live.opening_price !== null && trade.live.opening_price !== undefined ? `$${parseFloat(trade.live.opening_price).toFixed(2)}` : '-'}</td>
+                                    <td>${trade.live && trade.live.closing_price !== null && trade.live.closing_price !== undefined ? `$${parseFloat(trade.live.closing_price).toFixed(2)}` : '-'}</td>
                                     <td>${trade.live ? `$${trade.live.pnl.toFixed(2)}` : '-'}</td>
                                     <td>${trade.live ? trade.live.close_datetime : '-'}</td>
                                     <td>${trade.live ? trade.live.reason_for_close : '-'}</td>
+                                    <td>
+                                        ${trade.opening_diff !== null && trade.opening_diff !== undefined ? 
+                                            (() => {
+                                                const btPrice = trade.backtest && trade.backtest.opening_price !== null ? parseFloat(trade.backtest.opening_price) : 0;
+                                                const livePrice = trade.live && trade.live.opening_price !== null ? parseFloat(trade.live.opening_price) : 0;
+                                                const isCredit = btPrice > 0; // Positive opening price = credit trade
+                                                let badgeClass = 'bg-secondary';
+                                                
+                                                if (trade.opening_diff !== 0) {
+                                                    if (isCredit) {
+                                                        // For credit trades: Live credit > BT credit = better (green)
+                                                        badgeClass = trade.opening_diff > 0 ? 'bg-success' : 'bg-danger';
+                                                    } else {
+                                                        // For debit trades: Live debit > BT debit = better (green)
+                                                        // Entry Diff > 0 means Live paid less (better)
+                                                        badgeClass = trade.opening_diff > 0 ? 'bg-success' : 'bg-danger';
+                                                    }
+                                                }
+                                                
+                                                return `<span class="badge ${badgeClass}">
+                                                    ${trade.opening_diff > 0 ? '+' : ''}$${parseFloat(trade.opening_diff).toFixed(2)}
+                                                </span>`;
+                                            })() : 
+                                            '<span class="text-muted">N/A</span>'
+                                        }
+                                    </td>
                                     <td>
                                         ${trade.pnl_diff !== null ? 
                                             `<span class="badge ${trade.pnl_diff > 0 ? 'bg-success' : trade.pnl_diff < 0 ? 'bg-danger' : 'bg-secondary'}">
@@ -12070,10 +12252,13 @@
                 </div>
             `;
             
-            container.innerHTML = summaryHtml + tableHtml;
+            container.innerHTML = summaryHtml + entryDiffSummaryHtml + tableHtml;
             
             // Initialize table sorting
             initializeLiveVsBtTableSorting();
+            
+            // Initialize custom tooltips
+            initializeCustomTooltips();
         }
 
         function initializeLiveVsBtTableSorting() {
@@ -12111,8 +12296,8 @@
                     let aVal = aCell.textContent.trim();
                     let bVal = bCell.textContent.trim();
                     
-                    // Handle numeric values (Contracts, P&L columns, P&L Diff, P&L Diff/Contract)
-                    if (columnIndex === 2 || columnIndex === 3 || columnIndex === 7 || columnIndex === 8 || columnIndex === 11 || columnIndex === 12) {
+                    // Handle numeric values (Contracts, Entry/Exit Prices, P&L columns, Price Diffs, P&L Diff, P&L Diff/Contract)
+                    if (columnIndex === 2 || columnIndex === 3 || columnIndex === 4 || columnIndex === 5 || columnIndex === 10 || columnIndex === 11 || columnIndex === 12 || columnIndex === 15 || columnIndex === 16 || columnIndex === 17 || columnIndex === 18) {
                         aVal = parseFloat(aVal.replace(/[$,]/g, '')) || 0;
                         bVal = parseFloat(bVal.replace(/[$,]/g, '')) || 0;
                     }
