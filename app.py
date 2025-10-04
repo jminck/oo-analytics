@@ -5,6 +5,7 @@ Simple but powerful analytics platform optimized for strategy comparison and por
 
 from flask import Flask, request, render_template, jsonify, redirect, url_for, session, send_file
 from flask_login import current_user, login_required
+from flask_babel import Babel, gettext, ngettext, get_locale
 import pandas as pd
 import numpy as np
 import os
@@ -62,6 +63,30 @@ def get_current_user_id():
 # Create Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Configure i18n
+app.config['LANGUAGES'] = {
+    'en': 'English',
+    'es': 'Español'
+}
+app.config['BABEL_DEFAULT_LOCALE'] = 'en'
+app.config['BABEL_DEFAULT_TIMEZONE'] = 'UTC'
+
+# Initialize Babel
+babel = Babel(app)
+
+def get_locale():
+    # 1. Check URL parameter
+    if request.args.get('lang'):
+        session['language'] = request.args.get('lang')
+    # 2. Check session
+    if 'language' in session:
+        return session['language']
+    # 3. Check browser preference
+    return request.accept_languages.best_match(app.config['LANGUAGES'].keys()) or 'en'
+
+# Set the locale selector function
+babel.locale_selector_func = get_locale
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
 # Initialize Application Insights (only in production)
@@ -1226,6 +1251,30 @@ def dashboard():
                          version_info=version_info,
                          build_badge=build_badge)
 
+@app.route('/api/set-language/<lang>')
+def set_language(lang):
+    """Set the language for the current session."""
+    if lang in app.config['LANGUAGES']:
+        session['language'] = lang
+        return jsonify({'success': True, 'language': lang})
+    return jsonify({'success': False, 'error': 'Unsupported language'})
+
+@app.route('/translations/<lang>/frontend.json')
+def get_translations(lang):
+    """Serve frontend translation files."""
+    if lang not in app.config['LANGUAGES']:
+        return jsonify({'error': 'Unsupported language'}), 404
+    
+    try:
+        import json
+        with open(f'translations/{lang}/frontend.json', 'r', encoding='utf-8') as f:
+            translations = json.load(f)
+        return jsonify(translations)
+    except FileNotFoundError:
+        return jsonify({'error': 'Translation file not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/version')
 def api_version():
     """API endpoint to get version information."""
@@ -2223,7 +2272,7 @@ def upload_csv():
             
             response_data = {
                 'success': True,
-                'message': f'Successfully uploaded {portfolio.total_trades} trades',
+                'message': gettext('Successfully uploaded %(count)d trades', count=portfolio.total_trades),
                 'data': {
                     'trades_count': portfolio.total_trades,
                     'strategies_count': len(portfolio.strategies),
@@ -2258,7 +2307,7 @@ def upload_csv():
         
         return jsonify({
             'success': False,
-            'error': f'Upload failed: {str(e)}'
+            'error': gettext('Upload failed: %(error)s', error=str(e))
         }), 500
 
 @app.route('/api/cleanup-empty-dirs', methods=['POST'])

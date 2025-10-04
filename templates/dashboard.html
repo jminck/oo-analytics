@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Portfolio Strategy Analytics</title>
     
     <!-- Plotly.js for interactive charts -->
@@ -11,6 +14,7 @@
     <!-- Bootstrap for styling -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}?v=20241213_6"></script>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -2000,7 +2004,7 @@
             <a class="navbar-brand" href="/">
                 <i class="fas fa-chart-line"></i>
                 Portfolio Strategy Analytics
-                <span class="version-info" onclick="showVersionModal()" style="cursor: pointer;" title="Click for build details">
+                <span class="version-info" onclick="showVersionModal()" style="cursor: pointer;" title="" data-i18n-title="click_for_build_details">
                     <span class="version-text">{{ version_string }}</span>
                     {{ build_badge|safe }}
                 </span>
@@ -2009,7 +2013,7 @@
                 <span class="nav-stats" id="dataStats">Loading...</span>
                 <span class="nav-filename" id="csvFilename" style="display:none;">
                     <i class="fas fa-file-csv"></i>
-                    <span id="currentFilename">No file loaded</span>
+                    <span id="currentFilename" data-i18n="no_file_loaded">No file loaded</span>
                 </span>
                 <div class="user-info" id="userInfo">
                     <span id="userDisplay">Loading...</span>
@@ -2018,10 +2022,22 @@
                     <i class="fas fa-moon" id="themeIcon"></i>
                     <span id="themeText">Dark</span>
                 </button>
-                <a href="https://github.com/jminck/oo-analytics/issues" target="_blank" class="btn btn-outline-secondary" title="Report a bug or issue">
+                <a href="https://github.com/jminck/oo-analytics/issues" target="_blank" class="btn btn-outline-secondary" title="" data-i18n-title="report_bug">
                     <i class="fab fa-github"></i>
-                    <span>Bug/Suggestion?</span>
+                    <span data-i18n="bug_suggestion">Bug/Suggestion?</span>
                 </a>
+                
+                <!-- Language Switcher -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-globe"></i>
+                        <span id="currentLanguage" data-i18n="language_en">English</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" data-lang-switch="en">🇺🇸 <span data-i18n="language_en">English</span></a></li>
+                        <li><a class="dropdown-item" href="#" data-lang-switch="es">🇪🇸 <span data-i18n="language_es">Español</span></a></li>
+                    </ul>
+                </div>
                 <div class="dropdown">
                     <button class="btn btn-outline-primary dropdown-toggle" type="button" id="authDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user"></i>
@@ -2053,22 +2069,22 @@
             <div class="col-12">
                 <h2 class="section-title">
                     <i class="fas fa-database"></i>
-                    Data Management
+                    <span data-i18n="data_management">Data Management</span>
                 </h2>
             </div>
             <div class="col-md-6 mb-3">
-                <h5>Upload New File</h5>
+                <h5 data-i18n="upload_new_file">Upload New File</h5>
                            <div class="d-flex align-items-start gap-3 mb-2">
                <div style="flex: 1; min-width: 0;">
-                   <label for="friendlyNameInput" class="form-label">Friendly Name (optional):</label>
-                   <input type="text" class="form-control form-control-sm" id="friendlyNameInput" placeholder="e.g., Q4 2024 Trades">
-                   <small class="text-muted">Leave empty to use original filename</small>
+                   <label for="friendlyNameInput" class="form-label" data-i18n="friendly_name_optional">Friendly Name (optional):</label>
+                   <input type="text" class="form-control form-control-sm" id="friendlyNameInput" placeholder="" data-i18n-placeholder="friendly_name_placeholder">
+                   <small class="text-muted" data-i18n="leave_empty_filename">Leave empty to use original filename</small>
                </div>
                <div class="upload-area" id="uploadArea" onclick="if (!window.selectedFile) document.getElementById('fileInput').click()" style="height: 80px; flex: 1; min-width: 0;">
                         <div class="upload-content" id="uploadContent">
                             <i class="fas fa-cloud-upload-alt"></i>
-                            <h6 id="uploadPrompt" style="font-size: 0.8rem; margin: 0;">Drop CSV here</h6>
-                            <small class="text-muted" id="uploadHint" style="font-size: 0.7rem;">or click to browse</small>
+                            <h6 id="uploadPrompt" style="font-size: 0.8rem; margin: 0;" data-i18n="drop_csv_here">Drop CSV here</h6>
+                            <small class="text-muted" id="uploadHint" style="font-size: 0.7rem;" data-i18n="or_click_to_browse">or click to browse</small>
                         </div>
                         <div id="selectedFileInfo" style="display:none;">
                             <span id="selectedFileName" class="fw-bold" style="font-size: 0.8rem;"></span>
@@ -2089,23 +2105,23 @@
                 <!-- Load Sample Data Button -->
                 <div class="mt-3">
                     <button class="btn btn-outline-info" id="loadSampleDataBtn" onclick="loadSamplePortfolioData()">
-                        <i class="fas fa-download"></i> Load Sample Portfolio Data
+                        <i class="fas fa-download"></i> <span data-i18n="load_sample_portfolio">Load Sample Portfolio Data</span>
                     </button>
-                    <small class="text-muted d-block mt-1">Load Example-Portfolio.csv for testing and demonstration</small>
+                    <small class="text-muted d-block mt-1" data-i18n="load_sample_description">Load Example-Portfolio.csv for testing and demonstration</small>
                 </div>
             </div>
             <div class="col-md-6 mb-3">
-                <h5>Load Previous File</h5>
+                <h5 data-i18n="load_previous_file">Load Previous File</h5>
                 <div class="saved-files-section">
-                    <label for="savedFilesSelect" class="form-label">Select a previously uploaded file:</label>
+                    <label for="savedFilesSelect" class="form-label" data-i18n="select_uploaded_file">Select a previously uploaded file:</label>
                     <select class="form-select" id="savedFilesSelect">
-                        <option value="">Loading saved files...</option>
+                        <option value="" data-i18n="loading_saved_files">Loading saved files...</option>
                     </select>
                     <div class="d-flex gap-2 mt-2">
-                        <button class="btn btn-primary btn-sm" id="loadFileBtn" disabled>Load Selected File</button>
-                        <button class="btn btn-outline-info btn-sm" id="editNameBtn" disabled title="Edit friendly name">✏️ Rename</button>
-                        <button class="btn btn-outline-danger btn-sm" id="deleteFileBtn" disabled title="Delete selected file">🗑️ Delete</button>
-                        <button class="btn btn-outline-secondary btn-sm" id="cleanupFilesBtn" title="Remove duplicate files, keeping only the most recent version">🧹 Cleanup Duplicates</button>
+                        <button class="btn btn-primary btn-sm" id="loadFileBtn" disabled data-i18n="load_selected_file">Load Selected File</button>
+                        <button class="btn btn-outline-info btn-sm" id="editNameBtn" disabled title="" data-i18n-title="edit_friendly_name">✏️ <span data-i18n="rename">Rename</span></button>
+                        <button class="btn btn-outline-danger btn-sm" id="deleteFileBtn" disabled title="" data-i18n-title="delete_selected_file">🗑️ <span data-i18n="delete">Delete</span></button>
+                        <button class="btn btn-outline-secondary btn-sm" id="cleanupFilesBtn" title="" data-i18n-title="cleanup_duplicates">🧹 <span data-i18n="cleanup_duplicates">Cleanup Duplicates</span></button>
                     </div>
                     <div id="savedFileStatus" class="mt-2"></div>
                 </div>
@@ -2115,7 +2131,7 @@
 
         <!-- Portfolio Overview Metrics -->
         <div class="mb-4">
-                <h2 class="section-title">
+                <h2 class="section-title" data-i18n="portfolio_overview">
                     <i class="fas fa-chart-area"></i>
                     Portfolio Overview
                 </h2>
@@ -2123,7 +2139,7 @@
                 <div class="metric-card-wrapper">
                 <div class="card metric-card">
                     <div class="card-body text-center">
-                        <div class="metric-title">Starting Capital</div>
+                        <div class="metric-title" data-i18n="starting_capital">Starting Capital</div>
                         <div class="metric-value" id="startingCapital">$0</div>
                         <div class="metric-subtitle" id="startDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
                     </div>
@@ -2132,7 +2148,7 @@
                 <div class="metric-card-wrapper">
                 <div class="card metric-card">
                     <div class="card-body text-center">
-                        <div class="metric-title">Ending Capital</div>
+                        <div class="metric-title" data-i18n="ending_capital">Ending Capital</div>
                         <div class="metric-value" id="endingCapital">$0</div>
                         <div class="metric-subtitle" id="endDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
                     </div>
@@ -2141,7 +2157,7 @@
                 <div class="metric-card-wrapper">
                 <div class="card metric-card">
                     <div class="card-body text-center">
-                        <div class="metric-title">Total P&L</div>
+                        <div class="metric-title" data-i18n="total_pnl">Total P&L</div>
                         <div class="metric-value" id="totalPnL">$0</div>
                     </div>
                 </div>
@@ -2216,7 +2232,7 @@
         <!-- Tabbed Analytics Interface -->
         <div class="row mb-4">
             <div class="col-12">
-                <h2 class="section-title">
+                <h2 class="section-title" data-i18n="analytics_dashboard">
                     <i class="fas fa-chart-pie"></i>
                     Analytics Dashboard
                 </h2>
@@ -2229,7 +2245,7 @@
             <div class="flex-shrink-0">
                 <div class="card sidebar-chart-selector">
                     <div class="card-header py-2">
-                        <h6 class="mb-0">
+                        <h6 class="mb-0" data-i18n="charts">
                             <i class="fas fa-chart-bar"></i>
                             Charts
                         </h6>
@@ -2260,27 +2276,27 @@
                                         <table class="table table-hover" id="strategyTable">
                                             <thead class="table-dark">
                                                 <tr>
-                                                    <th style="min-width: 200px; cursor:pointer;" data-key="strategy" onclick="sortStrategyTable('strategy')" class="custom-tooltip" data-tooltip="Name of the trading strategy">Strategy <span id="sort-indicator-strategy"></span></th>
-                                                    <th style="cursor:pointer;" data-key="total_pnl" onclick="sortStrategyTable('total_pnl')" class="custom-tooltip" data-tooltip="Total profit/loss for all trades in this strategy">Total P&L <span id="sort-indicator-total_pnl"></span></th>
-                                                    <th style="cursor:pointer;" data-key="trades" onclick="sortStrategyTable('trades')" class="custom-tooltip" data-tooltip="Total number of completed trades">Trades <span id="sort-indicator-trades"></span></th>
-                                                    <th style="cursor:pointer;" data-key="wins" onclick="sortStrategyTable('wins')" class="custom-tooltip" data-tooltip="Number of profitable trades">Wins <span id="sort-indicator-wins"></span></th>
-                                                    <th style="cursor:pointer;" data-key="losses" onclick="sortStrategyTable('losses')" class="custom-tooltip" data-tooltip="Number of losing trades">Losses <span id="sort-indicator-losses"></span></th>
-                                                    <th style="cursor:pointer;" data-key="commissions" onclick="sortStrategyTable('commissions')" class="custom-tooltip" data-tooltip="Total commission costs for all trades">Commissions <span id="sort-indicator-commissions"></span></th>
-                                                    <th style="cursor:pointer;" data-key="win_rate" onclick="sortStrategyTable('win_rate')" class="custom-tooltip" data-tooltip="Percentage of trades that were profitable">Win Rate <span id="sort-indicator-win_rate"></span></th>
-                                                    <th style="cursor:pointer;" data-key="max_loss_streak" onclick="sortStrategyTable('max_loss_streak')" class="custom-tooltip" data-tooltip="Maximum consecutive losing trades">Max Loss Streak <span id="sort-indicator-max_loss_streak"></span></th>
-                                                    <th style="cursor:pointer;" data-key="avg_win" onclick="sortStrategyTable('avg_win')" class="custom-tooltip" data-tooltip="Average profit amount for winning trades">Avg Winner <span id="sort-indicator-avg_win"></span></th>
-                                                    <th style="cursor:pointer;" data-key="avg_loss" onclick="sortStrategyTable('avg_loss')" class="custom-tooltip" data-tooltip="Average loss amount for losing trades">Avg Loser <span id="sort-indicator-avg_loss"></span></th>
-                                                    <th style="cursor:pointer;" data-key="max_win" onclick="sortStrategyTable('max_win')" class="custom-tooltip" data-tooltip="Largest profit from a single winning trade">Max Winner <span id="sort-indicator-max_win"></span></th>
-                                                    <th style="cursor:pointer;" data-key="max_loss" onclick="sortStrategyTable('max_loss')" class="custom-tooltip" data-tooltip="Largest loss from a single losing trade">Max Loser <span id="sort-indicator-max_loss"></span></th>
-                                                    <th style="cursor:pointer;" data-key="avg_win_per_lot" onclick="sortStrategyTable('avg_win_per_lot')" class="custom-tooltip" data-tooltip="Average profit per contract for winning trades">Avg Win/Lot <span id="sort-indicator-avg_win_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="avg_loss_per_lot" onclick="sortStrategyTable('avg_loss_per_lot')" class="custom-tooltip" data-tooltip="Average loss per contract for losing trades">Avg Loss/Lot <span id="sort-indicator-avg_loss_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="max_win_per_lot" onclick="sortStrategyTable('max_win_per_lot')" class="custom-tooltip" data-tooltip="Largest profit per contract from a single trade">Max Win/Lot <span id="sort-indicator-max_win_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="max_loss_per_lot" onclick="sortStrategyTable('max_loss_per_lot')" class="custom-tooltip" data-tooltip="Largest loss per contract from a single trade">Max Loss/Lot <span id="sort-indicator-max_loss_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="comm_per_lot" onclick="sortStrategyTable('comm_per_lot')" class="custom-tooltip" data-tooltip="Average commission cost per contract">Comm/Lot <span id="sort-indicator-comm_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="expectancy_per_lot" onclick="sortStrategyTable('expectancy_per_lot')" class="custom-tooltip" data-tooltip="Expected profit/loss per contract: (win_rate × avg_win) - (loss_rate × avg_loss)">Expectancy/Lot <span id="sort-indicator-expectancy_per_lot"></span></th>
-                                                    <th style="cursor:pointer;" data-key="profit_factor" onclick="sortStrategyTable('profit_factor')" class="custom-tooltip" data-tooltip="Ratio of total profits to total losses (higher is better)">Profit Factor <span id="sort-indicator-profit_factor"></span></th>
-                                                    <th style="cursor:pointer;" data-key="margin_percentage" onclick="sortStrategyTable('margin_percentage')" class="custom-tooltip" data-tooltip="Trade size percentage: Margin Req. / (Funds at Close - P/L) from first trade">Margin % <span id="sort-indicator-margin_percentage"></span></th>
-                                                    <th style="cursor:pointer;" data-key="efficiency" onclick="sortStrategyTable('efficiency')" class="custom-tooltip" data-tooltip="Risk-adjusted performance: (Expectancy ÷ Margin) × Win Rate">Efficiency <span id="sort-indicator-efficiency"></span></th>
+                                                    <th style="min-width: 200px; cursor:pointer;" data-key="strategy" onclick="sortStrategyTable('strategy')" class="custom-tooltip sortable" data-tooltip="Name of the trading strategy">Strategy <span id="sort-indicator-strategy"></span></th>
+                                                    <th style="cursor:pointer;" data-key="total_pnl" onclick="sortStrategyTable('total_pnl')" class="custom-tooltip sortable" data-tooltip="Total profit/loss for all trades in this strategy">Total P&L <span id="sort-indicator-total_pnl"></span></th>
+                                                    <th style="cursor:pointer;" data-key="trades" onclick="sortStrategyTable('trades')" class="custom-tooltip sortable" data-tooltip="Total number of completed trades">Trades <span id="sort-indicator-trades"></span></th>
+                                                    <th style="cursor:pointer;" data-key="wins" onclick="sortStrategyTable('wins')" class="custom-tooltip sortable" data-tooltip="Number of profitable trades">Wins <span id="sort-indicator-wins"></span></th>
+                                                    <th style="cursor:pointer;" data-key="losses" onclick="sortStrategyTable('losses')" class="custom-tooltip sortable" data-tooltip="Number of losing trades">Losses <span id="sort-indicator-losses"></span></th>
+                                                    <th style="cursor:pointer;" data-key="commissions" onclick="sortStrategyTable('commissions')" class="custom-tooltip sortable" data-tooltip="Total commission costs for all trades">Commissions <span id="sort-indicator-commissions"></span></th>
+                                                    <th style="cursor:pointer;" data-key="win_rate" onclick="sortStrategyTable('win_rate')" class="custom-tooltip sortable" data-tooltip="Percentage of trades that were profitable">Win Rate <span id="sort-indicator-win_rate"></span></th>
+                                                    <th style="cursor:pointer;" data-key="max_loss_streak" onclick="sortStrategyTable('max_loss_streak')" class="custom-tooltip sortable" data-tooltip="Maximum consecutive losing trades">Max Loss Streak <span id="sort-indicator-max_loss_streak"></span></th>
+                                                    <th style="cursor:pointer;" data-key="avg_win" onclick="sortStrategyTable('avg_win')" class="custom-tooltip sortable" data-tooltip="Average profit amount for winning trades">Avg Winner <span id="sort-indicator-avg_win"></span></th>
+                                                    <th style="cursor:pointer;" data-key="avg_loss" onclick="sortStrategyTable('avg_loss')" class="custom-tooltip sortable" data-tooltip="Average loss amount for losing trades">Avg Loser <span id="sort-indicator-avg_loss"></span></th>
+                                                    <th style="cursor:pointer;" data-key="max_win" onclick="sortStrategyTable('max_win')" class="custom-tooltip sortable" data-tooltip="Largest profit from a single winning trade">Max Winner <span id="sort-indicator-max_win"></span></th>
+                                                    <th style="cursor:pointer;" data-key="max_loss" onclick="sortStrategyTable('max_loss')" class="custom-tooltip sortable" data-tooltip="Largest loss from a single losing trade">Max Loser <span id="sort-indicator-max_loss"></span></th>
+                                                    <th style="cursor:pointer;" data-key="avg_win_per_lot" onclick="sortStrategyTable('avg_win_per_lot')" class="custom-tooltip sortable" data-tooltip="Average profit per contract for winning trades">Avg Win/Lot <span id="sort-indicator-avg_win_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="avg_loss_per_lot" onclick="sortStrategyTable('avg_loss_per_lot')" class="custom-tooltip sortable" data-tooltip="Average loss per contract for losing trades">Avg Loss/Lot <span id="sort-indicator-avg_loss_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="max_win_per_lot" onclick="sortStrategyTable('max_win_per_lot')" class="custom-tooltip sortable" data-tooltip="Largest profit per contract from a single trade">Max Win/Lot <span id="sort-indicator-max_win_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="max_loss_per_lot" onclick="sortStrategyTable('max_loss_per_lot')" class="custom-tooltip sortable" data-tooltip="Largest loss per contract from a single trade">Max Loss/Lot <span id="sort-indicator-max_loss_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="comm_per_lot" onclick="sortStrategyTable('comm_per_lot')" class="custom-tooltip sortable" data-tooltip="Average commission cost per contract">Comm/Lot <span id="sort-indicator-comm_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="expectancy_per_lot" onclick="sortStrategyTable('expectancy_per_lot')" class="custom-tooltip sortable" data-tooltip="Expected profit/loss per contract: (win_rate × avg_win) - (loss_rate × avg_loss)">Expectancy/Lot <span id="sort-indicator-expectancy_per_lot"></span></th>
+                                                    <th style="cursor:pointer;" data-key="profit_factor" onclick="sortStrategyTable('profit_factor')" class="custom-tooltip sortable" data-tooltip="Ratio of total profits to total losses (higher is better)">Profit Factor <span id="sort-indicator-profit_factor"></span></th>
+                                                    <th style="cursor:pointer;" data-key="margin_percentage" onclick="sortStrategyTable('margin_percentage')" class="custom-tooltip sortable" data-tooltip="Trade size percentage: Margin Req. / (Funds at Close - P/L) from first trade">Margin % <span id="sort-indicator-margin_percentage"></span></th>
+                                                    <th style="cursor:pointer;" data-key="efficiency" onclick="sortStrategyTable('efficiency')" class="custom-tooltip sortable" data-tooltip="Risk-adjusted performance: (Expectancy ÷ Margin) × Win Rate">Efficiency <span id="sort-indicator-efficiency"></span></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2358,13 +2374,13 @@
                             <div class="alert alert-info py-2">
                                 <h6 class="alert-heading mb-2">
                                     <i class="fas fa-info-circle"></i>
-                                    MEIC (Multiple Entry Iron Condor) Analysis Requirements
+                                    <span data-i18n="meic_analysis_requirements">MEIC (Multiple Entry Iron Condor) Analysis Requirements</span>
                                 </h6>
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <strong>Naming:</strong> "meic" must be in filename or strategy name<br>
-                                        <strong>Structure:</strong> 2 leg groups (put spread + call spread)<br>
-                                        <strong>Timing:</strong> Same entry date and time for both trades
+                                        <strong>${window.i18n ? window.i18n.t('naming') : 'Naming:'}</strong> ${window.i18n ? window.i18n.t('meic_in_filename_or_strategy') : '"meic" must be in filename or strategy name'}<br>
+                                        <strong>${window.i18n ? window.i18n.t('structure') : 'Structure:'}</strong> ${window.i18n ? window.i18n.t('two_leg_groups') : '2 leg groups (put spread + call spread)'}<br>
+                                        <strong>${window.i18n ? window.i18n.t('timing') : 'Timing:'}</strong> ${window.i18n ? window.i18n.t('same_entry_date_time') : 'Same entry date and time for both trades'}
                                     </div>
                                     <div class="col-md-6">
                                         <strong>Example:</strong> Entry 15:14:00 on 2025-09-05<br>
@@ -2383,40 +2399,40 @@
                                 <div class="alert alert-info">
                                     <h4 class="alert-heading">
                                         <i class="fas fa-info-circle"></i>
-                                        No MEIC Trades Detected
+                                        <span data-i18n="no_meic_trades_detected">No MEIC Trades Detected</span>
                                     </h4>
-                                    <p>No Multiple Entry Iron Condor (MEIC) trades were found in your data. To analyze MEIC trades, please ensure:</p>
+                                    <p data-i18n="no_meic_trades_found">No Multiple Entry Iron Condor (MEIC) trades were found in your data. To analyze MEIC trades, please ensure:</p>
                                     <hr>
-                                    <h6><strong>Naming Requirements:</strong></h6>
+                                    <h6><strong data-i18n="naming_requirements">Naming Requirements:</strong></h6>
                                     <ul>
-                                        <li>The word "meic" (case-insensitive) must appear in either:</li>
+                                        <li data-i18n="meic_naming_requirements">The word "meic" (case-insensitive) must appear in either:</li>
                                         <ul>
-                                            <li>The <strong>filename</strong> of your uploaded CSV file, OR</li>
-                                            <li>The <strong>strategy name</strong> in your trade data</li>
+                                            <li data-i18n="meic_filename_or_strategy">The <strong>filename</strong> of your uploaded CSV file, OR</li>
+                                            <li data-i18n="meic_strategy_name">The <strong>strategy name</strong> in your trade data</li>
                                         </ul>
                                     </ul>
-                                    <h6><strong>Leg Group Requirements:</strong></h6>
+                                    <h6><strong data-i18n="leg_group_requirements">Leg Group Requirements:</strong></h6>
                                     <ul>
-                                        <li>MEIC trades must be organized in "leg groups"</li>
-                                        <li>Each leg group consists of <strong>2 trades</strong> placed at the same entry time:</li>
+                                        <li data-i18n="meic_leg_groups">MEIC trades must be organized in "leg groups"</li>
+                                        <li data-i18n="meic_leg_group_desc">Each leg group consists of <strong>2 trades</strong> placed at the same entry time:</li>
                                         <ul>
-                                            <li>One trade for the <strong>put spread</strong> (P strikes only)</li>
-                                            <li>One trade for the <strong>call spread</strong> (C strikes only)</li>
+                                            <li data-i18n="meic_put_spread">One trade for the <strong>put spread</strong> (P strikes only)</li>
+                                            <li data-i18n="meic_call_spread">One trade for the <strong>call spread</strong> (C strikes only)</li>
                                         </ul>
-                                        <li>Both trades must have the same <strong>entry date and time</strong></li>
+                                        <li data-i18n="meic_same_entry_time">Both trades must have the same <strong>entry date and time</strong></li>
                                     </ul>
-                                    <h6><strong>Example:</strong></h6>
-                                    <p>For a MEIC trade group entered at 15:14:00 on 2025-09-05:</p>
+                                    <h6><strong data-i18n="meic_example">Example:</strong></h6>
+                                    <p data-i18n="meic_example_desc">For a MEIC trade group entered at 15:14:00 on 2025-09-05:</p>
                                     <ul>
-                                        <li><strong>Put Spread:</strong> "4 Sep 5 6470 P STO 1.95 | 4 Sep 5 6395 P BTO 0.05"</li>
-                                        <li><strong>Call Spread:</strong> "4 Sep 5 6485 C STO 2.20 | 4 Sep 5 6540 C BTO 0.05"</li>
+                                        <li data-i18n="meic_put_example"><strong>Put Spread:</strong> "4 Sep 5 6470 P STO 1.95 | 4 Sep 5 6395 P BTO 0.05"</li>
+                                        <li data-i18n="meic_call_example"><strong>Call Spread:</strong> "4 Sep 5 6485 C STO 2.20 | 4 Sep 5 6540 C BTO 0.05"</li>
                                     </ul>
                                     <hr>
                                     <div class="mt-3">
                                         <button class="btn btn-success" onclick="loadSampleMEICData()">
-                                            <i class="fas fa-download"></i> Load Sample MEIC Data
+                                            <i class="fas fa-download"></i> <span data-i18n="load_sample_meic_data">Load Sample MEIC Data</span>
                                         </button>
-                                        <small class="text-muted d-block mt-1">Load Example-Portfolio-MEIC.csv for testing and demonstration</small>
+                                        <small class="text-muted d-block mt-1" data-i18n="load_sample_meic_description">Load Example-Portfolio-MEIC.csv for testing and demonstration</small>
                                     </div>
                                 </div>
                             </div>
@@ -2428,12 +2444,12 @@
                         <div class="col-12">
                             <h3 class="section-title">
                                 <i class="fas fa-chart-pie"></i>
-                                MEIC Overview
+                                <span data-i18n="meic_overview">MEIC Overview</span>
                             </h3>
                             <div class="card">
                                 <div class="card-body">
                                     <div id="meicOverviewStats">
-                                        <p class="text-muted">Loading MEIC overview statistics...</p>
+                                        <p class="text-muted" data-i18n="loading_meic_overview">Loading MEIC overview statistics...</p>
                                     </div>
                                 </div>
                             </div>
@@ -2445,7 +2461,7 @@
                         <div class="col-12">
                             <h3 class="section-title">
                                 <i class="fas fa-chart-bar"></i>
-                                MEIC Performance Heatmap
+                                <span data-i18n="meic_performance_heatmap">MEIC Performance Heatmap</span>
                             </h3>
                             <div class="card">
                                 <div class="card-body">
@@ -2461,37 +2477,37 @@
                                                             </h6>
                                                             <p class="text-muted small mb-3">
                                                                 <i class="fas fa-info-circle"></i> 
-                                                                Filter the date range to analyze how different time periods impact the MEIC heatmap performance and patterns.
+                                                                <span data-i18n="meic_heatmap_description">Filter the date range to analyze how different time periods impact the MEIC heatmap performance and patterns.</span>
                                                             </p>
                                                             
                                                             <!-- Date Range Display -->
                                                             <div class="row mb-2">
                                                                 <div class="col-6">
-                                                                    <small class="text-muted">Start:</small> <span id="meicStartDateDisplay" class="fw-bold">All Dates</span>
+                                                                    <small class="text-muted">${window.i18n ? window.i18n.t('start') : 'Start:'}</small> <span id="meicStartDateDisplay" class="fw-bold">${window.i18n ? window.i18n.t('all_dates') : 'All Dates'}</span>
                                                                 </div>
                                                                 <div class="col-6">
-                                                                    <small class="text-muted">End:</small> <span id="meicEndDateDisplay" class="fw-bold">All Dates</span>
+                                                                    <small class="text-muted">${window.i18n ? window.i18n.t('end') : 'End:'}</small> <span id="meicEndDateDisplay" class="fw-bold">${window.i18n ? window.i18n.t('all_dates') : 'All Dates'}</span>
                                                                 </div>
                                                             </div>
                                                             
                                                             <!-- Sliders -->
                                                             <div class="mb-2">
-                                                                <label for="meicStartDateSlider" class="form-label small mb-1">Start Date</label>
+                                                                <label for="meicStartDateSlider" class="form-label small mb-1">${window.i18n ? window.i18n.t('start_date') : 'Start Date'}</label>
                                                                 <input type="range" class="form-range" id="meicStartDateSlider" 
                                                                        min="0" max="100" value="0" step="1" oninput="updateMEICDateLabels()">
                                                                 <div class="d-flex justify-content-between">
-                                                                    <small class="text-muted" id="meicStartDateMin">Loading...</small>
-                                                                    <small class="text-muted" id="meicStartDateMax">Loading...</small>
+                                                                    <small class="text-muted" id="meicStartDateMin">${window.i18n ? window.i18n.t('loading') : 'Loading...'}</small>
+                                                                    <small class="text-muted" id="meicStartDateMax">${window.i18n ? window.i18n.t('loading') : 'Loading...'}</small>
                                                                 </div>
                                                             </div>
                                                             
                                                             <div class="mb-2">
-                                                                <label for="meicEndDateSlider" class="form-label small mb-1">End Date</label>
+                                                                <label for="meicEndDateSlider" class="form-label small mb-1">${window.i18n ? window.i18n.t('end_date') : 'End Date'}</label>
                                                                 <input type="range" class="form-range" id="meicEndDateSlider" 
                                                                        min="0" max="100" value="100" step="1" oninput="updateMEICDateLabels()">
                                                                 <div class="d-flex justify-content-between">
-                                                                    <small class="text-muted" id="meicEndDateMin">Loading...</small>
-                                                                    <small class="text-muted" id="meicEndDateMax">Loading...</small>
+                                                                    <small class="text-muted" id="meicEndDateMin">${window.i18n ? window.i18n.t('loading') : 'Loading...'}</small>
+                                                                    <small class="text-muted" id="meicEndDateMax">${window.i18n ? window.i18n.t('loading') : 'Loading...'}</small>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2593,8 +2609,9 @@
     </div>
 
     <script>
-        // Cache busting version - v20241213_1
-        console.log('🔧 JavaScript loaded - v20241213_3_no_severity');
+        // Cache busting version - v20241213_7
+        console.log('🔧 JavaScript loaded - v20241213_7_i18n_button_debug');
+        console.log('🔧 Timestamp:', new Date().toISOString());
         
         // Global state
         let currentChart = null;
@@ -3468,18 +3485,18 @@
                         <td>${new Date(file.upload_date).toLocaleDateString()}</td>
                         <td>
                             <div class="d-flex gap-1 flex-wrap">
-                                <button class="btn btn-sm btn-primary" onclick="loadFileFromTable('${file.filename}')" title="Load this file">
-                                    <i class="fas fa-play"></i>
-                                </button>
+                            <button class="btn btn-sm btn-primary" onclick="loadFileFromTable('${file.filename}')" title="Load this file">
+                                <i class="fas fa-play"></i>
+                            </button>
                                 <button class="btn btn-sm btn-info" onclick="showFileContent('${file.filename}')" title="Show file content">
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 <button class="btn btn-sm btn-success" onclick="downloadFile('${file.filename}')" title="Download this file">
                                     <i class="fas fa-download"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteFileFromTable('${file.filename}', '${file.friendly_name}')" title="Move to recycle">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteFileFromTable('${file.filename}', '${file.friendly_name}')" title="Move to recycle">
+                                <i class="fas fa-trash"></i>
+                            </button>
                             </div>
                         </td>
                     </tr>
@@ -4093,13 +4110,20 @@
 
         function renderChartButtons() {
             console.log('🔧 renderChartButtons() starting...');
+            console.log('🔧 SIMPLE TEST: Function is executing');
+            console.log('🔧 SIMPLE TEST: About to enter try block');
             try {
+                console.log('🔧 SIMPLE TEST: Inside try block');
                 const container = document.getElementById('chartButtons');
                 if (!container) {
                     console.error('❌ chartButtons container not found!');
                     return;
                 }
                 container.innerHTML = '';
+
+                console.log('🔧 TEST: About to check availableCharts...');
+                console.log('🔧 TEST: availableCharts exists:', !!availableCharts);
+                console.log('🔧 TEST: availableCharts keys length:', availableCharts ? Object.keys(availableCharts).length : 'N/A');
 
                 if (!availableCharts || Object.keys(availableCharts).length === 0) {
                 // Fallback chart list - using array to preserve order
@@ -4121,12 +4145,12 @@
                     ['margin_analysis', 'Margin requirements analysis'],
                     ['daily_margin_analysis', 'Daily margin usage analysis'],
                     ['monte_carlo', 'Monte Carlo simulation analysis'],
-                    ['mfe_mae', 'MFE/MAE Analysis'],
+                        ['mfe_mae', 'MFE/MAE Analysis'],
                     ['blackout_dates', 'Blackout dates analysis'],
                     ['price_movement', 'Price movement analysis'],
                     ['meic_analysis', 'MEIC (Multiple Entry Iron Condor) analysis'],
                     ['separator', '--- Cross-File Analysis ---'],
-                    ['live_vs_bt', 'Live vs Backtest comparison'],
+                        ['live_vs_bt', 'Live vs Backtest comparison'],
                     ['cross_file_correlation', 'Analyze strategies across multiple uploaded files'],
                     ['files_overview', 'Uploaded files overview and management']
                 ];
@@ -4164,13 +4188,10 @@
                 'files_overview'
             ];
 
-                // Debug: Check if conflicting_legs is in chartOrder
-                console.log('🔧 conflicting_legs in chartOrder:', chartOrder.includes('conflicting_legs'));
-                console.log('🔧 conflicting_legs in availableCharts:', !!availableCharts['conflicting_legs']);
-                console.log('🔧 formatChartName test for conflicting_legs:', formatChartName('conflicting_legs'));
-
                 // Render buttons in the specified order
+                console.log('🔧 availableCharts keys:', Object.keys(availableCharts));
                 for (const chartType of chartOrder) {
+                    console.log('🔧 Processing chart type:', chartType, 'available:', !!availableCharts[chartType]);
                     if (availableCharts[chartType]) {
                         if (chartType === 'separator') {
                             // Create a visual separator that breaks out of the grid
@@ -4187,7 +4208,9 @@
                         } else {
                         const button = document.createElement('button');
                         button.className = 'btn btn-outline-primary btn-chart';
-                        button.textContent = formatChartName(chartType);
+                            const translatedName = formatChartName(chartType);
+                            console.log(`🔧 Button for ${chartType}: "${translatedName}"`);
+                            button.textContent = translatedName;
                         button.title = availableCharts[chartType];
                             // Fix closure issue by capturing chartType in a local variable
                             const currentChartType = chartType;
@@ -4210,35 +4233,42 @@
         }
 
         function formatChartName(chartType) {
+            console.log(`🔧 formatChartName called for: ${chartType}, i18n available: ${!!window.i18n}`);
+            if (window.i18n) {
+                console.log(`🔧 i18n current language: ${window.i18n.currentLanguage}`);
+                const translationKey = `chart_${chartType}`;
+                const translation = window.i18n.t(translationKey);
+                console.log(`🔧 Translation key: ${translationKey}, Result: ${translation}`);
+            }
             const chartNames = {
-                'overview': '📊 Overview',
-                'cumulative_pnl': '📈 Cumulative P&L',
-                'monthly_pnl': '📅 Monthly P&L',
-                'monthly_pnl_stacked': '📊 Monthly Stacked',
-                'daily_pnl': '📆 Daily P&L',
-                'strategy_performance': '📈 Strategy Performance',
-                'strategy_correlation': '🔗 Strategy Correlation',
-                'risk_return': '📊 Risk vs Return',
-                'drawdown': '📉 Drawdown',
-                'portfolio_balance': '🥧 Portfolio Balance',
-                'win_rate': '🎯 Win Rate',
-                'win_rates_table': '📊 Win Rates Table',
-                'monte_carlo': '🎲 Monte Carlo',
-                'mfe_mae': '📈 MFE/MAE',
-                'strategy_detail': '📋 Strategy Detail',
-                'margin_analysis': '💰 Margin Analysis',
-                'daily_margin_analysis': '📊 Daily Margin Analysis',
-                'pnl_by_day_of_week': '📅 P&L by Day of Week',
-                'pnl_by_month': '📅 P&L by Month',
-                'commission_analysis': '💳 Commission Analysis',
-                'conflicting_legs': '⚠️ Conflicting Legs',
-                'blackout_dates': '🚫 Blackout Dates',
-                'price_movement': '📈 Price Movement',
-                'meic_analysis': '🎯 MEIC Analysis',
-                'separator': '--- Cross-File Analysis ---',
-                'live_vs_bt': '⚖️ Live vs Backtest',
-                'cross_file_correlation': '🔗 Cross-File Correlation',
-                'files_overview': '📁 Uploaded Files Overview'
+                'overview': window.i18n ? window.i18n.t('chart_overview') : '📊 Overview',
+                'cumulative_pnl': window.i18n ? window.i18n.t('chart_cumulative_pnl') : '📈 Cumulative P&L',
+                'monthly_pnl': window.i18n ? window.i18n.t('chart_monthly_pnl') : '📅 Monthly P&L',
+                'monthly_pnl_stacked': window.i18n ? window.i18n.t('chart_monthly_stacked') : '📊 Monthly Stacked',
+                'daily_pnl': window.i18n ? window.i18n.t('chart_daily_pnl') : '📆 Daily P&L',
+                'strategy_performance': window.i18n ? window.i18n.t('chart_strategy_performance') : '📈 Strategy Performance',
+                'strategy_correlation': window.i18n ? window.i18n.t('chart_strategy_correlation') : '🔗 Strategy Correlation',
+                'risk_return': window.i18n ? window.i18n.t('chart_risk_return') : '📊 Risk vs Return',
+                'drawdown': window.i18n ? window.i18n.t('chart_drawdown') : '📉 Drawdown',
+                'portfolio_balance': window.i18n ? window.i18n.t('chart_portfolio_balance') : '🥧 Portfolio Balance',
+                'win_rate': window.i18n ? window.i18n.t('chart_win_rate') : '🎯 Win Rate',
+                'win_rates_table': window.i18n ? window.i18n.t('chart_win_rates_table') : '📊 Win Rates Table',
+                'monte_carlo': window.i18n ? window.i18n.t('chart_monte_carlo') : '🎲 Monte Carlo',
+                'mfe_mae': window.i18n ? window.i18n.t('chart_mfe_mae') : '📈 MFE/MAE',
+                'strategy_detail': window.i18n ? window.i18n.t('chart_strategy_detail') : '📋 Strategy Detail',
+                'margin_analysis': window.i18n ? window.i18n.t('chart_margin_analysis') : '💰 Margin Analysis',
+                'daily_margin_analysis': window.i18n ? window.i18n.t('chart_daily_margin_analysis') : '📊 Daily Margin Analysis',
+                'pnl_by_day_of_week': window.i18n ? window.i18n.t('chart_pnl_by_day_of_week') : '📅 P&L by Day of Week',
+                'pnl_by_month': window.i18n ? window.i18n.t('chart_pnl_by_month') : '📅 P&L by Month',
+                'commission_analysis': window.i18n ? window.i18n.t('chart_commission_analysis') : '💳 Commission Analysis',
+                'conflicting_legs': window.i18n ? window.i18n.t('chart_conflicting_legs') : '⚠️ Conflicting Legs',
+                'blackout_dates': window.i18n ? window.i18n.t('chart_blackout_dates') : '🚫 Blackout Dates',
+                'price_movement': window.i18n ? window.i18n.t('chart_price_movement') : '📈 Price Movement',
+                'meic_analysis': window.i18n ? window.i18n.t('chart_meic_analysis') : '🎯 MEIC Analysis',
+                'separator': window.i18n ? '--- ' + window.i18n.t('cross_file_analysis') + ' ---' : '--- Cross-File Analysis ---',
+                'live_vs_bt': window.i18n ? window.i18n.t('chart_live_vs_bt') : '⚖️ Live vs Backtest',
+                'cross_file_correlation': window.i18n ? window.i18n.t('chart_cross_file_correlation') : '🔗 Cross-File Correlation',
+                'files_overview': window.i18n ? window.i18n.t('chart_files_overview') : '📁 Uploaded Files Overview'
             };
             return chartNames[chartType] || chartType;
         }
@@ -4292,66 +4322,66 @@
                 // Show Monte Carlo simulation form
                 container.innerHTML = `
                     <div class="alert alert-danger" role="alert">
-                        <strong>⚠️ DEVELOPMENT NOTICE:</strong> This Monte Carlo simulation page is currently under development and should not be relied upon for trading decisions. The calculations and results may contain errors or inaccuracies.
+                        <strong>${window.i18n ? window.i18n.t('monte_carlo_development_notice') : '⚠️ DEVELOPMENT NOTICE:'}</strong> ${window.i18n ? window.i18n.t('monte_carlo_development_warning') : 'This Monte Carlo simulation page is currently under development and should not be relied upon for trading decisions. The calculations and results may contain errors or inaccuracies.'}
                     </div>
                     <div class="row">
                         <div class="col-md-4">
-                            <h5>Simulation Parameters</h5>
+                            <h5>${window.i18n ? window.i18n.t('simulation_parameters') : 'Simulation Parameters'}</h5>
                             <div class="mb-3">
-                                <label for="simulationType" class="form-label">Simulation Type:</label>
+                                <label for="simulationType" class="form-label">${window.i18n ? window.i18n.t('simulation_type') : 'Simulation Type:'}</label>
                                 <select class="form-select" id="simulationType" onchange="toggleStrategySelection()">
-                                    <option value="portfolio">Portfolio (All Strategies Combined)</option>
-                                    <option value="single_strategy">Single Strategy</option>
+                                    <option value="portfolio">${window.i18n ? window.i18n.t('portfolio_all_strategies') : 'Portfolio (All Strategies Combined)'}</option>
+                                    <option value="single_strategy">${window.i18n ? window.i18n.t('single_strategy') : 'Single Strategy'}</option>
                                 </select>
                             </div>
                             <div class="mb-3" id="strategySelectionDiv" style="display: none;">
-                                <label for="selectedStrategy" class="form-label">Select Strategy:</label>
+                                <label for="selectedStrategy" class="form-label">${window.i18n ? window.i18n.t('select_strategy') : 'Select Strategy:'}</label>
                                 <select class="form-select" id="selectedStrategy">
                                     <!-- Options will be populated by JavaScript -->
                                 </select>
                             </div>
                             <!-- Trade size input removed - using historical position sizing -->
                             <div class="mb-3">
-                                <label for="numSimulations" class="form-label">Number of Simulations:</label>
+                                <label for="numSimulations" class="form-label">${window.i18n ? window.i18n.t('number_of_simulations') : 'Number of Simulations:'}</label>
                                 <select class="form-select" id="numSimulations">
-                                    <option value="100">100 (Fast)</option>
+                                    <option value="100">${window.i18n ? window.i18n.t('fast_100') : '100 (Fast)'}</option>
                                     <option value="500">500</option>
-                                    <option value="1000" selected>1,000 (Recommended)</option>
+                                    <option value="1000" selected>${window.i18n ? window.i18n.t('recommended_1000') : '1,000 (Recommended)'}</option>
                                     <option value="2500">2,500</option>
-                                    <option value="5000">5,000 (Slow)</option>
+                                    <option value="5000">${window.i18n ? window.i18n.t('slow_5000') : '5,000 (Slow)'}</option>
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label for="numTrades" class="form-label">Number of Trades per Simulation:</label>
-                                <input type="number" class="form-control" id="numTrades" placeholder="Use historical count">
-                                <small class="text-muted">Leave empty to use same count as historical data</small>
+                                <label for="numTrades" class="form-label">${window.i18n ? window.i18n.t('number_of_trades_per_simulation') : 'Number of Trades per Simulation:'}</label>
+                                <input type="number" class="form-control" id="numTrades" placeholder="${window.i18n ? window.i18n.t('use_historical_count') : 'Use historical count'}">
+                                <small class="text-muted">${window.i18n ? window.i18n.t('leave_empty_historical') : 'Leave empty to use same count as historical data'}</small>
                             </div>
                             <div class="mb-3">
-                                <label for="riskFreeRate" class="form-label">Risk-Free Rate (% Annual):</label>
+                                <label for="riskFreeRate" class="form-label">${window.i18n ? window.i18n.t('risk_free_rate_annual') : 'Risk-Free Rate (% Annual):'}</label>
                                 <input type="number" class="form-control" id="riskFreeRate" 
                                        value="4.0" min="0" max="20" step="0.1" 
                                        title="Annual risk-free rate for Sharpe and Sortino ratio calculations">
-                                <small class="text-muted">Used for risk-adjusted performance calculations (default: 4%)</small>
+                                <small class="text-muted">${window.i18n ? window.i18n.t('used_for_risk_adjusted') : 'Used for risk-adjusted performance calculations (default: 4%)'}</small>
                             </div>
                             <div class="d-grid gap-2">
-                                <button class="btn btn-primary" id="runMonteCarloBtn">Run Simulation</button>
+                                <button class="btn btn-primary" id="runMonteCarloBtn">${window.i18n ? window.i18n.t('run_simulation') : 'Run Simulation'}</button>
                                 <div id="monteCarloStatus"></div>
                             </div>
                         </div>
                         <div class="col-md-8">
-                            <h5>Simulation Results</h5>
+                            <h5>${window.i18n ? window.i18n.t('simulation_results') : 'Simulation Results'}</h5>
                             <div id="monteCarloResults" class="alert alert-info">
-                                Run a simulation to see probability distributions and risk metrics
+                                ${window.i18n ? window.i18n.t('run_simulation_to_see') : 'Run a simulation to see probability distributions and risk metrics'}
                             </div>
                             <!-- Monte Carlo Charts section moved to dynamic content in JavaScript -->
                             <div class="mt-3" id="simulationDetailsSection" style="display: none;">
-                                <h6>View Simulated Trades:</h6>
+                                <h6>${window.i18n ? window.i18n.t('view_simulated_trades') : 'View Simulated Trades:'}</h6>
                                 <div class="d-flex gap-2 align-items-center">
-                                    <label for="simulationSelect" class="form-label mb-0">Simulation:</label>
+                                    <label for="simulationSelect" class="form-label mb-0">${window.i18n ? window.i18n.t('simulation') : 'Simulation:'}</label>
                                     <select class="form-select form-select-sm" id="simulationSelect" style="width: auto;">
                                         <!-- Options will be populated by JavaScript -->
                                     </select>
-                                    <button class="btn btn-outline-secondary btn-sm" onclick="viewSimulationTrades()">View Trades</button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="viewSimulationTrades()">${window.i18n ? window.i18n.t('view_trades') : 'View Trades'}</button>
                                 </div>
                             </div>
                         </div>
@@ -4858,6 +4888,7 @@
                 return;
             }
             console.log('Rendering', strategyTableData.length, 'strategies');
+            console.log('Sorting by:', strategySortKey, 'Ascending:', strategySortAsc);
             // Sort data
             const sorted = [...strategyTableData].sort((a, b) => {
                 let valA, valB;
@@ -4873,6 +4904,7 @@
                 };
                 
                 const fieldName = fieldMap[strategySortKey] || strategySortKey;
+                console.log('Field name for sorting:', fieldName);
                 
                 if (strategySortKey === 'strategy') {
                     valA = (a.name || '').toLowerCase();
@@ -4944,17 +4976,238 @@
             setTimeout(() => {
                 initializeCustomTooltips();
             }, 100);
+            
+            // Update sort indicators AFTER tooltips are initialized
+            setTimeout(() => {
+                updateStrategySortIndicators();
+            }, 150);
+        }
+
+        function updateStrategySortIndicators() {
+            console.log('🔧 updateStrategySortIndicators called');
+            console.log('🔧 Current sort key:', strategySortKey);
+            console.log('🔧 Current sort direction:', strategySortAsc);
+            
+            // Clear all indicators first
+            const indicators = document.querySelectorAll('#strategyTable [id^="sort-indicator-"]');
+            console.log('🔧 Found indicators:', indicators.length);
+            indicators.forEach((indicator, index) => {
+                console.log(`🔧 Clearing indicator ${index}:`, indicator.id);
+                indicator.innerHTML = '';
+            });
+            
+            // Set the current sort indicator
+            const currentIndicator = document.getElementById(`sort-indicator-${strategySortKey}`);
+            console.log('🔧 Looking for indicator:', `sort-indicator-${strategySortKey}`);
+            console.log('🔧 Found current indicator:', currentIndicator);
+            
+            if (currentIndicator) {
+                const icon = strategySortAsc ? ' <i class="fas fa-sort-up text-primary"></i>' : ' <i class="fas fa-sort-down text-primary"></i>';
+                currentIndicator.innerHTML = icon;
+                console.log('🔧 Set indicator to:', icon);
+                console.log('🔧 Indicator element after setting:', currentIndicator.outerHTML);
+            } else {
+                console.log('🔧 No indicator found for key:', strategySortKey);
+                console.log('🔧 Available indicators:', Array.from(indicators).map(el => el.id));
+            }
         }
 
         function sortStrategyTable(key) {
+            console.log('🔧 sortStrategyTable called with key:', key);
+            console.log('🔧 Current strategySortKey:', strategySortKey);
+            console.log('🔧 Current strategySortAsc:', strategySortAsc);
+            console.log('🔧 strategyTableData length:', strategyTableData ? strategyTableData.length : 'undefined');
+            
             if (strategySortKey === key) {
                 strategySortAsc = !strategySortAsc;
+                console.log('🔧 Toggling sort direction for same column');
             } else {
                 strategySortKey = key;
                 strategySortAsc = key === 'strategy'; // default asc for name, desc for numbers
+                console.log('🔧 Switching to new column:', key);
             }
+            
+            console.log('🔧 New strategySortKey:', strategySortKey);
+            console.log('🔧 New strategySortAsc:', strategySortAsc);
+            
+            // Force a small delay to ensure DOM is ready
+            setTimeout(() => {
             renderStrategyTable();
+            }, 10);
         }
+
+        // Live vs Backtest table sorting
+        let liveVsBtSortKey = 'entry_time';
+        let liveVsBtSortAsc = true;
+        let liveVsBtTableData = [];
+        
+        // Make variables global for i18n system
+        window.liveVsBtSortKey = liveVsBtSortKey;
+        window.liveVsBtSortAsc = liveVsBtSortAsc;
+        window.liveVsBtTableData = liveVsBtTableData;
+
+        function sortLiveVsBtTable(key) {
+            console.log('🔧 sortLiveVsBtTable called with key:', key);
+            console.log('🔧 Current liveVsBtSortKey:', liveVsBtSortKey);
+            console.log('🔧 Current liveVsBtSortAsc:', liveVsBtSortAsc);
+            console.log('🔧 liveVsBtTableData length:', liveVsBtTableData ? liveVsBtTableData.length : 'undefined');
+            
+            if (liveVsBtSortKey === key) {
+                liveVsBtSortAsc = !liveVsBtSortAsc;
+                console.log('🔧 Toggling sort direction for same column');
+            } else {
+                liveVsBtSortKey = key;
+                liveVsBtSortAsc = key === 'entry_time' || key === 'bt_strategy' || key === 'live_strategy' || key === 'bt_reason' || key === 'live_reason'; // default asc for text, desc for numbers
+                console.log('🔧 Switching to new column:', key);
+            }
+            
+            console.log('🔧 New liveVsBtSortKey:', liveVsBtSortKey);
+            console.log('🔧 New liveVsBtSortAsc:', liveVsBtSortAsc);
+            
+            // Force a small delay to ensure DOM is ready
+            setTimeout(() => {
+                renderLiveVsBtTable();
+            }, 10);
+        }
+
+        function renderLiveVsBtTable() {
+            console.log('🔧 renderLiveVsBtTable called');
+            console.log('🔧 liveVsBtTableData length:', liveVsBtTableData ? liveVsBtTableData.length : 'undefined');
+            
+            if (!liveVsBtTableData || liveVsBtTableData.length === 0) {
+                console.log('🔧 No data to render');
+                return;
+            }
+
+            const table = document.getElementById('liveVsBtTable');
+            if (!table) {
+                console.log('🔧 No liveVsBtTable found');
+                return;
+            }
+
+            const tbody = table.querySelector('tbody');
+            if (!tbody) {
+                console.log('🔧 No tbody found');
+                return;
+            }
+
+            console.log('🔧 Sorting by:', liveVsBtSortKey, 'Ascending:', liveVsBtSortAsc);
+            
+            // Sort data
+            const sorted = [...liveVsBtTableData].sort((a, b) => {
+                let valA, valB;
+                
+                switch (liveVsBtSortKey) {
+                    case 'entry_time':
+                        valA = new Date(a.entry_time || 0);
+                        valB = new Date(b.entry_time || 0);
+                        break;
+                    case 'bt_strategy':
+                    case 'live_strategy':
+                    case 'bt_reason':
+                    case 'live_reason':
+                        valA = (a[liveVsBtSortKey] || '').toString().toLowerCase();
+                        valB = (b[liveVsBtSortKey] || '').toString().toLowerCase();
+                        break;
+                    default:
+                        valA = parseFloat(a[liveVsBtSortKey]) || 0;
+                        valB = parseFloat(b[liveVsBtSortKey]) || 0;
+                        break;
+                }
+                
+                if (valA < valB) return liveVsBtSortAsc ? -1 : 1;
+                if (valA > valB) return liveVsBtSortAsc ? 1 : -1;
+                return 0;
+            });
+
+            console.log('🔧 Rendering', sorted.length, 'rows');
+            
+            // Clear and rebuild tbody
+            tbody.innerHTML = '';
+            
+            sorted.forEach(trade => {
+                const row = document.createElement('tr');
+                
+                // Create cells based on the trade data structure
+                const cells = [
+                    trade.entry_time || '',
+                    trade.bt_strategy || '',
+                    trade.bt_contracts || '',
+                    trade.bt_entry_price ? `$${parseFloat(trade.bt_entry_price).toFixed(2)}` : '',
+                    trade.bt_exit_price ? `$${parseFloat(trade.bt_exit_price).toFixed(2)}` : '',
+                    trade.bt_pnl ? `$${parseFloat(trade.bt_pnl).toLocaleString()}` : '',
+                    trade.bt_close_time || '',
+                    trade.bt_reason || '',
+                    trade.live_strategy || '',
+                    trade.live_contracts || '',
+                    trade.live_entry_price ? `$${parseFloat(trade.live_entry_price).toFixed(2)}` : '',
+                    trade.live_exit_price ? `$${parseFloat(trade.live_exit_price).toFixed(2)}` : '',
+                    trade.live_pnl ? `$${parseFloat(trade.live_pnl).toLocaleString()}` : '',
+                    trade.live_close_time || '',
+                    trade.live_reason || '',
+                    trade.entry_diff || '',
+                    trade.pnl_diff || '',
+                    trade.pnl_diff_contract || ''
+                ];
+                
+                cells.forEach(cellText => {
+                    const cell = document.createElement('td');
+                    cell.textContent = cellText;
+                    row.appendChild(cell);
+                });
+                
+                tbody.appendChild(row);
+            });
+
+            // Update sort indicators
+            updateLiveVsBtSortIndicators();
+        }
+        
+        // Make function global for i18n system
+        window.renderLiveVsBtTable = renderLiveVsBtTable;
+
+        function updateLiveVsBtSortIndicators() {
+            console.log('🔧 updateLiveVsBtSortIndicators called');
+            console.log('🔧 Current sort key:', liveVsBtSortKey);
+            console.log('🔧 Current sort direction:', liveVsBtSortAsc);
+            
+            // Clear all indicators first
+            const indicators = document.querySelectorAll('#liveVsBtTable [id^="sort-indicator-"]');
+            console.log('🔧 Found indicators:', indicators.length);
+            indicators.forEach((indicator, index) => {
+                console.log(`🔧 Clearing indicator ${index}:`, indicator.id);
+                indicator.innerHTML = '';
+            });
+            
+            // Set the current sort indicator
+            const currentIndicator = document.getElementById(`sort-indicator-${liveVsBtSortKey}`);
+            console.log('🔧 Looking for indicator:', `sort-indicator-${liveVsBtSortKey}`);
+            console.log('🔧 Found current indicator:', currentIndicator);
+            
+            if (currentIndicator) {
+                const icon = liveVsBtSortAsc ? ' <i class="fas fa-sort-up text-primary"></i>' : ' <i class="fas fa-sort-down text-primary"></i>';
+                currentIndicator.innerHTML = icon;
+                console.log('🔧 Set indicator to:', icon);
+                console.log('🔧 Indicator element after setting:', currentIndicator.outerHTML);
+            } else {
+                console.log('🔧 No indicator found for key:', liveVsBtSortKey);
+                console.log('🔧 Available indicators:', Array.from(indicators).map(el => el.id));
+            }
+        }
+        
+        // Make functions globally accessible for onclick handlers
+        window.sortStrategyTable = sortStrategyTable;
+        window.sortLiveVsBtTable = sortLiveVsBtTable;
+        
+        // Test function accessibility
+        console.log('🔧 sortStrategyTable function defined:', typeof sortStrategyTable);
+        console.log('🔧 window.sortStrategyTable:', typeof window.sortStrategyTable);
+        
+        // Test function
+        window.testSort = function() {
+            console.log('🔧 Test function called!');
+            alert('Test function works!');
+        };
 
         function updateBalanceAnalysis(data) {
             const container = document.getElementById('balanceAnalysis');
@@ -4976,23 +5229,23 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="alert alert-info">
-                            <h6 class="mb-2"><i class="fas fa-info-circle"></i> Portfolio Balance Summary</h6>
+                            <h6 class="mb-2"><i class="fas fa-info-circle"></i> <span data-i18n="portfolio_balance_summary">Portfolio Balance Summary</span></h6>
                             <div class="row text-center">
                                 <div class="col-md-3">
                                     <strong>${totalStrategies}</strong><br>
-                                    <small class="text-muted">Total Strategies</small>
+                                    <small class="text-muted" data-i18n="total_strategies">Total Strategies</small>
                                 </div>
                                 <div class="col-md-3">
                                     <strong>${totalTrades}</strong><br>
-                                    <small class="text-muted">Total Trades</small>
+                                    <small class="text-muted" data-i18n="total_trades">Total Trades</small>
                                 </div>
                                 <div class="col-md-3">
                                     <strong class="${totalPnl >= 0 ? 'positive' : 'negative'}">${formatCurrency(totalPnl)}</strong><br>
-                                    <small class="text-muted">Total P&L</small>
+                                    <small class="text-muted" data-i18n="total_pnl">Total P&L</small>
                                 </div>
                                 <div class="col-md-3">
                                     <strong>${diversification?.score || 0}%</strong><br>
-                                    <small class="text-muted">Diversification Score</small>
+                                    <small class="text-muted" data-i18n="diversification_score">Diversification Score</small>
                                 </div>
                             </div>
                         </div>
@@ -5002,7 +5255,7 @@
                     <div class="col-md-4">
                         <div class="card h-100">
                             <div class="card-body">
-                                <h6 class="card-title text-success">🟢 Bullish Strategies</h6>
+                                <h6 class="card-title text-success">🟢 <span data-i18n="bullish_strategies">Bullish Strategies</span></h6>
                                 <div class="mb-2">
                                     <strong>${balance.BULLISH ? balance.BULLISH.strategy_count : 0}</strong> strategies
                                     <span class="badge bg-success ms-2">${balance.BULLISH ? ((balance.BULLISH.strategy_count / totalStrategies) * 100).toFixed(1) : 0}%</span>
@@ -5034,7 +5287,7 @@
                     <div class="col-md-4">
                         <div class="card h-100">
                             <div class="card-body">
-                                <h6 class="card-title text-danger">🔴 Bearish Strategies</h6>
+                                <h6 class="card-title text-danger">🔴 <span data-i18n="bearish_strategies">Bearish Strategies</span></h6>
                                 <div class="mb-2">
                                     <strong>${balance.BEARISH ? balance.BEARISH.strategy_count : 0}</strong> strategies
                                     <span class="badge bg-danger ms-2">${balance.BEARISH ? ((balance.BEARISH.strategy_count / totalStrategies) * 100).toFixed(1) : 0}%</span>
@@ -5066,7 +5319,7 @@
                     <div class="col-md-4">
                         <div class="card h-100">
                             <div class="card-body">
-                                <h6 class="card-title text-warning">🟡 Neutral Strategies</h6>
+                                <h6 class="card-title text-warning">🟡 <span data-i18n="neutral_strategies">Neutral Strategies</span></h6>
                                 <div class="mb-2">
                                     <strong>${balance.NEUTRAL ? balance.NEUTRAL.strategy_count : 0}</strong> strategies
                                     <span class="badge bg-warning ms-2">${balance.NEUTRAL ? ((balance.NEUTRAL.strategy_count / totalStrategies) * 100).toFixed(1) : 0}%</span>
@@ -5151,8 +5404,8 @@
                     <div class="col-12">
                         <div class="card">
                             <div class="card-header">
-                                <h5 class="mb-0"><i class="fas fa-chart-line"></i> MFE/MAE Analysis</h5>
-                                <small class="text-muted">Maximum Favorable Excursion & Maximum Adverse Excursion</small>
+                                <h5 class="mb-0"><i class="fas fa-chart-line"></i> <span data-i18n="mfe_mae_analysis_title">MFE/MAE Analysis</span></h5>
+                                <small class="text-muted" data-i18n="mfe_mae_analysis_subtitle">Maximum Favorable Excursion & Maximum Adverse Excursion</small>
                             </div>
                             <div class="card-body">
                                 <div id="mfeMaeContent">
@@ -5214,23 +5467,23 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="alert alert-info">
-                            <h6><i class="fas fa-chart-bar"></i> Analysis Summary</h6>
+                            <h6><i class="fas fa-chart-bar"></i> <span data-i18n="analysis_summary">Analysis Summary</span></h6>
                             <div class="row text-center">
                                 <div class="col-md-3">
                                     <strong>${summary.total_strategies || 0}</strong><br>
-                                    <small class="text-muted">Strategies</small>
+                                    <small class="text-muted" data-i18n="total_strategies">Strategies</small>
                                 </div>
                                 <div class="col-md-3">
                                     <strong>${summary.total_trades_analyzed || 0}</strong><br>
-                                    <small class="text-muted">Total Trades</small>
+                                    <small class="text-muted" data-i18n="total_trades">Total Trades</small>
                                 </div>
                                 <div class="col-md-3">
                                     <strong>${summary.losing_trades_with_mfe || 0}</strong><br>
-                                    <small class="text-muted">Losing Trades with MFE</small>
+                                    <small class="text-muted" data-i18n="losing_trades_with_mfe">Losing Trades with MFE</small>
                                 </div>
                                 <div class="col-md-3">
                                     <strong>${summary.winning_trades_combined || 0}</strong><br>
-                                    <small class="text-muted">Winning Trades (MAE + MFE)</small>
+                                    <small class="text-muted" data-i18n="winning_trades_combined">Winning Trades (MAE + MFE)</small>
                                 </div>
                             </div>
                         </div>
@@ -5325,14 +5578,14 @@
                 
                 <div class="mt-3">
                     <div class="alert alert-info">
-                        <h6><i class="fas fa-lightbulb"></i> Key Insights:</h6>
+                        <h6><i class="fas fa-lightbulb"></i> <span data-i18n="key_insights">Key Insights:</span></h6>
                         <ul class="mb-0">
-                            <li><strong>MFE (Losing Trades):</strong> How much profit losing trades saw before becoming losers (shows missed opportunities)</li>
-                            <li><strong>Profit Kept % (Losing):</strong> Always 0% since they ended up losing (shows they didn't capture the profit they saw)</li>
-                            <li><strong>MAE (Winning Trades):</strong> How much pain winning trades endured before becoming profitable</li>
-                            <li><strong>Pain/Profit Ratio:</strong> Ratio of maximum adverse excursion to final profit (lower is better - shows efficiency of profit capture)</li>
-                            <li><strong>MFE (Winning Trades):</strong> How much profit winning trades saw while open (shows profit potential)</li>
-                            <li><strong>Profit Kept % (Winning):</strong> What percentage of maximum profit was actually captured (higher is better - shows profit retention efficiency)</li>
+                            <li><strong>MFE (Losing Trades):</strong> <span data-i18n="mfe_losing_trades_desc">How much profit losing trades saw before becoming losers (shows missed opportunities)</span></li>
+                            <li><strong>Profit Kept % (Losing):</strong> <span data-i18n="profit_kept_losing_desc">Always 0% since they ended up losing (shows they didn't capture the profit they saw)</span></li>
+                            <li><strong>MAE (Winning Trades):</strong> <span data-i18n="mae_winning_trades_desc">How much pain winning trades endured before becoming profitable</span></li>
+                            <li><strong>Pain/Profit Ratio:</strong> <span data-i18n="pain_profit_ratio_desc">Ratio of maximum adverse excursion to final profit (lower is better - shows efficiency of profit capture)</span></li>
+                            <li><strong>MFE (Winning Trades):</strong> <span data-i18n="mfe_winning_trades_desc">How much profit winning trades saw while open (shows profit potential)</span></li>
+                            <li><strong>Profit Kept % (Winning):</strong> <span data-i18n="profit_kept_winning_desc">What percentage of maximum profit was actually captured (higher is better - shows profit retention efficiency)</span></li>
                         </ul>
                     </div>
                 </div>
@@ -5342,8 +5595,8 @@
                 
                 <!-- Debug Cards Section -->
                 <div class="mt-4">
-                    <h5><i class="fas fa-info-circle"></i> Sample Trade Details by Strategy</h5>
-                    <p class="text-muted small">Detailed breakdown of one sample winner and one sample loser for each strategy</p>
+                    <h5><i class="fas fa-info-circle"></i> <span data-i18n="sample_trade_details">Sample Trade Details by Strategy</span></h5>
+                    <p class="text-muted small" data-i18n="sample_trade_details_desc">Detailed breakdown of one sample winner and one sample loser for each strategy</p>
                     
                     ${mfeMaeData.strategies.map(strategy => {
                         const loser = strategy.debug_loser || {};
@@ -5363,7 +5616,7 @@
                                         <div class="col-md-6">
                                             <div class="card border-danger">
                                                 <div class="card-header bg-danger text-white py-1">
-                                                    <h6 class="mb-0 small"><i class="fas fa-arrow-down"></i> Sample Loser</h6>
+                                                    <h6 class="mb-0 small"><i class="fas fa-arrow-down"></i> <span data-i18n="sample_loser">Sample Loser</span></h6>
                                                 </div>
                                                 <div class="card-body py-2">
                                                     <div class="row g-1">
@@ -5841,7 +6094,7 @@
                     // Display results
                     displayMonteCarloResults(data.data);
                     
-                    statusDiv.innerHTML = '<small class="text-success">✅ Simulation completed!</small>';
+                    statusDiv.innerHTML = `<small class="text-success">${window.i18n ? window.i18n.t('simulation_completed') : '✅ Simulation completed!'}</small>`;
                     
                     // Charts section is now generated dynamically in the results
                     // Load the Monte Carlo chart buttons
@@ -6117,43 +6370,43 @@
             
             resultsDiv.className = 'alert alert-success';
             resultsDiv.innerHTML = `
-                <h6><strong>Simulation Summary</strong></h6>
+                <h6><strong>${window.i18n ? window.i18n.t('simulation_parameters_summary') : 'Simulation Summary'}</strong></h6>
                 <div class="row">
                     <div class="col-md-6">
-                        <strong>Simulation Parameters:</strong><br>
-                        • <span class="custom-tooltip" data-tooltip="Number of Monte Carlo simulation runs performed to generate statistical results">${summary.num_simulations.toLocaleString()} simulations</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Number of trades randomly sampled in each simulation run">${summary.num_trades_per_sim.toLocaleString()} trades per simulation</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Uses historical position sizing from the original data">Trade size: Historical position sizing</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Initial account balance used as starting point for all simulations">Starting balance: $${summary.initial_balance.toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Actual final balance achieved in your historical trading data">Historical final balance: $${(summary.historical_final_balance || summary.historical_pnl || 0).toLocaleString()}</span>
+                        <strong>${window.i18n ? window.i18n.t('simulation_parameters_summary') : 'Simulation Parameters:'}</strong><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="${window.i18n ? window.i18n.t('simulations_tooltip') : 'Number of Monte Carlo simulation runs performed to generate statistical results'}">${summary.num_simulations.toLocaleString()} ${window.i18n ? window.i18n.t('simulations') : 'simulations'}</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="${window.i18n ? window.i18n.t('trades_per_simulation_tooltip') : 'Number of trades randomly sampled in each simulation run'}">${summary.num_trades_per_sim.toLocaleString()} ${window.i18n ? window.i18n.t('trades_per_simulation') : 'trades per simulation'}</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="${window.i18n ? window.i18n.t('trade_size_historical') : 'Uses historical position sizing from the original data'}">${window.i18n ? window.i18n.t('trade_size_historical') : 'Trade size: Historical position sizing'}</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="Initial account balance used as starting point for all simulations">Starting balance: $${summary.initial_balance.toLocaleString()}</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="Actual final balance achieved in your historical trading data">Historical final balance: $${(summary.historical_final_balance || summary.historical_pnl || 0).toLocaleString()}</span>
                     </div>
                     <div class="col-md-6">
                         <strong>Outcome Probabilities:</strong><br>
-                        • <span class="custom-tooltip" data-tooltip="Percentage of simulations that ended with positive total P&L">Win probability: ${probabilities.win_probability.toFixed(1)}%</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Percentage of simulations that ended with negative total P&L">Loss probability: ${probabilities.loss_probability.toFixed(1)}%</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Percentage of simulations that ended with zero or near-zero total P&L">Break-even probability: ${probabilities.break_even_probability.toFixed(1)}%</span>
+                        • <span class="custom-tooltip sortable" data-tooltip="Percentage of simulations that ended with positive total P&L">Win probability: ${probabilities.win_probability.toFixed(1)}%</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="Percentage of simulations that ended with negative total P&L">Loss probability: ${probabilities.loss_probability.toFixed(1)}%</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="Percentage of simulations that ended with zero or near-zero total P&L">Break-even probability: ${probabilities.break_even_probability.toFixed(1)}%</span>
                     </div>
                 </div>
                 <hr>
                 <div class="row">
                     <div class="col-md-6">
                         <strong>Final Balance Statistics:</strong><br>
-                        • <span class="custom-tooltip" data-tooltip="Average final account balance across all simulation runs">Mean: $${(balanceStats.mean || 0).toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Middle value when all final balances are sorted (50% above, 50% below)">Median: $${(balanceStats.median || 0).toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="95% of simulations achieved this balance or lower (optimistic scenario)">Best case (95th percentile): $${(balanceStats.percentiles?.p95 || 0).toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="5% of simulations achieved this balance or lower (pessimistic scenario)">Worst case (5th percentile): $${(balanceStats.percentiles?.p5 || 0).toLocaleString()}</span>
+                        • <span class="custom-tooltip sortable" data-tooltip="Average final account balance across all simulation runs">Mean: $${(balanceStats.mean || 0).toLocaleString()}</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="Middle value when all final balances are sorted (50% above, 50% below)">Median: $${(balanceStats.median || 0).toLocaleString()}</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="95% of simulations achieved this balance or lower (optimistic scenario)">Best case (95th percentile): $${(balanceStats.percentiles?.p95 || 0).toLocaleString()}</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="5% of simulations achieved this balance or lower (pessimistic scenario)">Worst case (5th percentile): $${(balanceStats.percentiles?.p5 || 0).toLocaleString()}</span>
                     </div>
                     <div class="col-md-6">
                         <strong>Risk Metrics:</strong><br>
-                        • <span class="custom-tooltip" data-tooltip="Average maximum drawdown (peak-to-trough decline) across all simulations">Average max drawdown: $${Math.abs(drawdownStats.mean || 0).toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Worst maximum drawdown experienced in any single simulation">Worst case drawdown: $${Math.abs(drawdownStats.max || 0).toLocaleString()}</span><br>
-                        • <span class="custom-tooltip" data-tooltip="Standard deviation of final balances - measures consistency of outcomes">Standard deviation: $${(balanceStats.std || 0).toLocaleString()}</span>
+                        • <span class="custom-tooltip sortable" data-tooltip="Average maximum drawdown (peak-to-trough decline) across all simulations">Average max drawdown: $${Math.abs(drawdownStats.mean || 0).toLocaleString()}</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="Worst maximum drawdown experienced in any single simulation">Worst case drawdown: $${Math.abs(drawdownStats.max || 0).toLocaleString()}</span><br>
+                        • <span class="custom-tooltip sortable" data-tooltip="Standard deviation of final balances - measures consistency of outcomes">Standard deviation: $${(balanceStats.std || 0).toLocaleString()}</span>
                     </div>
                 </div>
                 <hr>
                 <div class="row">
                     <div class="col-12">
-                        <h6><strong>📈 Monte Carlo Charts</strong></h6>
+                        <h6><strong>${window.i18n ? window.i18n.t('monte_carlo_charts') : '📈 Monte Carlo Charts'}</strong></h6>
                         <div id="monteCarloChartButtons">
                             <!-- Monte Carlo chart buttons will be populated by JavaScript -->
                         </div>
@@ -6280,7 +6533,7 @@
                 <hr>
                 <div class="row">
                     <div class="col-12">
-                        <strong><span class="custom-tooltip" data-tooltip="Risk-adjusted performance metrics that compare returns to the risk taken to achieve them">Risk-Adjusted Performance Ratios:</span></strong><br>
+                        <strong><span class="custom-tooltip sortable" data-tooltip="Risk-adjusted performance metrics that compare returns to the risk taken to achieve them">Risk-Adjusted Performance Ratios:</span></strong><br>
                         <small class="text-muted">Higher ratios indicate better risk-adjusted returns.</small><br>
                         ${formatRiskRatios(riskRatios)}
                     </div>
@@ -6288,7 +6541,7 @@
                 <hr>
                 <div class="row">
                     <div class="col-12">
-                        <strong><span class="custom-tooltip" data-tooltip="Statistical tests that determine if the observed performance is significantly different from zero or random chance">T-Test Statistical Analysis:</span></strong><br>
+                        <strong><span class="custom-tooltip sortable" data-tooltip="Statistical tests that determine if the observed performance is significantly different from zero or random chance">T-Test Statistical Analysis:</span></strong><br>
                         <small class="text-muted">T-tests validate statistical significance of performance metrics.</small><br>
                         ${formatTTestResults(tTestResults)}
                     </div>
@@ -6296,7 +6549,7 @@
                 <hr>
                 <div class="row">
                     <div class="col-12">
-                        <strong><span class="custom-tooltip" data-tooltip="Probability that the observed results occurred by random chance - lower values indicate stronger statistical evidence">Statistical Significance (P-Values):</span></strong><br>
+                        <strong><span class="custom-tooltip sortable" data-tooltip="Probability that the observed results occurred by random chance - lower values indicate stronger statistical evidence">Statistical Significance (P-Values):</span></strong><br>
                         <small class="text-muted">Lower p-values indicate stronger statistical evidence. Values &lt; 0.05 are typically considered significant.</small><br>
                         ${formatPValues(pValues)}
                     </div>
@@ -7447,7 +7700,7 @@
             headers.forEach((header, index) => {
                 const tooltipText = winRatesDescriptions[index] || "Performance metric";
                 html += `<th onclick="sortWinRatesTable(${index})" style="cursor: pointer;" 
-                    class="custom-tooltip" data-tooltip="${tooltipText}">
+                    class="custom-tooltip sortable" data-tooltip="${tooltipText}">
                     ${header} <span id="sort-${index}" class="sort-indicator">↕</span>
                 </th>`;
             });
@@ -7601,7 +7854,7 @@
                 // Extract plain text from HTML header
                 const headerText = header.replace(/<[^>]*>/g, '');
                 html += `<th onclick="sortMarginAnalysisTable(${index})" style="cursor: pointer;" 
-                    class="custom-tooltip" data-tooltip="${tooltipDescriptions[index]}">
+                    class="custom-tooltip sortable" data-tooltip="${tooltipDescriptions[index]}">
                     ${headerText} <span id="sort-margin-${index}" class="sort-indicator">↕</span>
                 </th>`;
             });
@@ -8738,24 +8991,24 @@
             // Explanation section
             html += `
                 <div class="alert alert-info mb-4">
-                    <h5><i class="fas fa-info-circle"></i> What are Conflicting Legs?</h5>
-                    <p class="mb-2">Conflicting legs occur when you have <strong>opposing positions on the same contract</strong> during overlapping time periods. This analysis identifies trades that may be working against each other.</p>
+                    <h5><i class="fas fa-info-circle"></i> ${window.i18n ? window.i18n.t('conflicting_legs_title') : 'What are Conflicting Legs?'}</h5>
+                    <p class="mb-2">${window.i18n ? window.i18n.t('conflicting_legs_description') : 'Conflicting legs occur when you have <strong>opposing positions on the same contract</strong> during overlapping time periods. This analysis identifies trades that may be working against each other.'}</p>
                     <div class="row">
                         <div class="col-md-6">
-                            <strong>Examples of Conflicts:</strong>
+                            <strong>${window.i18n ? window.i18n.t('examples_of_conflicts') : 'Examples of Conflicts:'}</strong>
                             <ul class="mb-0">
-                                <li>Long call + Short call (same strike/expiry)</li>
-                                <li>Long put + Short put (same strike/expiry)</li>
-                                <li>Long stock + Short stock</li>
+                                <li>${window.i18n ? window.i18n.t('long_call_short_call') : 'Long call + Short call (same strike/expiry)'}</li>
+                                <li>${window.i18n ? window.i18n.t('long_put_short_put') : 'Long put + Short put (same strike/expiry)'}</li>
+                                <li>${window.i18n ? window.i18n.t('long_stock_short_stock') : 'Long stock + Short stock'}</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
-                            <strong>Why This Matters:</strong>
+                            <strong>${window.i18n ? window.i18n.t('why_this_matters') : 'Why This Matters:'}</strong>
                             <ul class="mb-0">
-                                <li>Positions may cancel each other out</li>
-                                <li>Increased margin requirements</li>
-                                <li>Reduced capital efficiency</li>
-                                <li>Potential for unexpected losses</li>
+                                <li>${window.i18n ? window.i18n.t('positions_cancel_out') : 'Positions may cancel each other out'}</li>
+                                <li>${window.i18n ? window.i18n.t('increased_margin_requirements') : 'Increased margin requirements'}</li>
+                                <li>${window.i18n ? window.i18n.t('reduced_capital_efficiency') : 'Reduced capital efficiency'}</li>
+                                <li>${window.i18n ? window.i18n.t('potential_unexpected_losses') : 'Potential for unexpected losses'}</li>
                             </ul>
                         </div>
                     </div>
@@ -8769,7 +9022,7 @@
                         <div class="metric-card">
                             <div class="card-body text-center">
                             <h4 class="metric-value text-danger">${summary.total_conflicts}</h4>
-                            <p class="metric-title">Total Conflicts</p>
+                            <p class="metric-title">${window.i18n ? window.i18n.t('total_conflicts') : 'Total Conflicts'}</p>
                             </div>
                         </div>
                     </div>
@@ -8777,7 +9030,7 @@
                         <div class="metric-card">
                             <div class="card-body text-center">
                             <h4 class="metric-value text-warning">${summary.affected_trades}</h4>
-                            <p class="metric-title">Affected Trades</p>
+                            <p class="metric-title">${window.i18n ? window.i18n.t('affected_trades') : 'Affected Trades'}</p>
                             </div>
                         </div>
                     </div>
@@ -8785,7 +9038,7 @@
                         <div class="metric-card">
                             <div class="card-body text-center">
                             <h4 class="metric-value text-info">${summary.affected_strategies}</h4>
-                            <p class="metric-title">Affected Strategies</p>
+                            <p class="metric-title">${window.i18n ? window.i18n.t('affected_strategies') : 'Affected Strategies'}</p>
                         </div>
                         </div>
                     </div>
@@ -8795,8 +9048,8 @@
             if (conflicts.length === 0) {
                 html += `
                     <div class="alert alert-success">
-                        <h4><i class="fas fa-check-circle"></i> No Conflicting Legs Detected</h4>
-                        <p>Great! No trades were found with opposing positions on the same contract during overlapping time periods.</p>
+                        <h4><i class="fas fa-check-circle"></i> ${window.i18n ? window.i18n.t('no_conflicting_legs_detected') : 'No Conflicting Legs Detected'}</h4>
+                        <p>${window.i18n ? window.i18n.t('no_conflicting_legs_message') : 'Great! No trades were found with opposing positions on the same contract during overlapping time periods.'}</p>
                     </div>
                 `;
             } else {
@@ -8804,7 +9057,7 @@
                 html += `
                     <div class="card mb-4">
                         <div class="card-body">
-                            <h5 class="card-title">Conflict Distribution</h5>
+                            <h5 class="card-title">${window.i18n ? window.i18n.t('conflict_distribution') : 'Conflict Distribution'}</h5>
                             <div id="conflictsHistogram" style="height: 400px;"></div>
                         </div>
                     </div>
@@ -8840,19 +9093,19 @@
                         <div class="card mb-4">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 class="card-title mb-0">Conflicts by Strategy</h5>
+                                    <h5 class="card-title mb-0">${window.i18n ? window.i18n.t('conflicts_by_strategy') : 'Conflicts by Strategy'}</h5>
                                     <div class="d-flex align-items-center gap-2">
-                                        <label for="conflictsStrategyFilter" class="form-label mb-0 small">Filter by Strategy:</label>
+                                        <label for="conflictsStrategyFilter" class="form-label mb-0 small">${window.i18n ? window.i18n.t('filter_by_strategy') : 'Filter by Strategy:'}</label>
                                         <select class="form-select form-select-sm" id="conflictsStrategyFilter" onchange="filterConflictsByStrategy(this.value)" style="width: auto;">
-                                            <option value="">All Strategies</option>
+                                            <option value="">${window.i18n ? window.i18n.t('all_strategies') : 'All Strategies'}</option>
                                         </select>
-                                        <button class="btn btn-outline-secondary btn-sm" onclick="clearConflictsFilter()" title="Clear filter">
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="clearConflictsFilter()" title="${window.i18n ? window.i18n.t('clear_filter') : 'Clear filter'}">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
                                 </div>
                                 
-                                <h6 class="mt-3 mb-2 text-primary">Strategy Pairs in Conflicts (ordered by frequency)</h6>
+                                <h6 class="mt-3 mb-2 text-primary">${window.i18n ? window.i18n.t('strategy_pairs_in_conflicts') : 'Strategy Pairs in Conflicts (ordered by frequency)'}</h6>
                                 <div class="row">
                     `;
                     
@@ -8879,7 +9132,7 @@
                     html += `
                                 </div>
                                 
-                                <h6 class="mt-4 mb-2 text-info">Individual Strategy Involvement (ordered by frequency)</h6>
+                                <h6 class="mt-4 mb-2 text-info">${window.i18n ? window.i18n.t('individual_strategy_involvement') : 'Individual Strategy Involvement (ordered by frequency)'}</h6>
                                 <div class="row">
                     `;
                     
@@ -8910,17 +9163,17 @@
                 html += `
                     <div class="card">
                         <div class="card-body">
-                            <h5 class="card-title mb-3">Detailed Conflicts</h5>
+                            <h5 class="card-title mb-3">${window.i18n ? window.i18n.t('detailed_conflicts') : 'Detailed Conflicts'}</h5>
                             <div class="table-responsive">
                                 <table class="table table-hover" id="conflictsTable">
                                     <thead class="table-dark">
                                         <tr>
-                                            <th style="cursor: pointer;" onclick="sortConflictsTable('conflict_id')">Conflict # <span id="sort-indicator-conflict_id"></span></th>
-                                            <th style="cursor: pointer;" onclick="sortConflictsTable('date')">Date <span id="sort-indicator-date"></span></th>
-                                            <th style="cursor: pointer;" onclick="sortConflictsTable('contract')">Contract <span id="sort-indicator-contract"></span></th>
-                                            <th style="cursor: pointer;" onclick="sortConflictsTable('trade1_strategy')">Trade 1 <span id="sort-indicator-trade1_strategy"></span></th>
-                                            <th style="cursor: pointer;" onclick="sortConflictsTable('trade2_strategy')">Trade 2 <span id="sort-indicator-trade2_strategy"></span></th>
-                                            <th style="cursor: pointer;" onclick="sortConflictsTable('overlap_days')">Overlap Days <span id="sort-indicator-overlap_days"></span></th>
+                                            <th style="cursor: pointer;" onclick="sortConflictsTable('conflict_id')">${window.i18n ? window.i18n.t('conflict_number') : 'Conflict #'} <span id="sort-indicator-conflict_id"></span></th>
+                                            <th style="cursor: pointer;" onclick="sortConflictsTable('date')">${window.i18n ? window.i18n.t('date') : 'Date'} <span id="sort-indicator-date"></span></th>
+                                            <th style="cursor: pointer;" onclick="sortConflictsTable('contract')">${window.i18n ? window.i18n.t('contract') : 'Contract'} <span id="sort-indicator-contract"></span></th>
+                                            <th style="cursor: pointer;" onclick="sortConflictsTable('trade1_strategy')">${window.i18n ? window.i18n.t('trade_1') : 'Trade 1'} <span id="sort-indicator-trade1_strategy"></span></th>
+                                            <th style="cursor: pointer;" onclick="sortConflictsTable('trade2_strategy')">${window.i18n ? window.i18n.t('trade_2') : 'Trade 2'} <span id="sort-indicator-trade2_strategy"></span></th>
+                                            <th style="cursor: pointer;" onclick="sortConflictsTable('overlap_days')">${window.i18n ? window.i18n.t('overlap_days') : 'Overlap Days'} <span id="sort-indicator-overlap_days"></span></th>
                                         </tr>
                                     </thead>
                                     <tbody id="conflictsTableBody">
@@ -9347,35 +9600,35 @@
                 <div class="mb-4">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Commission Configuration</h5>
+                            <h5 class="mb-0" data-i18n="commission_configuration">Commission Configuration</h5>
                             <button class="btn btn-primary btn-sm" onclick="showCommissionConfigModal()">
-                                <i class="bi bi-gear"></i> Configure Rates
+                                <i class="bi bi-gear"></i> <span data-i18n="configure_rates">Configure Rates</span>
                             </button>
                         </div>
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-4">
-                                    <h6>SPX</h6>
+                                    <h6>${window.i18n ? window.i18n.t('spx') : 'SPX'}</h6>
                                     <small class="text-muted">
-                                        Open: $${data.commission_rates.spx.opening_cost} | 
-                                        Close: $${data.commission_rates.spx.closing_cost} | 
-                                        Exercise: $${data.commission_rates.spx.exercise_fee}
+                                        ${window.i18n ? window.i18n.t('open') : 'Open'}: $${data.commission_rates.spx.opening_cost} | 
+                                        ${window.i18n ? window.i18n.t('close') : 'Close'}: $${data.commission_rates.spx.closing_cost} | 
+                                        ${window.i18n ? window.i18n.t('exercise') : 'Exercise'}: $${data.commission_rates.spx.exercise_fee}
                                     </small>
                                 </div>
                                 <div class="col-md-4">
-                                    <h6>QQQ</h6>
+                                    <h6>${window.i18n ? window.i18n.t('qqq') : 'QQQ'}</h6>
                                     <small class="text-muted">
-                                        Open: $${data.commission_rates.qqq.opening_cost} | 
-                                        Close: $${data.commission_rates.qqq.closing_cost} | 
-                                        Exercise: $${data.commission_rates.qqq.exercise_fee}
+                                        ${window.i18n ? window.i18n.t('open') : 'Open'}: $${data.commission_rates.qqq.opening_cost} | 
+                                        ${window.i18n ? window.i18n.t('close') : 'Close'}: $${data.commission_rates.qqq.closing_cost} | 
+                                        ${window.i18n ? window.i18n.t('exercise') : 'Exercise'}: $${data.commission_rates.qqq.exercise_fee}
                                     </small>
                                 </div>
                                 <div class="col-md-4">
-                                    <h6>Default (Others)</h6>
+                                    <h6>${window.i18n ? window.i18n.t('default_others') : 'Default (Others)'}</h6>
                                     <small class="text-muted">
-                                        Open: $${data.commission_rates.default.opening_cost} | 
-                                        Close: $${data.commission_rates.default.closing_cost} | 
-                                        Exercise: $${data.commission_rates.default.exercise_fee}
+                                        ${window.i18n ? window.i18n.t('open') : 'Open'}: $${data.commission_rates.default.opening_cost} | 
+                                        ${window.i18n ? window.i18n.t('close') : 'Close'}: $${data.commission_rates.default.closing_cost} | 
+                                        ${window.i18n ? window.i18n.t('exercise') : 'Exercise'}: $${data.commission_rates.default.exercise_fee}
                                     </small>
                                 </div>
                             </div>
@@ -9391,10 +9644,10 @@
                         <div class="card border-primary">
                             <div class="card-body text-center">
                                 <h5 class="card-title text-primary">${data.summary.total_trades}</h5>
-                                <p class="card-text text-dark">Total Trades</p>
+                                <p class="card-text text-dark" data-i18n="total_trades">Total Trades</p>
                                 <small class="text-muted">
-                                    Live: ${data.summary.live_trades} | 
-                                    Backtest: ${data.summary.backtest_trades}
+                                    ${window.i18n ? window.i18n.t('live') : 'Live'}: ${data.summary.live_trades} | 
+                                    ${window.i18n ? window.i18n.t('backtest') : 'Backtest'}: ${data.summary.backtest_trades}
                                 </small>
                             </div>
                         </div>
@@ -9403,8 +9656,8 @@
                         <div class="card border-success">
                             <div class="card-body text-center">
                                 <h5 class="card-title text-success">$${data.summary.total_actual_commissions.toLocaleString()}</h5>
-                                <p class="card-text text-dark">Actual Commissions</p>
-                                <small class="text-muted">From backtest data</small>
+                                <p class="card-text text-dark" data-i18n="actual_commissions">Actual Commissions</p>
+                                <small class="text-muted" data-i18n="from_backtest_data">From backtest data</small>
                             </div>
                         </div>
                     </div>
@@ -9412,8 +9665,8 @@
                         <div class="card border-warning">
                             <div class="card-body text-center">
                                 <h5 class="card-title text-warning">$${data.summary.total_estimated_commissions.toLocaleString()}</h5>
-                                <p class="card-text text-dark">Estimated Commissions</p>
-                                <small class="text-muted">From live data</small>
+                                <p class="card-text text-dark" data-i18n="estimated_commissions">Estimated Commissions</p>
+                                <small class="text-muted" data-i18n="from_live_data">From live data</small>
                             </div>
                         </div>
                     </div>
@@ -9421,8 +9674,8 @@
                         <div class="card border-danger">
                             <div class="card-body text-center">
                                 <h5 class="card-title text-danger">$${data.summary.total_exercise_costs.toLocaleString()}</h5>
-                                <p class="card-text text-dark">Exercise Costs</p>
-                                <small class="text-muted">ITM legs exercised</small>
+                                <p class="card-text text-dark" data-i18n="exercise_costs">Exercise Costs</p>
+                                <small class="text-muted" data-i18n="itm_legs_exercised">ITM legs exercised</small>
                             </div>
                         </div>
                     </div>
@@ -9433,55 +9686,55 @@
             const breakdownHtml = `
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0">Commission Breakdown</h5>
+                        <h5 class="mb-0" data-i18n="commission_breakdown">Commission Breakdown</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th>Type</th>
-                                        <th>Amount</th>
-                                        <th>Contracts</th>
-                                        <th>Description</th>
+                                        <th data-i18n="type">Type</th>
+                                        <th data-i18n="amount">Amount</th>
+                                        <th data-i18n="contracts">Contracts</th>
+                                        <th data-i18n="description">Description</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td>Actual Opening</td>
+                                        <td data-i18n="actual_opening">Actual Opening</td>
                                         <td>$${data.breakdown.actual_opening.toLocaleString()}</td>
                                         <td>${data.breakdown.actual_contracts.toLocaleString()}</td>
-                                        <td>Opening commissions from backtest data</td>
+                                        <td data-i18n="opening_commissions_backtest">Opening commissions from backtest data</td>
                                     </tr>
                                     <tr>
-                                        <td>Actual Closing</td>
+                                        <td data-i18n="actual_closing">Actual Closing</td>
                                         <td>$${data.breakdown.actual_closing.toLocaleString()}</td>
                                         <td>${data.breakdown.actual_closing_contracts.toLocaleString()}</td>
-                                        <td>Closing commissions from backtest data (excludes expired)</td>
+                                        <td data-i18n="closing_commissions_backtest">Closing commissions from backtest data (excludes expired)</td>
                                     </tr>
                                     <tr>
-                                        <td>Estimated Opening</td>
+                                        <td data-i18n="estimated_opening">Estimated Opening</td>
                                         <td>$${data.breakdown.estimated_opening.toLocaleString()}</td>
                                         <td>${data.breakdown.estimated_contracts.toLocaleString()}</td>
-                                        <td>Estimated opening commissions for live data</td>
+                                        <td data-i18n="estimated_opening_commissions_live">Estimated opening commissions for live data</td>
                                     </tr>
                                     <tr>
-                                        <td>Estimated Closing</td>
+                                        <td data-i18n="estimated_closing">Estimated Closing</td>
                                         <td>$${data.breakdown.estimated_closing.toLocaleString()}</td>
                                         <td>${data.breakdown.estimated_closing_contracts.toLocaleString()}</td>
-                                        <td>Estimated closing commissions for live data (excludes expired)</td>
+                                        <td data-i18n="estimated_closing_commissions_live">Estimated closing commissions for live data (excludes expired)</td>
                                     </tr>
                                     <tr>
-                                        <td>Exercise Costs</td>
+                                        <td data-i18n="exercise_costs_table">Exercise Costs</td>
                                         <td>$${data.breakdown.exercise_costs.toLocaleString()}</td>
                                         <td>${data.breakdown.exercise_contracts.toLocaleString()}</td>
-                                        <td>Costs for exercising ITM options</td>
+                                        <td data-i18n="costs_exercising_itm">Costs for exercising ITM options</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Total All Costs</strong></td>
+                                        <td><strong data-i18n="total_all_costs">Total All Costs</strong></td>
                                         <td><strong>$${data.summary.total_all_costs.toLocaleString()}</strong></td>
                                         <td><strong>${data.summary.total_contracts.toLocaleString()}</strong></td>
-                                        <td><strong>Combined actual + estimated + exercise costs</strong></td>
+                                        <td><strong data-i18n="combined_costs_description">Combined actual + estimated + exercise costs</strong></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -9526,7 +9779,7 @@
             const avgCommissionsPerTrade = totalTrades > 0 ? (grandTotal / totalTrades) : 0;
             strategyRows += `
                 <tr style="font-weight: bold; border-top: 2px solid #dee2e6;">
-                    <td>TOTAL</td>
+                    <td>${window.i18n ? window.i18n.t('total_label') : 'TOTAL'}</td>
                     <td>${totalTrades.toLocaleString()}</td>
                     <td>${totalContracts.toLocaleString()}</td>
                     <td>${totalExerciseContracts.toLocaleString()}</td>
@@ -9541,22 +9794,22 @@
             const strategyHtml = `
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">Commission Analysis by Strategy</h5>
+                        <h5 class="mb-0">${window.i18n ? window.i18n.t('commission_analysis_by_strategy') : 'Commission Analysis by Strategy'}</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th>Strategy</th>
-                                        <th>Trades</th>
-                                        <th>Contracts</th>
-                                        <th>Contracts Exercised</th>
-                                        <th>Actual Commissions</th>
-                                        <th>Estimated Commissions</th>
-                                        <th>Exercise Costs</th>
-                                        <th>Total Commissions (incl. Exercise)</th>
-                                        <th>Avg Commissions per Trade</th>
+                                        <th>${window.i18n ? window.i18n.t('strategy') : 'Strategy'}</th>
+                                        <th>${window.i18n ? window.i18n.t('trades') : 'Trades'}</th>
+                                        <th>${window.i18n ? window.i18n.t('contracts') : 'Contracts'}</th>
+                                        <th>${window.i18n ? window.i18n.t('exercise_contracts') : 'Contracts Exercised'}</th>
+                                        <th>${window.i18n ? window.i18n.t('actual') : 'Actual'} ${window.i18n ? window.i18n.t('actual_commissions') : 'Commissions'}</th>
+                                        <th>${window.i18n ? window.i18n.t('estimated') : 'Estimated'} ${window.i18n ? window.i18n.t('estimated_commissions') : 'Commissions'}</th>
+                                        <th>${window.i18n ? window.i18n.t('exercise_costs') : 'Exercise Costs'}</th>
+                                        <th>${window.i18n ? window.i18n.t('total') : 'Total'} ${window.i18n ? window.i18n.t('actual_commissions') : 'Commissions'} (incl. ${window.i18n ? window.i18n.t('exercise') : 'Exercise'})</th>
+                                        <th>${window.i18n ? window.i18n.t('avg_per_trade') : 'Avg Commissions per Trade'}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -9581,62 +9834,62 @@
                             <div class="modal-dialog modal-lg">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title">Commission Configuration</h5>
+                                        <h5 class="modal-title">${window.i18n ? window.i18n.t('commission_configuration') : 'Commission Configuration'}</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
                                     <div class="modal-body">
                                         <form id="commissionConfigForm">
                                             <div class="row">
                                                 <div class="col-md-4">
-                                                    <h6>SPX Rates</h6>
+                                                    <h6>${window.i18n ? window.i18n.t('spx_rates') : 'SPX Rates'}</h6>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Opening Cost ($)</label>
+                                                        <label class="form-label">${window.i18n ? window.i18n.t('opening_cost') : 'Opening Cost ($)'}</label>
                                                         <input type="number" step="0.01" class="form-control" 
                                                                id="spx_opening" value="${config.spx.opening_cost}">
                                                     </div>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Closing Cost ($)</label>
+                                                        <label class="form-label">${window.i18n ? window.i18n.t('closing_cost') : 'Closing Cost ($)'}</label>
                                                         <input type="number" step="0.01" class="form-control" 
                                                                id="spx_closing" value="${config.spx.closing_cost}">
                                                     </div>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Exercise Fee ($)</label>
+                                                        <label class="form-label">${window.i18n ? window.i18n.t('exercise_fee') : 'Exercise Fee ($)'}</label>
                                                         <input type="number" step="0.01" class="form-control" 
                                                                id="spx_exercise" value="${config.spx.exercise_fee}">
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
-                                                    <h6>QQQ Rates</h6>
+                                                    <h6>${window.i18n ? window.i18n.t('qqq_rates') : 'QQQ Rates'}</h6>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Opening Cost ($)</label>
+                                                        <label class="form-label">${window.i18n ? window.i18n.t('opening_cost') : 'Opening Cost ($)'}</label>
                                                         <input type="number" step="0.01" class="form-control" 
                                                                id="qqq_opening" value="${config.qqq.opening_cost}">
                                                     </div>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Closing Cost ($)</label>
+                                                        <label class="form-label">${window.i18n ? window.i18n.t('closing_cost') : 'Closing Cost ($)'}</label>
                                                         <input type="number" step="0.01" class="form-control" 
                                                                id="qqq_closing" value="${config.qqq.closing_cost}">
                                                     </div>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Exercise Fee ($)</label>
+                                                        <label class="form-label">${window.i18n ? window.i18n.t('exercise_fee') : 'Exercise Fee ($)'}</label>
                                                         <input type="number" step="0.01" class="form-control" 
                                                                id="qqq_exercise" value="${config.qqq.exercise_fee}">
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
-                                                    <h6>Default Rates</h6>
+                                                    <h6>${window.i18n ? window.i18n.t('default_rates') : 'Default Rates'}</h6>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Opening Cost ($)</label>
+                                                        <label class="form-label">${window.i18n ? window.i18n.t('opening_cost') : 'Opening Cost ($)'}</label>
                                                         <input type="number" step="0.01" class="form-control" 
                                                                id="default_opening" value="${config.default.opening_cost}">
                                                     </div>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Closing Cost ($)</label>
+                                                        <label class="form-label">${window.i18n ? window.i18n.t('closing_cost') : 'Closing Cost ($)'}</label>
                                                         <input type="number" step="0.01" class="form-control" 
                                                                id="default_closing" value="${config.default.closing_cost}">
                                                     </div>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Exercise Fee ($)</label>
+                                                        <label class="form-label">${window.i18n ? window.i18n.t('exercise_fee') : 'Exercise Fee ($)'}</label>
                                                         <input type="number" step="0.01" class="form-control" 
                                                                id="default_exercise" value="${config.default.exercise_fee}">
                                                     </div>
@@ -9645,8 +9898,8 @@
                                         </form>
                                     </div>
                                     <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="button" class="btn btn-primary" onclick="saveCommissionConfig()">Save Changes</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${window.i18n ? window.i18n.t('cancel') : 'Cancel'}</button>
+                                        <button type="button" class="btn btn-primary" onclick="saveCommissionConfig()">${window.i18n ? window.i18n.t('save_configuration') : 'Save Configuration'}</button>
                                     </div>
                                 </div>
                             </div>
@@ -10109,7 +10362,7 @@
                 if (user.avatar_url) {
                     displayHtml += `<img src="${user.avatar_url}" alt="${user.name}" class="user-avatar">`;
                 }
-                displayHtml += `<span>Welcome, ${user.name}</span>`;
+                // User name removed from welcome message - keeping only the rightmost instance
                 
                 userDisplay.innerHTML = displayHtml;
                 authButtonText.textContent = user.name;
@@ -10131,7 +10384,7 @@
                 
                 // Logged in user menu
                 dropdownMenu.innerHTML = `
-                    <li><h6 class="dropdown-header">Signed in as ${data.user.name}</h6></li>
+                    <li><h6 class="dropdown-header">Account</h6></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="#" onclick="showUserInfo()">
                         <i class="fas fa-user"></i> Profile
@@ -10712,28 +10965,28 @@
             container.innerHTML = `
                 <div class="card">
                     <div class="card-header">
-                        <h5>🚫 Blackout Dates Analysis</h5>
+                        <h5>🚫 ${window.i18n ? window.i18n.t('blackout_dates_analysis') : 'Blackout Dates Analysis'}</h5>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-info mb-4">
-                            <h6><i class="fas fa-info-circle"></i> What is Blackout Dates Analysis?</h6>
-                            <p class="mb-2">This tool analyzes trading performance on specific dates (like FOMC announcements, end of month, or end of quarter) to see how your strategies perform during these high-impact events.</p>
-                            <p class="mb-2"><strong>Available Date Lists:</strong></p>
+                            <h6><i class="fas fa-info-circle"></i> ${window.i18n ? window.i18n.t('what_is_blackout_dates') : 'What is Blackout Dates Analysis?'}</h6>
+                            <p class="mb-2">${window.i18n ? window.i18n.t('blackout_dates_explanation') : 'This tool analyzes trading performance on specific dates (like FOMC announcements, end of month, or end of quarter) to see how your strategies perform during these high-impact events.'}</p>
+                            <p class="mb-2"><strong>${window.i18n ? window.i18n.t('available_date_lists') : 'Available Date Lists:'}</strong></p>
                             <ul class="mb-2">
-                                <li><strong>FOMC Announcements:</strong> Federal Reserve meeting dates (2021-2025)</li>
-                                <li><strong>End of Month (EOM):</strong> Last trading day of each month (2021-present)</li>
-                                <li><strong>End of Quarter (EOQ):</strong> Last trading day of each quarter (2021-present)</li>
-                                <li><strong>Short Weeks:</strong> Stock market holidays (2020-present)</li>
+                                <li><strong>${window.i18n ? window.i18n.t('fomc_announcements') : 'FOMC Announcements'}:</strong> ${window.i18n ? window.i18n.t('fomc_description') : 'Federal Reserve meeting dates (2021-2025)'}</li>
+                                <li><strong>${window.i18n ? window.i18n.t('end_of_month') : 'End of Month (EOM)'}:</strong> ${window.i18n ? window.i18n.t('eom_description') : 'Last trading day of each month (2021-present)'}</li>
+                                <li><strong>${window.i18n ? window.i18n.t('end_of_quarter') : 'End of Quarter (EOQ)'}:</strong> ${window.i18n ? window.i18n.t('eoq_description') : 'Last trading day of each quarter (2021-present)'}</li>
+                                <li><strong>${window.i18n ? window.i18n.t('short_weeks') : 'Short Weeks'}:</strong> ${window.i18n ? window.i18n.t('short_weeks_description') : 'Stock market holidays (2020-present)'}</li>
                             </ul>
-                            <p class="mb-2"><strong>Why is this useful?</strong></p>
+                            <p class="mb-2"><strong>${window.i18n ? window.i18n.t('why_is_this_useful') : 'Why is this useful?'}</strong></p>
                             <ul class="mb-2">
-                                <li><strong>Event Impact:</strong> See how market events affect your strategies</li>
-                                <li><strong>Risk Management:</strong> Identify which strategies are most vulnerable to market events</li>
-                                <li><strong>Strategy Selection:</strong> Choose strategies that perform well during high-volatility periods</li>
-                                <li><strong>Timing Optimization:</strong> Adjust entry/exit timing around known market events</li>
+                                <li><strong>${window.i18n ? window.i18n.t('event_impact') : 'Event Impact'}:</strong> ${window.i18n ? window.i18n.t('event_impact_desc') : 'See how market events affect your strategies'}</li>
+                                <li><strong>${window.i18n ? window.i18n.t('risk_management') : 'Risk Management'}:</strong> ${window.i18n ? window.i18n.t('risk_management_desc') : 'Identify which strategies are most vulnerable to market events'}</li>
+                                <li><strong>${window.i18n ? window.i18n.t('strategy_selection') : 'Strategy Selection'}:</strong> ${window.i18n ? window.i18n.t('strategy_selection_desc') : 'Choose strategies that perform well during high-volatility periods'}</li>
+                                <li><strong>${window.i18n ? window.i18n.t('timing_optimization') : 'Timing Optimization'}:</strong> ${window.i18n ? window.i18n.t('timing_optimization_desc') : 'Adjust entry/exit timing around known market events'}</li>
                             </ul>
-                            <p class="mb-0"><strong>How it works:</strong> The analysis includes trades that were either initiated on blackout dates OR had any blackout date fall between the opening and closing dates (multi-day trades).</p>
-                            <p class="mb-0 mt-2"><strong>Note:</strong> FOMC dates are static and cover 2021-2026. Update the list when new Fed schedules are published.</p>
+                            <p class="mb-0"><strong>${window.i18n ? window.i18n.t('how_it_works') : 'How it works'}:</strong> ${window.i18n ? window.i18n.t('how_it_works_desc') : 'The analysis includes trades that were either initiated on blackout dates OR had any blackout date fall between the opening and closing dates (multi-day trades).'}</p>
+                            <p class="mb-0 mt-2"><strong>${window.i18n ? window.i18n.t('note') : 'Note'}:</strong> ${window.i18n ? window.i18n.t('fomc_note') : 'FOMC dates are static and cover 2021-2026. Update the list when new Fed schedules are published.'}</p>
                         </div>
                         
                         <div class="mb-3">
@@ -10748,7 +11001,7 @@
                         
                         <div class="mb-3">
                             <label for="maxDaysInput" class="form-label">
-                                Max Days Between Blackout Date and Close Date:
+                                ${window.i18n ? window.i18n.t('max_days_between_blackout') : 'Max Days Between Blackout Date and Close Date:'}
                                 <i class="fas fa-info-circle ms-2" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-custom-class="wide-tooltip" title="<div style='text-align: left; max-width: 500px;'><strong>Multi-Day Trade Analysis:</strong><br><br>This setting controls how multi-day trades are analyzed when a blackout date falls between the opening and closing dates.<br><br><strong>Example:</strong><br>• Trade opens: 2021-01-25<br>• Blackout date: 2021-01-27 (FOMC)<br>• Trade closes: 2021-01-29<br><br>If 'Max Days' is set to 5, this trade will be included because the blackout date (Jan 27) is within 5 days of the close date (Jan 29).<br><br><strong>Purpose:</strong> Captures trades that were influenced by blackout events even if they weren't initiated on the exact blackout date.</div>"></i>
                             </label>
                             <input type="number" class="form-control" id="maxDaysInput" value="5" min="1" max="30" style="width: 100px;">
@@ -10764,15 +11017,15 @@
                         
                         <div class="mb-3">
                             <button class="btn btn-outline-primary me-2" onclick="showCustomListManager()">
-                                <i class="fas fa-cog"></i> Manage Custom Lists
+                                <i class="fas fa-cog"></i> ${window.i18n ? window.i18n.t('manage_custom_lists') : 'Manage Custom Lists'}
                             </button>
                             <button class="btn btn-primary me-2" id="analyzeButton" onclick="runBlackoutDatesAnalysis()">
-                                <i class="fas fa-chart-bar"></i> Analyze Blackout Dates
+                                <i class="fas fa-chart-bar"></i> ${window.i18n ? window.i18n.t('analyze_blackout_dates') : 'Analyze Blackout Dates'}
                             </button>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="checkbox" id="whitelistMode" onchange="updateDateListDisplay(); updateAnalyzeButton()">
                                 <label class="form-check-label" for="whitelistMode">
-                                    <strong>Analyze Whitelist Dates</strong>
+                                    <strong>${window.i18n ? window.i18n.t('analyze_whitelist_dates') : 'Analyze Whitelist Dates'}</strong>
                                 </label>
                             </div>
                         </div>
@@ -10839,7 +11092,7 @@
                 loading.style.display = 'none';
                 
                 if (!data.success) {
-                    resultsDiv.innerHTML = `<div class="alert alert-warning"><h5>Blackout Dates Analysis Error</h5><p>${data.error}</p></div>`;
+                    resultsDiv.innerHTML = `<div class="alert alert-warning"><h5>${window.i18n ? window.i18n.t('blackout_dates_analysis_error') : 'Blackout Dates Analysis Error'}</h5><p>${data.error}</p></div>`;
                     resultsDiv.style.display = 'block';
                     return;
                 }
@@ -10849,8 +11102,8 @@
                 if (results.length === 0) {
                     resultsDiv.innerHTML = `
                         <div class="alert alert-info">
-                            <h5>No Trades Found</h5>
-                            <p>No trades were initiated on the selected blackout dates (${data.date_list_name}).</p>
+                            <h5>${window.i18n ? window.i18n.t('no_trades_found') : 'No Trades Found'}</h5>
+                            <p>${window.i18n ? window.i18n.t('no_trades_on_blackout_dates') : 'No trades were initiated on the selected blackout dates'} (${data.date_list_name}).</p>
                         </div>
                     `;
                     resultsDiv.style.display = 'block';
@@ -10876,7 +11129,7 @@
                 let tableHtml = `
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="fas fa-chart-bar"></i> Blackout Dates Analysis Results</h5>
+                            <h5><i class="fas fa-chart-bar"></i> ${window.i18n ? window.i18n.t('blackout_dates_analysis_results') : 'Blackout Dates Analysis Results'}</h5>
                             <small class="text-muted">Date List: ${data.date_list_name}</small>
                         </div>
                         <div class="card-body">
@@ -11629,43 +11882,43 @@
             container.innerHTML = `
                 <div class="card">
                     <div class="card-header">
-                        <h5><i class="fas fa-balance-scale"></i> Live vs Backtest Comparison</h5>
+                        <h5><i class="fas fa-balance-scale"></i> <span data-i18n="live_vs_bt_title">Live vs Backtest Comparison</span></h5>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-info mb-4">
-                            <h6><i class="fas fa-info-circle"></i> What is Live vs Backtest Comparison?</h6>
-                            <p class="mb-2">This tool compares your live trading performance with backtest results to identify execution differences and optimization opportunities.</p>
-                            <p class="mb-2"><strong>Why is this useful?</strong></p>
+                            <h6><i class="fas fa-info-circle"></i> <span data-i18n="live_vs_bt_what_is">What is Live vs Backtest Comparison?</span></h6>
+                            <p class="mb-2" data-i18n="live_vs_bt_description">This tool compares your live trading performance with backtest results to identify execution differences and optimization opportunities.</p>
+                            <p class="mb-2"><strong data-i18n="live_vs_bt_why_useful">Why is this useful?</strong></p>
                             <ul class="mb-2">
-                                <li><strong>Execution Analysis:</strong> See how live trades performed vs backtest expectations</li>
-                                <li><strong>Strategy Validation:</strong> Verify if backtest results translate to live performance</li>
-                                <li><strong>Performance Gaps:</strong> Identify systematic differences between live and backtest</li>
-                                <li><strong>Optimization:</strong> Find opportunities to improve live execution</li>
+                                <li><strong data-i18n="live_vs_bt_execution_analysis">Execution Analysis:</strong> See how live trades performed vs backtest expectations</li>
+                                <li><strong data-i18n="live_vs_bt_strategy_validation">Strategy Validation:</strong> Verify if backtest results translate to live performance</li>
+                                <li><strong data-i18n="live_vs_bt_performance_gaps">Performance Gaps:</strong> Identify systematic differences between live and backtest</li>
+                                <li><strong data-i18n="live_vs_bt_optimization">Optimization:</strong> Find opportunities to improve live execution</li>
                             </ul>
-                            <p class="mb-0"><strong>How it works:</strong> Select one backtest file and one live trading file. The system will match trades by date/time and strategy, then show side-by-side comparisons with P&L differences.</p>
+                            <p class="mb-0"><strong data-i18n="live_vs_bt_how_it_works">How it works:</strong> Select one backtest file and one live trading file. The system will match trades by date/time and strategy, then show side-by-side comparisons with P&L differences.</p>
                         </div>
                         
                         <div class="alert alert-warning">
-                            <h6><i class="fas fa-exclamation-triangle"></i> Important Matching Rules:</h6>
+                            <h6><i class="fas fa-exclamation-triangle"></i> <span data-i18n="live_vs_bt_important_rules">Important Matching Rules:</span></h6>
                             <ul class="mb-0">
-                                <li><strong>Strategy Names:</strong> Backtest strategy names must be a substring of live strategy names (e.g., "Iron Condor" matches "Iron Condor (Tasty)")</li>
-                                <li><strong>Time Matching:</strong> Entry times can differ by up to 4 minutes 59 seconds between files</li>
-                                <li><strong>File Types:</strong> Select one backtest file and one live trading file for comparison</li>
-                                <li><strong>Date/Time Only:</strong> Use the checkbox to match trades based only on date/time, ignoring strategy names</li>
+                                <li><strong data-i18n="live_vs_bt_strategy_names_rule">Strategy Names:</strong> Backtest strategy names must be a substring of live strategy names (e.g., "Iron Condor" matches "Iron Condor (Tasty)")</li>
+                                <li><strong data-i18n="live_vs_bt_time_matching_rule">Time Matching:</strong> Entry times can differ by up to 4 minutes 59 seconds between files</li>
+                                <li><strong data-i18n="live_vs_bt_file_types_rule">File Types:</strong> Select one backtest file and one live trading file for comparison</li>
+                                <li><strong data-i18n="live_vs_bt_datetime_only_rule">Date/Time Only:</strong> Use the checkbox to match trades based only on date/time, ignoring strategy names</li>
                             </ul>
                         </div>
                         
                         <div class="row">
                             <div class="col-md-6">
-                                <label class="form-label">Select Backtest File:</label>
+                                <label class="form-label" data-i18n="live_vs_bt_select_backtest">Select Backtest File:</label>
                                 <select class="form-select" id="backtestFileSelect">
-                                    <option value="">Loading backtest files...</option>
+                                    <option value="" data-i18n="loading_backtest_files">Loading backtest files...</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Select Live Trading File:</label>
+                                <label class="form-label" data-i18n="live_vs_bt_select_live">Select Live Trading File:</label>
                                 <select class="form-select" id="liveFileSelect">
-                                    <option value="">Loading live trading files...</option>
+                                    <option value="" data-i18n="loading_live_files">Loading live trading files...</option>
                                 </select>
                             </div>
                         </div>
@@ -11675,7 +11928,7 @@
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="matchOnlyDateTime" onchange="updateLiveVsBtSelection()">
                                     <label class="form-check-label" for="matchOnlyDateTime">
-                                        <strong>Match only on date/time</strong> - Skip strategy name matching (useful when strategy names differ significantly)
+                                        <strong data-i18n="live_vs_bt_match_datetime_only">Match only on date/time</strong> - <span data-i18n="live_vs_bt_match_datetime_help">Skip strategy name matching (useful when strategy names differ significantly)</span>
                                     </label>
                                 </div>
                             </div>
@@ -11683,10 +11936,10 @@
                         
                         <div class="mt-4">
                             <button class="btn btn-primary" onclick="runLiveVsBTAnalysis()" id="runLiveVsBtBtn" disabled>
-                                <i class="fas fa-balance-scale"></i> Run Live vs Backtest Analysis
+                                <i class="fas fa-balance-scale"></i> <span data-i18n="run_analysis">Run Live vs Backtest Analysis</span>
                             </button>
                             <button class="btn btn-outline-secondary ms-2" onclick="clearLiveVsBtSelection()">
-                                <i class="fas fa-times"></i> Clear Selection
+                                <i class="fas fa-times"></i> <span data-i18n="clear_selection">Clear Selection</span>
                             </button>
                         </div>
                         
@@ -11732,31 +11985,31 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="alert alert-info">
-                            <h6><i class="fas fa-chart-bar"></i> Comparison Summary</h6>
+                            <h6><i class="fas fa-chart-bar"></i> <span data-i18n="live_vs_bt_comparison_summary">Comparison Summary</span></h6>
                             <div class="row text-center">
                                 <div class="col-md-2">
                                     <strong>${summary.total_trades || 0}</strong><br>
-                                    <small>Total Trades</small>
+                                    <small data-i18n="live_vs_bt_total_trades">Total Trades</small>
                                 </div>
                                 <div class="col-md-2">
                                     <strong>${summary.matched_trades || 0}</strong><br>
-                                    <small>Matched</small>
+                                    <small data-i18n="live_vs_bt_matched">Matched</small>
                                 </div>
                                 <div class="col-md-2">
                                     <strong>${summary.backtest_only || 0}</strong><br>
-                                    <small>Backtest Only</small>
+                                    <small data-i18n="live_vs_bt_backtest_only">Backtest Only</small>
                                 </div>
                                 <div class="col-md-2">
                                     <strong>${summary.live_only || 0}</strong><br>
-                                    <small>Live Only</small>
+                                    <small data-i18n="live_vs_bt_live_only">Live Only</small>
                                 </div>
                                 <div class="col-md-2">
                                     <strong>$${summary.avg_pnl_diff || 0}</strong><br>
-                                    <small>Avg P&L Diff</small>
+                                    <small data-i18n="live_vs_bt_avg_pnl_diff">Avg P&L Diff</small>
                                 </div>
                                 <div class="col-md-2">
                                     <strong>${summary.positive_diffs || 0}/${summary.negative_diffs || 0}</strong><br>
-                                    <small>Better/Worse</small>
+                                    <small data-i18n="live_vs_bt_better_worse">Better/Worse</small>
                                 </div>
                             </div>
                         </div>
@@ -11770,24 +12023,24 @@
                     <table class="table table-striped table-hover" id="liveVsBtTable">
                         <thead class="table-dark">
                             <tr>
-                                <th class="custom-tooltip" data-tooltip="Date and time when the trade was opened"><i class="fas fa-sort" style="opacity: 0.3;"></i> Entry Date/Time</th>
-                                <th class="custom-tooltip" data-tooltip="Trading strategy name from backtest data"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Strategy</th>
-                                <th class="custom-tooltip" data-tooltip="Number of contracts traded in backtest"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Contracts</th>
-                                <th class="custom-tooltip" data-tooltip="Entry price from backtest (slippage removed)"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Entry Price</th>
-                                <th class="custom-tooltip" data-tooltip="Exit price from backtest (slippage NOT removed)"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Exit Price</th>
-                                <th class="custom-tooltip" data-tooltip="Profit/Loss from backtest trade"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT P&L</th>
-                                <th class="custom-tooltip" data-tooltip="Date and time when the backtest trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Close Time</th>
-                                <th class="custom-tooltip" data-tooltip="Reason why the backtest trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Reason</th>
-                                <th class="custom-tooltip" data-tooltip="Trading strategy name from live data"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Strategy</th>
-                                <th class="custom-tooltip" data-tooltip="Number of contracts traded in live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Contracts</th>
-                                <th class="custom-tooltip" data-tooltip="Entry price from live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Entry Price</th>
-                                <th class="custom-tooltip" data-tooltip="Exit price from live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Exit Price</th>
-                                <th class="custom-tooltip" data-tooltip="Profit/Loss from live trade"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live P&L</th>
-                                <th class="custom-tooltip" data-tooltip="Date and time when the live trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Close Time</th>
-                                <th class="custom-tooltip" data-tooltip="Reason why the live trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Reason</th>
-                                <th class="custom-tooltip" data-tooltip="Difference between live and backtest entry prices (green=better live execution, red=worse)"><i class="fas fa-sort" style="opacity: 0.3;"></i> Entry Diff</th>
-                                <th class="custom-tooltip" data-tooltip="Difference between live and backtest P&L (green=better live performance, red=worse)"><i class="fas fa-sort" style="opacity: 0.3;"></i> P&L Diff</th>
-                                <th class="custom-tooltip" data-tooltip="P&L difference normalized per contract"><i class="fas fa-sort" style="opacity: 0.3;"></i> P&L Diff/Contract</th>
+                                <th class="custom-tooltip sortable" data-tooltip="Date and time when the trade was opened" onclick="sortLiveVsBtTable('entry_time')" data-i18n="live_vs_bt_entry_time">Entry Date/Time <span id="sort-indicator-entry_time"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Trading strategy name from backtest data" onclick="sortLiveVsBtTable('bt_strategy')" data-i18n="live_vs_bt_bt_strategy">BT Strategy <span id="sort-indicator-bt_strategy"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Number of contracts traded in backtest" onclick="sortLiveVsBtTable('bt_contracts')" data-i18n="live_vs_bt_bt_contracts">BT Contracts <span id="sort-indicator-bt_contracts"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Entry price from backtest (slippage removed)" onclick="sortLiveVsBtTable('bt_entry_price')" data-i18n="live_vs_bt_bt_entry_price">BT Entry Price <span id="sort-indicator-bt_entry_price"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Exit price from backtest (slippage NOT removed)" onclick="sortLiveVsBtTable('bt_exit_price')" data-i18n="live_vs_bt_bt_exit_price">BT Exit Price <span id="sort-indicator-bt_exit_price"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Profit/Loss from backtest trade" onclick="sortLiveVsBtTable('bt_pnl')" data-i18n="live_vs_bt_bt_pnl">BT P&L <span id="sort-indicator-bt_pnl"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Date and time when the backtest trade was closed" onclick="sortLiveVsBtTable('bt_close_time')" data-i18n="live_vs_bt_bt_close_time">BT Close Time <span id="sort-indicator-bt_close_time"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Reason why the backtest trade was closed" onclick="sortLiveVsBtTable('bt_reason')" data-i18n="live_vs_bt_bt_reason">BT Reason <span id="sort-indicator-bt_reason"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Trading strategy name from live data" onclick="sortLiveVsBtTable('live_strategy')" data-i18n="live_vs_bt_live_strategy">Live Strategy <span id="sort-indicator-live_strategy"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Number of contracts traded in live execution" onclick="sortLiveVsBtTable('live_contracts')" data-i18n="live_vs_bt_live_contracts">Live Contracts <span id="sort-indicator-live_contracts"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Entry price from live execution" onclick="sortLiveVsBtTable('live_entry_price')" data-i18n="live_vs_bt_live_entry_price">Live Entry Price <span id="sort-indicator-live_entry_price"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Exit price from live execution" onclick="sortLiveVsBtTable('live_exit_price')" data-i18n="live_vs_bt_live_exit_price">Live Exit Price <span id="sort-indicator-live_exit_price"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Profit/Loss from live trade" onclick="sortLiveVsBtTable('live_pnl')" data-i18n="live_vs_bt_live_pnl">Live P&L <span id="sort-indicator-live_pnl"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Date and time when the live trade was closed" onclick="sortLiveVsBtTable('live_close_time')" data-i18n="live_vs_bt_live_close_time">Live Close Time <span id="sort-indicator-live_close_time"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Reason why the live trade was closed" onclick="sortLiveVsBtTable('live_reason')" data-i18n="live_vs_bt_live_reason">Live Reason <span id="sort-indicator-live_reason"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest entry prices (green=better live execution, red=worse)" onclick="sortLiveVsBtTable('entry_diff')" data-i18n="live_vs_bt_entry_diff">Entry Diff <span id="sort-indicator-entry_diff"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest P&L (green=better live performance, red=worse)" onclick="sortLiveVsBtTable('pnl_diff')" data-i18n="live_vs_bt_pnl_diff">P&L Diff <span id="sort-indicator-pnl_diff"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="P&L difference normalized per contract" onclick="sortLiveVsBtTable('pnl_diff_contract')" data-i18n="live_vs_bt_pnl_diff_contract">P&L Diff/Contract <span id="sort-indicator-pnl_diff_contract"></span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -12080,13 +12333,13 @@
                                 <table class="table table-sm table-striped">
                                     <thead class="table-dark">
                                         <tr>
-                                            <th>Strategy</th>
-                                            <th>Trades</th>
-                                            <th>Avg Entry Diff</th>
-                                            <th>Best Entry Diff</th>
-                                            <th>Worst Entry Diff</th>
-                                            <th>Better Executions</th>
-                                            <th>Worse Executions</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_strategy_tooltip" data-i18n="live_vs_bt_strategy">Strategy</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_trades_tooltip" data-i18n="live_vs_bt_trades">Trades</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_avg_entry_diff_tooltip" data-i18n="live_vs_bt_avg_entry_diff">Avg Entry Diff</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_best_entry_diff_tooltip" data-i18n="live_vs_bt_best_entry_diff">Best Entry Diff</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_worst_entry_diff_tooltip" data-i18n="live_vs_bt_worst_entry_diff">Worst Entry Diff</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_better_executions_tooltip" data-i18n="live_vs_bt_better_executions">Better Executions</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_worse_executions_tooltip" data-i18n="live_vs_bt_worse_executions">Worse Executions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -12127,31 +12380,31 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="alert alert-info">
-                            <h6><i class="fas fa-chart-bar"></i> Comparison Summary</h6>
+                            <h6><i class="fas fa-chart-bar"></i> <span data-i18n="live_vs_bt_comparison_summary">Comparison Summary</span></h6>
                             <div class="row text-center">
                                 <div class="col-md-2">
                                     <strong>${summary.total_trades || 0}</strong><br>
-                                    <small>Total Trades</small>
+                                    <small data-i18n="live_vs_bt_total_trades">Total Trades</small>
                                 </div>
                                 <div class="col-md-2">
                                     <strong>${summary.matched_trades || 0}</strong><br>
-                                    <small>Matched</small>
+                                    <small data-i18n="live_vs_bt_matched">Matched</small>
                                 </div>
                                 <div class="col-md-2">
                                     <strong>${summary.backtest_only || 0}</strong><br>
-                                    <small>Backtest Only</small>
+                                    <small data-i18n="live_vs_bt_backtest_only">Backtest Only</small>
                                 </div>
                                 <div class="col-md-2">
                                     <strong>${summary.live_only || 0}</strong><br>
-                                    <small>Live Only</small>
+                                    <small data-i18n="live_vs_bt_live_only">Live Only</small>
                                 </div>
                                 <div class="col-md-2">
                                     <strong>$${summary.avg_pnl_diff || 0}</strong><br>
-                                    <small>Avg P&L Diff</small>
+                                    <small data-i18n="live_vs_bt_avg_pnl_diff">Avg P&L Diff</small>
                                 </div>
                                 <div class="col-md-2">
                                     <strong>${summary.positive_diffs || 0}/${summary.negative_diffs || 0}</strong><br>
-                                    <small>Better/Worse</small>
+                                    <small data-i18n="live_vs_bt_better_worse">Better/Worse</small>
                                 </div>
                             </div>
                         </div>
@@ -12165,24 +12418,24 @@
                     <table class="table table-striped table-hover" id="liveVsBtTable">
                         <thead class="table-dark">
                             <tr>
-                                <th class="custom-tooltip" data-tooltip="Date and time when the trade was opened"><i class="fas fa-sort" style="opacity: 0.3;"></i> Entry Date/Time</th>
-                                <th class="custom-tooltip" data-tooltip="Trading strategy name from backtest data"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Strategy</th>
-                                <th class="custom-tooltip" data-tooltip="Number of contracts traded in backtest"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Contracts</th>
-                                <th class="custom-tooltip" data-tooltip="Entry price from backtest (slippage removed)"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Entry Price</th>
-                                <th class="custom-tooltip" data-tooltip="Exit price from backtest (slippage NOT removed)"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Exit Price</th>
-                                <th class="custom-tooltip" data-tooltip="Profit/Loss from backtest trade"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT P&L</th>
-                                <th class="custom-tooltip" data-tooltip="Date and time when the backtest trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Close Time</th>
-                                <th class="custom-tooltip" data-tooltip="Reason why the backtest trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> BT Reason</th>
-                                <th class="custom-tooltip" data-tooltip="Trading strategy name from live data"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Strategy</th>
-                                <th class="custom-tooltip" data-tooltip="Number of contracts traded in live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Contracts</th>
-                                <th class="custom-tooltip" data-tooltip="Entry price from live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Entry Price</th>
-                                <th class="custom-tooltip" data-tooltip="Exit price from live execution"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Exit Price</th>
-                                <th class="custom-tooltip" data-tooltip="Profit/Loss from live trade"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live P&L</th>
-                                <th class="custom-tooltip" data-tooltip="Date and time when the live trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Close Time</th>
-                                <th class="custom-tooltip" data-tooltip="Reason why the live trade was closed"><i class="fas fa-sort" style="opacity: 0.3;"></i> Live Reason</th>
-                                <th class="custom-tooltip" data-tooltip="Difference between live and backtest entry prices (green=better live execution, red=worse)"><i class="fas fa-sort" style="opacity: 0.3;"></i> Entry Diff</th>
-                                <th class="custom-tooltip" data-tooltip="Difference between live and backtest P&L (green=better live performance, red=worse)"><i class="fas fa-sort" style="opacity: 0.3;"></i> P&L Diff</th>
-                                <th class="custom-tooltip" data-tooltip="P&L difference normalized per contract"><i class="fas fa-sort" style="opacity: 0.3;"></i> P&L Diff/Contract</th>
+                                <th class="custom-tooltip sortable" data-tooltip="Date and time when the trade was opened" onclick="sortLiveVsBtTable('entry_time')" data-i18n="live_vs_bt_entry_time">Entry Date/Time <span id="sort-indicator-entry_time"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Trading strategy name from backtest data" onclick="sortLiveVsBtTable('bt_strategy')" data-i18n="live_vs_bt_bt_strategy">BT Strategy <span id="sort-indicator-bt_strategy"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Number of contracts traded in backtest" onclick="sortLiveVsBtTable('bt_contracts')" data-i18n="live_vs_bt_bt_contracts">BT Contracts <span id="sort-indicator-bt_contracts"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Entry price from backtest (slippage removed)" onclick="sortLiveVsBtTable('bt_entry_price')" data-i18n="live_vs_bt_bt_entry_price">BT Entry Price <span id="sort-indicator-bt_entry_price"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Exit price from backtest (slippage NOT removed)" onclick="sortLiveVsBtTable('bt_exit_price')" data-i18n="live_vs_bt_bt_exit_price">BT Exit Price <span id="sort-indicator-bt_exit_price"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Profit/Loss from backtest trade" onclick="sortLiveVsBtTable('bt_pnl')" data-i18n="live_vs_bt_bt_pnl">BT P&L <span id="sort-indicator-bt_pnl"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Date and time when the backtest trade was closed" onclick="sortLiveVsBtTable('bt_close_time')" data-i18n="live_vs_bt_bt_close_time">BT Close Time <span id="sort-indicator-bt_close_time"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Reason why the backtest trade was closed" onclick="sortLiveVsBtTable('bt_reason')" data-i18n="live_vs_bt_bt_reason">BT Reason <span id="sort-indicator-bt_reason"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Trading strategy name from live data" onclick="sortLiveVsBtTable('live_strategy')" data-i18n="live_vs_bt_live_strategy">Live Strategy <span id="sort-indicator-live_strategy"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Number of contracts traded in live execution" onclick="sortLiveVsBtTable('live_contracts')" data-i18n="live_vs_bt_live_contracts">Live Contracts <span id="sort-indicator-live_contracts"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Entry price from live execution" onclick="sortLiveVsBtTable('live_entry_price')" data-i18n="live_vs_bt_live_entry_price">Live Entry Price <span id="sort-indicator-live_entry_price"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Exit price from live execution" onclick="sortLiveVsBtTable('live_exit_price')" data-i18n="live_vs_bt_live_exit_price">Live Exit Price <span id="sort-indicator-live_exit_price"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Profit/Loss from live trade" onclick="sortLiveVsBtTable('live_pnl')" data-i18n="live_vs_bt_live_pnl">Live P&L <span id="sort-indicator-live_pnl"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Date and time when the live trade was closed" onclick="sortLiveVsBtTable('live_close_time')" data-i18n="live_vs_bt_live_close_time">Live Close Time <span id="sort-indicator-live_close_time"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Reason why the live trade was closed" onclick="sortLiveVsBtTable('live_reason')" data-i18n="live_vs_bt_live_reason">Live Reason <span id="sort-indicator-live_reason"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest entry prices (green=better live execution, red=worse)" onclick="sortLiveVsBtTable('entry_diff')" data-i18n="live_vs_bt_entry_diff">Entry Diff <span id="sort-indicator-entry_diff"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest P&L (green=better live performance, red=worse)" onclick="sortLiveVsBtTable('pnl_diff')" data-i18n="live_vs_bt_pnl_diff">P&L Diff <span id="sort-indicator-pnl_diff"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="P&L difference normalized per contract" onclick="sortLiveVsBtTable('pnl_diff_contract')" data-i18n="live_vs_bt_pnl_diff_contract">P&L Diff/Contract <span id="sort-indicator-pnl_diff_contract"></span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -12254,83 +12507,39 @@
             
             container.innerHTML = summaryHtml + entryDiffSummaryHtml + tableHtml;
             
-            // Initialize table sorting
-            initializeLiveVsBtTableSorting();
+            // Store data for sorting
+            liveVsBtTableData = liveVsBtData.comparison_data.map(trade => ({
+                entry_time: trade.entry_datetime,
+                bt_strategy: trade.backtest ? trade.backtest.strategy : '',
+                bt_contracts: trade.backtest ? trade.backtest.contracts : 0,
+                bt_entry_price: trade.backtest && trade.backtest.opening_price !== null ? parseFloat(trade.backtest.opening_price) : 0,
+                bt_exit_price: trade.backtest && trade.backtest.closing_price !== null ? parseFloat(trade.backtest.closing_price) : 0,
+                bt_pnl: trade.backtest ? trade.backtest.pnl : 0,
+                bt_close_time: trade.backtest ? trade.backtest.close_datetime : '',
+                bt_reason: trade.backtest ? trade.backtest.reason_for_close : '',
+                live_strategy: trade.live ? trade.live.strategy : '',
+                live_contracts: trade.live ? trade.live.contracts : 0,
+                live_entry_price: trade.live && trade.live.opening_price !== null ? parseFloat(trade.live.opening_price) : 0,
+                live_exit_price: trade.live && trade.live.closing_price !== null ? parseFloat(trade.live.closing_price) : 0,
+                live_pnl: trade.live ? trade.live.pnl : 0,
+                live_close_time: trade.live ? trade.live.close_datetime : '',
+                live_reason: trade.live ? trade.live.reason_for_close : '',
+                entry_diff: trade.opening_diff,
+                pnl_diff: trade.pnl_diff,
+                pnl_diff_contract: trade.pnl_diff !== null && trade.backtest && trade.live && trade.backtest.contracts > 0 && trade.live.contracts > 0 ? 
+                    trade.pnl_diff / Math.max(trade.backtest.contracts, trade.live.contracts) : null
+            }));
+            
+            // Store in global scope for i18n system
+            window.liveVsBtTableData = liveVsBtTableData;
+            
+            // Render the table with sorting
+            renderLiveVsBtTable();
             
             // Initialize custom tooltips
             initializeCustomTooltips();
         }
 
-        function initializeLiveVsBtTableSorting() {
-            const table = document.getElementById('liveVsBtTable');
-            if (!table) return;
-            
-            // Get the headers from the single row
-            const headerRows = table.querySelectorAll('thead tr');
-            const headers = headerRows[0].querySelectorAll('th');
-            let sortDirection = {};
-            
-            headers.forEach((header, index) => {
-                header.style.cursor = 'pointer';
-                header.innerHTML += ' <i class="fas fa-sort text-muted"></i>';
-                
-                header.addEventListener('click', () => {
-                    sortLiveVsBtTable(table, index, sortDirection);
-                });
-            });
-            
-            function sortLiveVsBtTable(table, columnIndex, sortDirection) {
-                const tbody = table.querySelector('tbody');
-                const rows = Array.from(tbody.querySelectorAll('tr'));
-                
-                // Determine sort direction
-                const currentDirection = sortDirection[columnIndex] || 'asc';
-                const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
-                sortDirection[columnIndex] = newDirection;
-                
-                // Sort rows
-                rows.sort((a, b) => {
-                    const aCell = a.cells[columnIndex];
-                    const bCell = b.cells[columnIndex];
-                    
-                    let aVal = aCell.textContent.trim();
-                    let bVal = bCell.textContent.trim();
-                    
-                    // Handle numeric values (Contracts, Entry/Exit Prices, P&L columns, Price Diffs, P&L Diff, P&L Diff/Contract)
-                    if (columnIndex === 2 || columnIndex === 3 || columnIndex === 4 || columnIndex === 5 || columnIndex === 10 || columnIndex === 11 || columnIndex === 12 || columnIndex === 15 || columnIndex === 16 || columnIndex === 17 || columnIndex === 18) {
-                        aVal = parseFloat(aVal.replace(/[$,]/g, '')) || 0;
-                        bVal = parseFloat(bVal.replace(/[$,]/g, '')) || 0;
-                    }
-                    // Handle date/time sorting for Entry Date/Time column
-                    else if (columnIndex === 0) {
-                        // Parse date/time for proper sorting
-                        const aDate = new Date(aVal);
-                        const bDate = new Date(bVal);
-                        if (!isNaN(aDate.getTime()) && !isNaN(bDate.getTime())) {
-                            aVal = aDate.getTime();
-                            bVal = bDate.getTime();
-                        }
-                    }
-                    
-                    if (aVal < bVal) return newDirection === 'asc' ? -1 : 1;
-                    if (aVal > bVal) return newDirection === 'asc' ? 1 : -1;
-                    return 0;
-                });
-                
-                // Update table
-                rows.forEach(row => tbody.appendChild(row));
-                
-                // Update sort icons
-                headers.forEach((header, index) => {
-                    const icon = header.querySelector('.fa-sort');
-                    if (index === columnIndex) {
-                        icon.className = newDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
-                    } else {
-                        icon.className = 'fas fa-sort text-muted';
-                    }
-                });
-            }
-        }
 
         function displayLiveVsBTAnalysisError(message) {
             const container = document.getElementById('liveVsBtResults');
@@ -13062,19 +13271,19 @@
                            container.innerHTML = `
                                <div class="card">
                                    <div class="card-header">
-                                       <h5>📈 Price Movement Analysis</h5>
+                                       <h5>${window.i18n ? window.i18n.t('price_movement_analysis') : '📈 Price Movement Analysis'}</h5>
                                    </div>
                                    <div class="card-body">
                                        <div class="alert alert-info mb-4">
-                                           <h6><i class="fas fa-info-circle"></i> What is Price Movement Analysis?</h6>
-                                           <p class="mb-2">This tool analyzes trading performance based on the percentage price movement of the underlying symbol between trade opening and closing times. Filter trades by price movement range to see how your strategies perform in different market conditions.</p>
-                                           <p class="mb-0"><strong>Range:</strong> ${roundedMin}% to ${roundedMax}%</p>
+                                           <h6><i class="fas fa-info-circle"></i> ${window.i18n ? window.i18n.t('what_is_price_movement_analysis') : 'What is Price Movement Analysis?'}</h6>
+                                           <p class="mb-2">${window.i18n ? window.i18n.t('price_movement_description') : 'This tool analyzes trading performance based on the percentage price movement of the underlying symbol between trade opening and closing times. Filter trades by price movement range to see how your strategies perform in different market conditions.'}</p>
+                                           <p class="mb-0"><strong>${window.i18n ? window.i18n.t('range') : 'Range:'}</strong> ${roundedMin}% to ${roundedMax}%</p>
                                        </div>
 
                                        <div class="row mb-4">
                                            <div class="col-md-8">
                                                <label for="priceMovementRange" class="form-label">
-                                                   Price Movement Range (%):
+                                                   ${window.i18n ? window.i18n.t('price_movement_range') : 'Price Movement Range (%):'}
                                                    <span id="priceMovementRangeValue">-1% to 1%</span>
                                                </label>
                                                <div class="range-slider-container">
@@ -13092,7 +13301,7 @@
                                            </div>
                                            <div class="col-md-4">
                                                <button class="btn btn-primary" id="analyzePriceMovementBtn" onclick="runPriceMovementAnalysis()">
-                                                   <i class="fas fa-chart-bar"></i> Analyze Price Movement
+                                                   <i class="fas fa-chart-bar"></i> ${window.i18n ? window.i18n.t('analyze_price_movement') : 'Analyze Price Movement'}
                                                </button>
                                            </div>
                                        </div>
@@ -13110,8 +13319,8 @@
                     } else {
                         container.innerHTML = `
                             <div class="alert alert-danger">
-                                <h5>Error Loading Price Movement Data</h5>
-                                <p>${data.error || 'Failed to load price movement range data.'}</p>
+                                <h5>${window.i18n ? window.i18n.t('error_loading_price_movement_data') : 'Error Loading Price Movement Data'}</h5>
+                                <p>${data.error || (window.i18n ? window.i18n.t('failed_to_load_price_movement_range') : 'Failed to load price movement range data.')}</p>
                             </div>
                         `;
                     }
@@ -13120,8 +13329,8 @@
                     console.error('Error loading price movement data:', error);
                     container.innerHTML = `
                         <div class="alert alert-danger">
-                            <h5>Error Loading Price Movement Data</h5>
-                            <p>Failed to load price movement data: ${error.message}</p>
+                            <h5>${window.i18n ? window.i18n.t('error_loading_price_movement_data') : 'Error Loading Price Movement Data'}</h5>
+                            <p>${window.i18n ? window.i18n.t('failed_to_load_price_movement_data') : 'Failed to load price movement data:'} ${error.message}</p>
                         </div>
                     `;
                 })
@@ -13175,7 +13384,7 @@
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <p class="mt-2">Analyzing price movement data...</p>
+                    <p class="mt-2">${window.i18n ? window.i18n.t('analyzing_price_movement_data') : 'Analyzing price movement data...'}</p>
                 </div>
             `;
             resultsDiv.style.display = 'block';
@@ -13198,7 +13407,7 @@
                 } else {
                     resultsDiv.innerHTML = `
                         <div class="alert alert-danger">
-                            <h5>Analysis Error</h5>
+                            <h5>${window.i18n ? window.i18n.t('analysis_error') : 'Analysis Error'}</h5>
                             <p>${data.error || 'Failed to analyze price movement data.'}</p>
                         </div>
                     `;
@@ -13602,20 +13811,20 @@
             container.innerHTML = `
                 <div class="card">
                     <div class="card-header">
-                        <h5>🔗 Cross-File Strategy Correlation Analysis</h5>
+                        <h5>🔗 <span data-i18n="cross_file_strategy_correlation_analysis">Cross-File Strategy Correlation Analysis</span></h5>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-info mb-4">
-                            <h6><i class="fas fa-info-circle"></i> What is Cross-File Strategy Correlation Analysis?</h6>
-                            <p class="mb-2">This tool analyzes the correlation between trading strategies from different CSV files to help you identify diversification opportunities.</p>
-                            <p class="mb-2"><strong>Why is this useful?</strong></p>
+                            <h6><i class="fas fa-info-circle"></i> <span data-i18n="what_is_cross_file_correlation">What is Cross-File Strategy Correlation Analysis?</span></h6>
+                            <p class="mb-2" data-i18n="cross_file_correlation_description">This tool analyzes the correlation between trading strategies from different CSV files to help you identify diversification opportunities.</p>
+                            <p class="mb-2"><strong data-i18n="cross_file_why_is_this_useful">Why is this useful?</strong></p>
                             <ul class="mb-2">
-                                <li><strong>Portfolio Diversification:</strong> Find strategies that move independently to reduce overall risk</li>
-                                <li><strong>Strategy Selection:</strong> Identify which strategies from different files work well together</li>
-                                <li><strong>Risk Management:</strong> Avoid combining highly correlated strategies that amplify losses</li>
-                                <li><strong>Performance Optimization:</strong> Build portfolios with uncorrelated strategies for better risk-adjusted returns</li>
+                                <li><strong>Portfolio Diversification:</strong> <span data-i18n="portfolio_diversification_desc">Find strategies that move independently to reduce overall risk</span></li>
+                                <li><strong>Strategy Selection:</strong> <span data-i18n="strategy_selection_desc">Identify which strategies from different files work well together</span></li>
+                                <li><strong>Risk Management:</strong> <span data-i18n="cross_file_risk_management_desc">Avoid combining highly correlated strategies that amplify losses</span></li>
+                                <li><strong>Performance Optimization:</strong> <span data-i18n="performance_optimization_desc">Build portfolios with uncorrelated strategies for better risk-adjusted returns</span></li>
                             </ul>
-                            <p class="mb-0"><strong>How it works:</strong> The analysis compares daily returns between strategies across your selected files during their overlapping time periods, then displays correlations in a heatmap matrix.</p>
+                            <p class="mb-0"><strong data-i18n="cross_file_how_it_works">How it works:</strong> <span data-i18n="cross_file_how_it_works_desc">The analysis compares daily returns between strategies across your selected files during their overlapping time periods, then displays correlations in a heatmap matrix.</span></p>
                         </div>
                         
                         <p>Select which CSV files you want to compare for correlation analysis:</p>
