@@ -2040,7 +2040,6 @@
                 </div>
                 <div class="dropdown">
                     <button class="btn btn-outline-primary dropdown-toggle" type="button" id="authDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user"></i>
                         <span id="authButtonText">Account</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="authDropdown" id="authDropdownMenu">
@@ -2378,9 +2377,9 @@
                                 </h6>
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <strong>${window.i18n ? window.i18n.t('naming') : 'Naming:'}</strong> ${window.i18n ? window.i18n.t('meic_in_filename_or_strategy') : '"meic" must be in filename or strategy name'}<br>
-                                        <strong>${window.i18n ? window.i18n.t('structure') : 'Structure:'}</strong> ${window.i18n ? window.i18n.t('two_leg_groups') : '2 leg groups (put spread + call spread)'}<br>
-                                        <strong>${window.i18n ? window.i18n.t('timing') : 'Timing:'}</strong> ${window.i18n ? window.i18n.t('same_entry_date_time') : 'Same entry date and time for both trades'}
+                                        <strong><span data-i18n="naming">Naming:</span></strong> <span data-i18n="meic_in_filename_or_strategy">"meic" must be in filename or strategy name</span><br>
+                                        <strong><span data-i18n="structure">Structure:</span></strong> <span data-i18n="two_leg_groups">2 leg groups (put spread + call spread)</span><br>
+                                        <strong><span data-i18n="timing">Timing:</span></strong> <span data-i18n="same_entry_date_time">Same entry date and time for both trades</span>
                                     </div>
                                     <div class="col-md-6">
                                         <strong>Example:</strong> Entry 15:14:00 on 2025-09-05<br>
@@ -2483,31 +2482,31 @@
                                                             <!-- Date Range Display -->
                                                             <div class="row mb-2">
                                                                 <div class="col-6">
-                                                                    <small class="text-muted">${window.i18n ? window.i18n.t('start') : 'Start:'}</small> <span id="meicStartDateDisplay" class="fw-bold">${window.i18n ? window.i18n.t('all_dates') : 'All Dates'}</span>
+                                                                    <small class="text-muted" data-i18n="start">Start:</small> <span id="meicStartDateDisplay" class="fw-bold" data-i18n="all_dates">All Dates</span>
                                                                 </div>
                                                                 <div class="col-6">
-                                                                    <small class="text-muted">${window.i18n ? window.i18n.t('end') : 'End:'}</small> <span id="meicEndDateDisplay" class="fw-bold">${window.i18n ? window.i18n.t('all_dates') : 'All Dates'}</span>
+                                                                    <small class="text-muted" data-i18n="end">End:</small> <span id="meicEndDateDisplay" class="fw-bold" data-i18n="all_dates">All Dates</span>
                                                                 </div>
                                                             </div>
                                                             
                                                             <!-- Sliders -->
                                                             <div class="mb-2">
-                                                                <label for="meicStartDateSlider" class="form-label small mb-1">${window.i18n ? window.i18n.t('start_date') : 'Start Date'}</label>
+                                                                <label for="meicStartDateSlider" class="form-label small mb-1" data-i18n="start_date">Start Date</label>
                                                                 <input type="range" class="form-range" id="meicStartDateSlider" 
                                                                        min="0" max="100" value="0" step="1" oninput="updateMEICDateLabels()">
                                                                 <div class="d-flex justify-content-between">
-                                                                    <small class="text-muted" id="meicStartDateMin">${window.i18n ? window.i18n.t('loading') : 'Loading...'}</small>
-                                                                    <small class="text-muted" id="meicStartDateMax">${window.i18n ? window.i18n.t('loading') : 'Loading...'}</small>
+                                                                    <small class="text-muted" id="meicStartDateMin" data-i18n="loading">Loading...</small>
+                                                                    <small class="text-muted" id="meicStartDateMax" data-i18n="loading">Loading...</small>
                                                                 </div>
                                                             </div>
                                                             
                                                             <div class="mb-2">
-                                                                <label for="meicEndDateSlider" class="form-label small mb-1">${window.i18n ? window.i18n.t('end_date') : 'End Date'}</label>
+                                                                <label for="meicEndDateSlider" class="form-label small mb-1" data-i18n="end_date">End Date</label>
                                                                 <input type="range" class="form-range" id="meicEndDateSlider" 
                                                                        min="0" max="100" value="100" step="1" oninput="updateMEICDateLabels()">
                                                                 <div class="d-flex justify-content-between">
-                                                                    <small class="text-muted" id="meicEndDateMin">${window.i18n ? window.i18n.t('loading') : 'Loading...'}</small>
-                                                                    <small class="text-muted" id="meicEndDateMax">${window.i18n ? window.i18n.t('loading') : 'Loading...'}</small>
+                                                                    <small class="text-muted" id="meicEndDateMin" data-i18n="loading">Loading...</small>
+                                                                    <small class="text-muted" id="meicEndDateMax" data-i18n="loading">Loading...</small>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -5135,24 +5134,56 @@
                     trade.bt_contracts || '',
                     trade.bt_entry_price ? `$${parseFloat(trade.bt_entry_price).toFixed(2)}` : '',
                     trade.bt_exit_price ? `$${parseFloat(trade.bt_exit_price).toFixed(2)}` : '',
-                    trade.bt_pnl ? `$${parseFloat(trade.bt_pnl).toLocaleString()}` : '',
+                    trade.bt_pnl ? `$${parseFloat(trade.bt_pnl).toFixed(2)}` : '',
                     trade.bt_close_time || '',
                     trade.bt_reason || '',
                     trade.live_strategy || '',
                     trade.live_contracts || '',
                     trade.live_entry_price ? `$${parseFloat(trade.live_entry_price).toFixed(2)}` : '',
                     trade.live_exit_price ? `$${parseFloat(trade.live_exit_price).toFixed(2)}` : '',
-                    trade.live_pnl ? `$${parseFloat(trade.live_pnl).toLocaleString()}` : '',
+                    trade.live_pnl ? `$${parseFloat(trade.live_pnl).toFixed(2)}` : '',
                     trade.live_close_time || '',
                     trade.live_reason || '',
-                    trade.entry_diff || '',
-                    trade.pnl_diff || '',
-                    trade.pnl_diff_contract || ''
+                    trade.entry_diff ? `$${parseFloat(trade.entry_diff).toFixed(2)}` : '',
+                    trade.pnl_diff ? `$${parseFloat(trade.pnl_diff).toFixed(2)}` : '',
+                    trade.pnl_diff_contract ? `$${parseFloat(trade.pnl_diff_contract).toFixed(2)}` : ''
                 ];
                 
-                cells.forEach(cellText => {
+                cells.forEach((cellText, index) => {
                     const cell = document.createElement('td');
-                    cell.textContent = cellText;
+                    
+                    // Apply colorization for Entry Diff, P&L Diff, and P&L Diff/Contract columns
+                    if (index === 15) { // Entry Diff column
+                        const entryDiff = parseFloat(trade.entry_diff) || 0;
+                        if (entryDiff > 0) {
+                            cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
+                        } else if (entryDiff < 0) {
+                            cell.innerHTML = `<span class="badge bg-danger">${cellText}</span>`;
+                        } else {
+                            cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
+                        }
+                    } else if (index === 16) { // P&L Diff column
+                        const pnlDiff = parseFloat(trade.pnl_diff) || 0;
+                        if (pnlDiff > 0) {
+                            cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
+                        } else if (pnlDiff < 0) {
+                            cell.innerHTML = `<span class="badge bg-danger">${cellText}</span>`;
+                        } else {
+                            cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
+                        }
+                    } else if (index === 17) { // P&L Diff/Contract column
+                        const pnlDiffContract = parseFloat(trade.pnl_diff_contract) || 0;
+                        if (pnlDiffContract > 0) {
+                            cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
+                        } else if (pnlDiffContract < 0) {
+                            cell.innerHTML = `<span class="badge bg-danger">${cellText}</span>`;
+                        } else {
+                            cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
+                        }
+                    } else {
+                        cell.textContent = cellText;
+                    }
+                    
                     row.appendChild(cell);
                 });
                 
@@ -10364,14 +10395,23 @@
                 }
                 // User name removed from welcome message - keeping only the rightmost instance
                 
-                userDisplay.innerHTML = displayHtml;
-                authButtonText.textContent = user.name;
+                userDisplay.innerHTML = ''; // Clear user display - name only appears in auth button
+                
+                // Add provider icon to user name
+                let providerIcon = '';
+                if (user.provider === 'google') {
+                    providerIcon = '<i class="fab fa-google text-danger me-1"></i>';
+                } else if (user.provider === 'discord') {
+                    providerIcon = '<i class="fab fa-discord text-primary me-1"></i>';
+                }
+                
+                authButtonText.innerHTML = providerIcon + user.name;
             } else if (data.is_guest) {
-                userDisplay.innerHTML = '<span><i class="fas fa-user-ninja"></i> Guest Mode</span>';
-                authButtonText.textContent = 'Guest';
+                userDisplay.innerHTML = ''; // Clear user display - guest status only appears in auth button
+                authButtonText.innerHTML = '<i class="fas fa-user-ninja me-1"></i>Guest';
             } else {
-                userDisplay.innerHTML = '<span>Not logged in</span>';
-                authButtonText.textContent = 'Login';
+                userDisplay.innerHTML = ''; // Clear user display - login status only appears in auth button
+                authButtonText.innerHTML = '<i class="fas fa-sign-in-alt me-1"></i>Login';
             }
         }
 
@@ -12527,7 +12567,7 @@
                 entry_diff: trade.opening_diff,
                 pnl_diff: trade.pnl_diff,
                 pnl_diff_contract: trade.pnl_diff !== null && trade.backtest && trade.live && trade.backtest.contracts > 0 && trade.live.contracts > 0 ? 
-                    trade.pnl_diff / Math.max(trade.backtest.contracts, trade.live.contracts) : null
+                    (trade.live.pnl / trade.live.contracts) - (trade.backtest.pnl / trade.backtest.contracts) : null
             }));
             
             // Store in global scope for i18n system
