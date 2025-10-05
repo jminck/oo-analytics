@@ -3536,6 +3536,151 @@ class PriceMovementAnalyzer:
                 'error': f'Failed to analyze price movement performance: {str(e)}'
             }
 
+class VIXAnalyzer:
+    """Handles VIX analysis for filtering trades by VIX levels at open and close."""
+    def __init__(self, portfolio: Portfolio):
+        self.portfolio = portfolio
+
+    def calculate_vix_range(self) -> Dict:
+        """Calculate min and max VIX across trades considering both opening and closing VIX."""
+        try:
+            vix_values = []
+            for strategy in self.portfolio.strategies.values():
+                for trade in strategy.trades:
+                    ov = getattr(trade, 'opening_vix', None)
+                    cv = getattr(trade, 'closing_vix', None)
+                    if ov is not None:
+                        vix_values.append(float(ov))
+                    if cv is not None:
+                        vix_values.append(float(cv))
+            if not vix_values:
+                return { 'success': False, 'error': 'No VIX data found in trades' }
+            return {
+                'success': True,
+                'data': {
+                    'min_vix': round(min(vix_values), 2),
+                    'max_vix': round(max(vix_values), 2),
+                    'trade_count': len(vix_values)
+                }
+            }
+        except Exception as e:
+            return { 'success': False, 'error': f'Failed to calculate VIX range: {str(e)}' }
+
+    def analyze_vix_performance(self, min_vix: float, max_vix: float) -> Dict:
+        """Analyze performance for trades where both opening and closing VIX fall within [min_vix, max_vix]."""
+        try:
+            filtered = []
+            for strategy in self.portfolio.strategies.values():
+                for trade in strategy.trades:
+                    ov = getattr(trade, 'opening_vix', None)
+                    cv = getattr(trade, 'closing_vix', None)
+                    if ov is None or cv is None:
+                        continue
+                    if min_vix <= float(ov) <= max_vix and min_vix <= float(cv) <= max_vix:
+                        filtered.append((strategy.name, trade))
+
+            if not filtered:
+                return { 'success': True, 'data': { 'strategies': [], 'min_vix': min_vix, 'max_vix': max_vix, 'total_trades': 0 } }
+
+            # Group by strategy
+            strat = {}
+            for name, trade in filtered:
+                if name not in strat:
+                    strat[name] = { 'name': name, 'trades': [], 'total_pnl': 0.0, 'total_contracts': 0, 'wins': 0, 'losses': 0, 'win_amounts': [], 'loss_amounts': [] }
+                strat[name]['trades'].append(trade)
+                strat[name]['total_pnl'] += trade.pnl
+                # contracts via legs when available
+                legs = getattr(trade, 'legs', '')
+                if legs and legs.strip():
+                    from commission_config import CommissionCalculator
+                    calc = CommissionCalculator()
+                    contracts = calc.calculate_actual_contracts_from_legs(legs)
+                else:
+                    contracts = getattr(trade, 'contracts', 1)
+                strat[name]['total_contracts'] += contracts
+                if trade.pnl > 0:
+                    strat[name]['wins'] += 1
+                    strat[name]['win_amounts'].append(trade.pnl)
+                else:
+                    strat[name]['losses'] += 1
+                    strat[name]['loss_amounts'].append(trade.pnl)
+
+            strategies = []
+            for name, data in strat.items():
+                trade_count = len(data['trades'])
+                avg_pnl = data['total_pnl'] / trade_count if trade_count > 0 else 0
+                avg_pnl_per_lot = data['total_pnl'] / data['total_contracts'] if data['total_contracts'] > 0 else 0
+                import numpy as _np
+                avg_win = _np.mean(data['win_amounts']) if data['win_amounts'] else 0
+                avg_loss = _np.mean(data['loss_amounts']) if data['loss_amounts'] else 0
+                strategies.append({
+                    'name': name,
+                    'trade_count': trade_count,
+                    'total_pnl': round(data['total_pnl'], 2),
+                    'avg_pnl': round(avg_pnl, 2),
+                    'avg_pnl_per_lot': round(avg_pnl_per_lot, 2),
+                    'total_contracts': data['total_contracts'],
+                    'wins': data['wins'],
+                    'losses': data['losses'],
+                    'avg_win': round(avg_win, 2),
+                    'avg_loss': round(avg_loss, 2)
+                })
+            strategies.sort(key=lambda x: x['total_pnl'], reverse=True)
+            return { 'success': True, 'data': { 'strategies': strategies, 'min_vix': min_vix, 'max_vix': max_vix, 'total_trades': len(filtered) } }
+        except Exception as e:
+            return { 'success': False, 'error': f'Failed to analyze VIX performance: {str(e)}' }
+
+    def get_vix_trades(self, min_vix: float, max_vix: float) -> Dict:
+        """Return individual trades within VIX range with essential fields for UI table."""
+        try:
+            trades_out = []
+            # Lazy import to avoid circulars
+            try:
+                from commission_config import CommissionCalculator
+                calc = CommissionCalculator()
+            except Exception:
+                calc = None
+
+            for strategy_name, strategy in self.portfolio.strategies.items():
+                for trade in strategy.trades:
+                    ov = getattr(trade, 'opening_vix', None)
+                    cv = getattr(trade, 'closing_vix', None)
+                    if ov is None or cv is None:
+                        continue
+                    try:
+                        ovf = float(ov)
+                        cvf = float(cv)
+                    except Exception:
+                        continue
+                    if not (min_vix <= ovf <= max_vix and min_vix <= cvf <= max_vix):
+                        continue
+
+                    # Contracts: prefer legs-derived when possible
+                    contracts = getattr(trade, 'contracts', 0) or 0
+                    legs = getattr(trade, 'legs', '')
+                    if calc and legs and isinstance(legs, str) and legs.strip():
+                        try:
+                            contracts_from_legs = calc.calculate_actual_contracts_from_legs(legs)
+                            if contracts_from_legs:
+                                contracts = contracts_from_legs
+                        except Exception:
+                            pass
+
+                    trades_out.append({
+                        'strategy': strategy_name,
+                        'date_opened': getattr(trade, 'date_opened', None),
+                        'date_closed': getattr(trade, 'date_closed', None),
+                        'opening_vix': ovf,
+                        'closing_vix': cvf,
+                        'contracts': contracts,
+                        'pnl': float(getattr(trade, 'pnl', 0.0) or 0.0),
+                        'reason_for_close': getattr(trade, 'reason_for_close', None) or getattr(trade, 'reason_close', None)
+                    })
+
+            return { 'success': True, 'trades': trades_out }
+        except Exception as e:
+            return { 'success': False, 'error': f'Failed to get VIX trades: {str(e)}' }
+
 class MEICAnalyzer:
     """Analyzes Multiple Entry Iron Condor (MEIC) trades."""
     

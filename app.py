@@ -4931,6 +4931,59 @@ def get_price_movement_trades():
             'error': str(e)
         })
 
+@app.route('/api/vix/range')
+@guest_mode_required
+def get_vix_range():
+    """Get min and max VIX across trades (from Opening/Closing VIX)."""
+    try:
+        from analytics import VIXAnalyzer
+        if not portfolio.strategies:
+            return jsonify({'success': False, 'error': 'No portfolio data found'})
+        analyzer = VIXAnalyzer(portfolio)
+        result = analyzer.calculate_vix_range()
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error getting VIX range: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/vix/analysis', methods=['POST'])
+@guest_mode_required
+def analyze_vix():
+    """Analyze performance for trades within VIX min/max where both opening and closing VIX are inside range."""
+    try:
+        from analytics import VIXAnalyzer
+        data = request.get_json()
+        min_vix = float(data.get('min_vix', 10.0))
+        max_vix = float(data.get('max_vix', 40.0))
+        if not portfolio.strategies:
+            return jsonify({'success': False, 'error': 'No portfolio data found'})
+        analyzer = VIXAnalyzer(portfolio)
+        result = analyzer.analyze_vix_performance(min_vix, max_vix)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error analyzing VIX: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/vix/trades', methods=['POST'])
+@guest_mode_required
+def get_vix_trades():
+    """Return individual trades for VIX range selection."""
+    try:
+        from analytics import VIXAnalyzer
+        data = request.get_json()
+        min_vix = float(data.get('min_vix', 10.0))
+        max_vix = float(data.get('max_vix', 40.0))
+        if not portfolio.strategies:
+            return jsonify({'success': False, 'error': 'No portfolio data found'})
+        analyzer = VIXAnalyzer(portfolio)
+        result = analyzer.get_vix_trades(min_vix, max_vix)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error getting VIX trades: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
 @app.route('/api/files/overview')
 def get_files_overview():
     """Get overview of all uploaded files with their metrics."""

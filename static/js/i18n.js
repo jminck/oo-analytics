@@ -4,8 +4,11 @@
  */
 class I18n {
     constructor() {
-        this.currentLanguage = 'en';
+        // Check for saved language preference
+        const savedLanguage = localStorage.getItem('preferred_language');
+        this.currentLanguage = savedLanguage || 'en';
         this.translations = {};
+        console.log('🌍 I18n initialized with language:', this.currentLanguage);
         this.loadLanguage();
     }
 
@@ -16,14 +19,20 @@ class I18n {
     async loadLanguage(lang = null) {
         if (lang) this.currentLanguage = lang;
         
+        console.log('🌍 Loading language:', this.currentLanguage);
+        
         try {
             const response = await fetch(`/translations/${this.currentLanguage}/frontend.json`);
             if (!response.ok) {
                 throw new Error(`Failed to load translations: ${response.status}`);
             }
             this.translations = await response.json();
+            console.log('🌍 Translations loaded successfully for:', this.currentLanguage);
             this.updateUI();
-            this.updateLanguageSwitcher();
+            // Add small delay to ensure DOM is ready
+            setTimeout(() => {
+                this.updateLanguageSwitcher();
+            }, 100);
         } catch (error) {
             console.error('Failed to load translations:', error);
             // Fallback to English if current language fails
@@ -170,7 +179,11 @@ class I18n {
     updateLanguageSwitcher() {
         const currentLangElement = document.getElementById('currentLanguage');
         if (currentLangElement) {
-            currentLangElement.textContent = this.t(`language_${this.currentLanguage}`);
+            const displayText = this.t(`language_${this.currentLanguage}`);
+            currentLangElement.textContent = displayText;
+            console.log('🌍 Updated language switcher display to:', displayText);
+        } else {
+            console.warn('🌍 Language switcher element not found');
         }
     }
 
@@ -181,7 +194,13 @@ class I18n {
     async switchLanguage(lang) {
         if (lang === this.currentLanguage) return;
         
+        console.log('🌍 Switching language from', this.currentLanguage, 'to', lang);
+        
         try {
+            // Save language preference to localStorage
+            localStorage.setItem('preferred_language', lang);
+            console.log('🌍 Language preference saved to localStorage:', lang);
+            
             // Update backend language
             const response = await fetch(`/api/set-language/${lang}`);
             if (!response.ok) {
@@ -247,18 +266,58 @@ class I18n {
             'es': this.t('language_es')
         };
     }
+
+    /**
+     * Test language persistence
+     */
+    testLanguagePersistence() {
+        console.log('🌍 Testing language persistence...');
+        console.log('🌍 Current language:', this.currentLanguage);
+        console.log('🌍 Saved language in localStorage:', localStorage.getItem('preferred_language'));
+        console.log('🌍 Available languages:', this.getAvailableLanguages());
+    }
 }
 
 // Create global instance
 window.i18n = new I18n();
 
+// Add global test function
+window.testLanguagePersistence = function() {
+    window.i18n.testLanguagePersistence();
+};
+
+// Add global function to manually set language for testing
+window.setLanguage = function(lang) {
+    window.i18n.switchLanguage(lang);
+};
+
+// Add global function to clear language preference for testing
+window.clearLanguagePreference = function() {
+    localStorage.removeItem('preferred_language');
+    console.log('🌍 Language preference cleared from localStorage');
+};
+
+// Add global function to check current language preference
+window.checkLanguagePreference = function() {
+    const saved = localStorage.getItem('preferred_language');
+    const current = window.i18n.getCurrentLanguage();
+    console.log('🌍 Saved language preference:', saved);
+    console.log('🌍 Current language:', current);
+    return { saved, current };
+};
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🌍 DOM loaded, setting up language switcher event listeners');
     // Language switcher event listeners
-    document.querySelectorAll('[data-lang-switch]').forEach(button => {
+    const langButtons = document.querySelectorAll('[data-lang-switch]');
+    console.log('🌍 Found language switcher buttons:', langButtons.length);
+    
+    langButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             const lang = this.getAttribute('data-lang-switch');
+            console.log('🌍 Language button clicked:', lang);
             window.i18n.switchLanguage(lang);
         });
     });

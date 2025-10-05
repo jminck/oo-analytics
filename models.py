@@ -128,6 +128,8 @@ class Trade:
         self.avg_closing_cost = kwargs.get('avg_closing_cost')  # Add average closing cost field
         self.max_profit = kwargs.get('max_profit')  # Add max profit field for MFE/MAE analysis
         self.max_loss = kwargs.get('max_loss')  # Add max loss field for MFE/MAE analysis
+        self.opening_vix = kwargs.get('opening_vix')  # Add opening VIX field
+        self.closing_vix = kwargs.get('closing_vix')  # Add closing VIX field
     
     @property
     def is_winner(self) -> bool:
@@ -769,6 +771,16 @@ class Portfolio:
                     max_profit = float(row.get('Max Profit', 0)) if 'Max Profit' in row and row.get('Max Profit') else None
                     max_loss = float(row.get('Max Loss', 0)) if 'Max Loss' in row and row.get('Max Loss') else None
                     
+                    # Parse VIX values if present
+                    try:
+                        opening_vix = float(row.get('Opening VIX')) if 'Opening VIX' in row and row.get('Opening VIX') not in (None, '') else None
+                    except Exception:
+                        opening_vix = None
+                    try:
+                        closing_vix = float(row.get('Closing VIX')) if 'Closing VIX' in row and row.get('Closing VIX') not in (None, '') else None
+                    except Exception:
+                        closing_vix = None
+                    
                     # Create trade
                     trade = Trade(
                         date_opened=date_opened,
@@ -790,7 +802,9 @@ class Portfolio:
                         premium=premium,  # Add premium for credit/debit calculation
                         avg_closing_cost=avg_closing_cost,  # Add average closing cost
                         max_profit=max_profit,  # Add max profit for MFE/MAE analysis
-                        max_loss=max_loss  # Add max loss for MFE/MAE analysis
+                        max_loss=max_loss,  # Add max loss for MFE/MAE analysis
+                        opening_vix=opening_vix,
+                        closing_vix=closing_vix
                     )
                     
                     self.strategies[strategy_name].add_trade(trade)
@@ -976,6 +990,16 @@ class Portfolio:
                 max_profit = float(row_dict.get('Max Profit', 0)) if 'Max Profit' in row_dict and pd.notna(row_dict.get('Max Profit')) else None
                 max_loss = float(row_dict.get('Max Loss', 0)) if 'Max Loss' in row_dict and pd.notna(row_dict.get('Max Loss')) else None
                 
+                # Parse VIX values if present
+                try:
+                    opening_vix = float(row_dict.get('Opening VIX')) if 'Opening VIX' in row_dict and pd.notna(row_dict.get('Opening VIX')) else None
+                except Exception:
+                    opening_vix = None
+                try:
+                    closing_vix = float(row_dict.get('Closing VIX')) if 'Closing VIX' in row_dict and pd.notna(row_dict.get('Closing VIX')) else None
+                except Exception:
+                    closing_vix = None
+                
                 # Create trade
                 trade = Trade(
                     date_opened=date_opened,
@@ -997,7 +1021,9 @@ class Portfolio:
                     premium=premium,  # Add premium for credit/debit calculation
                     avg_closing_cost=avg_closing_cost,  # Add average closing cost
                     max_profit=max_profit,  # Add max profit for MFE/MAE analysis
-                    max_loss=max_loss  # Add max loss for MFE/MAE analysis
+                    max_loss=max_loss,  # Add max loss for MFE/MAE analysis
+                    opening_vix=opening_vix,
+                    closing_vix=closing_vix
                 )
                 
                 self.strategies[strategy_name].add_trade(trade)

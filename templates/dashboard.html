@@ -3422,17 +3422,17 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h4 class="mb-0">
                             <i class="fas fa-folder-open"></i>
-                            Uploaded Files Overview
+                            <span data-i18n="files_overview_title">Uploaded Files Overview</span>
                         </h4>
                         <div class="d-flex gap-2 align-items-center">
                             <button class="btn btn-sm btn-outline-primary" onclick="selectAllFilesOverview()">
-                                <i class="fas fa-check-square"></i> Select All
+                                <i class="fas fa-check-square"></i> <span data-i18n="select_all">Select All</span>
                             </button>
                             <button class="btn btn-sm btn-outline-secondary" onclick="deselectAllFilesOverview()">
-                                <i class="fas fa-square"></i> Deselect All
+                                <i class="fas fa-square"></i> <span data-i18n="deselect_all">Deselect All</span>
                             </button>
                             <button class="btn btn-sm btn-danger" onclick="deleteSelectedFiles()" id="bulkDeleteBtn" disabled>
-                                <i class="fas fa-trash"></i> Move to Recycle (<span id="selectedCount">0</span>)
+                                <i class="fas fa-trash"></i> <span data-i18n="move_to_recycle">Move to Recycle</span> (<span id="selectedCount">0</span>)
                             </button>
                         </div>
                     </div>
@@ -3444,18 +3444,18 @@
                                         <th width="50">
                                             <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
                                         </th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('friendly_name')">File Name <span id="sort-indicator-friendly_name"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('data_type')">Data Type <span id="sort-indicator-data_type"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('start_date')">Date Range <span id="sort-indicator-start_date"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('total_pnl')">Total P&L <span id="sort-indicator-total_pnl"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('total_trades')">Total Trades <span id="sort-indicator-total_trades"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('strategy_count')">Strategies <span id="sort-indicator-strategy_count"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('initial_capital')">Starting Capital <span id="sort-indicator-initial_capital"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('ending_capital')">Ending Capital <span id="sort-indicator-ending_capital"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('cagr')">CAGR <span id="sort-indicator-cagr"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('max_drawdown')">Max Drawdown <span id="sort-indicator-max_drawdown"></span></th>
-                                        <th style="cursor:pointer;" onclick="sortFilesOverview('upload_date')">Upload Date <span id="sort-indicator-upload_date"></span></th>
-                                        <th>Actions</th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('friendly_name')" data-i18n="file_name">File Name <span id="sort-indicator-friendly_name"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('data_type')" data-i18n="data_type">Data Type <span id="sort-indicator-data_type"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('start_date')" data-i18n="date_range">Date Range <span id="sort-indicator-start_date"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('total_pnl')" data-i18n="total_pnl">Total P&L <span id="sort-indicator-total_pnl"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('total_trades')" data-i18n="total_trades">Total Trades <span id="sort-indicator-total_trades"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('strategy_count')" data-i18n="strategies">Strategies <span id="sort-indicator-strategy_count"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('initial_capital')" data-i18n="starting_capital">Starting Capital <span id="sort-indicator-initial_capital"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('ending_capital')" data-i18n="ending_capital">Ending Capital <span id="sort-indicator-ending_capital"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('cagr')" data-i18n="cagr">CAGR <span id="sort-indicator-cagr"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('max_drawdown')" data-i18n="max_drawdown">Max Drawdown <span id="sort-indicator-max_drawdown"></span></th>
+                                        <th style="cursor:pointer;" onclick="sortFilesOverview('upload_date')" data-i18n="upload_date">Upload Date <span id="sort-indicator-upload_date"></span></th>
+                                        <th data-i18n="actions">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -4041,6 +4041,11 @@
                         availableCharts['price_movement'] = 'Price movement analysis';
                     }
                     
+                    // Ensure vix_analysis is available
+                    if (!availableCharts.vix_analysis) {
+                        availableCharts['vix_analysis'] = 'VIX analysis';
+                    }
+                    
                     // Add separator to availableCharts for rendering (but it won't be clickable)
                     availableCharts['separator'] = '--- Cross-File Analysis ---';
                     
@@ -4147,6 +4152,8 @@
                         ['mfe_mae', 'MFE/MAE Analysis'],
                     ['blackout_dates', 'Blackout dates analysis'],
                     ['price_movement', 'Price movement analysis'],
+                    ['vix_analysis', 'VIX analysis'],
+                    ['vix_analysis', 'VIX analysis'],
                     ['meic_analysis', 'MEIC (Multiple Entry Iron Condor) analysis'],
                     ['separator', '--- Cross-File Analysis ---'],
                         ['live_vs_bt', 'Live vs Backtest comparison'],
@@ -4180,6 +4187,7 @@
                 'mfe_mae',
                 'blackout_dates',
                 'price_movement',
+                'vix_analysis',
                 'meic_analysis',
                 'separator',
                 'live_vs_bt',
@@ -4263,6 +4271,7 @@
                 'conflicting_legs': window.i18n ? window.i18n.t('chart_conflicting_legs') : '⚠️ Conflicting Legs',
                 'blackout_dates': window.i18n ? window.i18n.t('chart_blackout_dates') : '🚫 Blackout Dates',
                 'price_movement': window.i18n ? window.i18n.t('chart_price_movement') : '📈 Price Movement',
+                'vix_analysis': window.i18n ? window.i18n.t('chart_vix_analysis') : '📊 VIX Analysis',
                 'meic_analysis': window.i18n ? window.i18n.t('chart_meic_analysis') : '🎯 MEIC Analysis',
                 'separator': window.i18n ? '--- ' + window.i18n.t('cross_file_analysis') + ' ---' : '--- Cross-File Analysis ---',
                 'live_vs_bt': window.i18n ? window.i18n.t('chart_live_vs_bt') : '⚖️ Live vs Backtest',
@@ -4563,6 +4572,11 @@
                 return;
             }
             
+            if (chartType === 'vix_analysis') {
+                loadVixAnalysis();
+                return;
+            }
+            
             if (chartType === 'cross_file_correlation') {
                 loadCrossFileCorrelationChart();
                 return;
@@ -4657,13 +4671,13 @@
                 <div class="row mt-3">
                     <div class="col-md-12">
                         <div class="alert alert-info">
-                            <h6><i class="fas fa-info-circle"></i> How to Use This Chart:</h6>
+                            <h6><i class="fas fa-info-circle"></i> <span data-i18n="how_to_use_drawdown_chart">How to Use This Chart:</span></h6>
                             <ul class="mb-0">
-                                <li><strong>Portfolio Lines:</strong> Blue line shows total account value, red area shows portfolio drawdown %</li>
-                                <li><strong>Strategy P&L Lines:</strong> Click legend to show individual strategy cumulative P&L (dotted lines)</li>
-                                <li><strong>Strategy Drawdown:</strong> Each strategy has a drawdown % line (dashed lines) calculated against "Funds at Close"</li>
-                                <li><strong>Daily Details:</strong> Hover over any line to see day-by-day P&L and drawdown details</li>
-                                <li><strong>Peak Tracking:</strong> Tooltips show current P&L vs. peak P&L and days since peak</li>
+                                <li><strong data-i18n="portfolio_lines">Portfolio Lines:</strong> <span data-i18n="portfolio_lines_desc">Blue line shows total account value, red area shows portfolio drawdown %</span></li>
+                                <li><strong data-i18n="strategy_pnl_lines">Strategy P&L Lines:</strong> <span data-i18n="strategy_pnl_lines_desc">Click legend to show individual strategy cumulative P&L (dotted lines)</span></li>
+                                <li><strong data-i18n="strategy_drawdown">Strategy Drawdown:</strong> <span data-i18n="strategy_drawdown_desc">Each strategy has a drawdown % line (dashed lines) calculated against "Funds at Close"</span></li>
+                                <li><strong data-i18n="daily_details">Daily Details:</strong> <span data-i18n="daily_details_desc">Hover over any line to see day-by-day P&L and drawdown details</span></li>
+                                <li><strong data-i18n="peak_tracking">Peak Tracking:</strong> <span data-i18n="peak_tracking_desc">Tooltips show current P&L vs. peak P&L and days since peak</span></li>
                             </ul>
                         </div>
                     </div>
@@ -5442,7 +5456,7 @@
                                 <div id="mfeMaeContent">
                                     <div class="text-center">
                                         <div class="spinner-border text-primary" role="status"></div>
-                                        <p class="mt-2">Loading MFE/MAE analysis...</p>
+                                        <p class="mt-2" data-i18n="loading_mfe_mae_analysis">Loading MFE/MAE analysis...</p>
                                     </div>
                                 </div>
                             </div>
@@ -5467,7 +5481,7 @@
                 })
                 .catch(error => {
                     console.error('Error loading MFE/MAE analysis:', error);
-                    displayMFEMAEError('Error loading MFE/MAE analysis: ' + error.message);
+                    displayMFEMAEError((window.i18n ? window.i18n.t('error_loading_mfe_mae_analysis') : 'Error loading MFE/MAE analysis: ') + error.message);
                 });
         }
 
@@ -5486,7 +5500,7 @@
             if (!mfeMaeData.strategies || mfeMaeData.strategies.length === 0) {
                 container.innerHTML = `
                     <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i> No MFE/MAE data available for analysis.
+                        <i class="fas fa-exclamation-triangle"></i> <span data-i18n="no_mfe_mae_data_available">No MFE/MAE data available for analysis.</span>
                     </div>
                 `;
                 return;
@@ -8007,7 +8021,7 @@
                             document.body.appendChild(tooltip);
                             
                             const rect = newElement.getBoundingClientRect();
-                            tooltip.style.left = (rect.left + rect.width/2 - tooltip.offsetWidth/2) + 'px';
+                            tooltip.style.left = rect.left + 'px';
                             tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
                         }
                     });
@@ -8071,7 +8085,7 @@
                         document.body.appendChild(tooltip);
                         
                         const rect = newElement.getBoundingClientRect();
-                        tooltip.style.left = (rect.left + rect.width/2 - tooltip.offsetWidth/2) + 'px';
+                        tooltip.style.left = rect.left + 'px';
                         tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
                     }
                 });
@@ -9616,7 +9630,7 @@
                     console.error('Error loading commission analysis:', error);
                     container.innerHTML = `
                         <div class="alert alert-danger">
-                            <h4>Error Loading Commission Analysis</h4>
+                            <h4 data-i18n="error_loading_commission_analysis">Error Loading Commission Analysis</h4>
                             <p>${error.message}</p>
                         </div>
                     `;
@@ -9825,22 +9839,22 @@
             const strategyHtml = `
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">${window.i18n ? window.i18n.t('commission_analysis_by_strategy') : 'Commission Analysis by Strategy'}</h5>
+                        <h5 class="mb-0" data-i18n="commission_analysis_by_strategy">Commission Analysis by Strategy</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th>${window.i18n ? window.i18n.t('strategy') : 'Strategy'}</th>
-                                        <th>${window.i18n ? window.i18n.t('trades') : 'Trades'}</th>
-                                        <th>${window.i18n ? window.i18n.t('contracts') : 'Contracts'}</th>
-                                        <th>${window.i18n ? window.i18n.t('exercise_contracts') : 'Contracts Exercised'}</th>
-                                        <th>${window.i18n ? window.i18n.t('actual') : 'Actual'} ${window.i18n ? window.i18n.t('actual_commissions') : 'Commissions'}</th>
-                                        <th>${window.i18n ? window.i18n.t('estimated') : 'Estimated'} ${window.i18n ? window.i18n.t('estimated_commissions') : 'Commissions'}</th>
-                                        <th>${window.i18n ? window.i18n.t('exercise_costs') : 'Exercise Costs'}</th>
-                                        <th>${window.i18n ? window.i18n.t('total') : 'Total'} ${window.i18n ? window.i18n.t('actual_commissions') : 'Commissions'} (incl. ${window.i18n ? window.i18n.t('exercise') : 'Exercise'})</th>
-                                        <th>${window.i18n ? window.i18n.t('avg_per_trade') : 'Avg Commissions per Trade'}</th>
+                                        <th data-i18n="strategy">Strategy</th>
+                                        <th data-i18n="trades">Trades</th>
+                                        <th data-i18n="contracts">Contracts</th>
+                                        <th data-i18n="contracts_exercised">Contracts Exercised</th>
+                                        <th data-i18n="actual_commissions">Actual Commissions</th>
+                                        <th data-i18n="estimated_commissions">Estimated Commissions</th>
+                                        <th data-i18n="exercise_costs">Exercise Costs</th>
+                                        <th data-i18n="total_commissions_incl_exercise">Total Commissions (incl. Exercise)</th>
+                                        <th data-i18n="avg_commission_per_trade">Avg Commission per Trade</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -13379,6 +13393,313 @@
                 });
         }
 
+        function loadVixAnalysis() {
+            const container = document.getElementById('chartContainer');
+            const loading = document.getElementById('chartLoading');
+            loading.style.display = 'block';
+            container.innerHTML = '';
+            fetch('/api/vix/range')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const { min_vix, max_vix } = data.data;
+                        const roundedMin = Math.floor(min_vix);
+                        const roundedMax = Math.ceil(max_vix);
+                        container.innerHTML = `
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>${window.i18n ? window.i18n.t('vix_analysis') : '📉 VIX Analysis'}</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info mb-4">
+                                        <h6><i class="fas fa-info-circle"></i> ${window.i18n ? window.i18n.t('what_is_vix_analysis') : 'What is VIX Analysis?'}</h6>
+                                        <p class="mb-2">${window.i18n ? window.i18n.t('vix_analysis_description') : 'Analyze performance when both Opening VIX and Closing VIX fall within a selected range.'}</p>
+                                        <p class="mb-0"><strong>${window.i18n ? window.i18n.t('range') : 'Range:'}</strong> ${roundedMin} to ${roundedMax}</p>
+                                    </div>
+                                    <div class="row mb-4">
+                                        <div class="col-md-8">
+                                            <label for="vixRange" class="form-label">
+                                                ${window.i18n ? window.i18n.t('vix_range') : 'VIX Range:'}
+                                                <span id="vixRangeValue"></span>
+                                            </label>
+                                            <div class="range-slider-container">
+                                                <input type="range" class="form-range" id="vixMin" min="${roundedMin}" max="${roundedMax}" value="${roundedMin}" step="1">
+                                                <input type="range" class="form-range" id="vixMax" min="${roundedMin}" max="${roundedMax}" value="${roundedMax}" step="1">
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <small class="text-muted">${roundedMin}</small>
+                                                <small class="text-muted">${roundedMax}</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button class="btn btn-primary" id="analyzeVixBtn" onclick="runVixAnalysis()">
+                                                <i class="fas fa-chart-line"></i> ${window.i18n ? window.i18n.t('analyze_vix') : 'Analyze VIX'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="vixResults" style="display: none;"></div>
+                                </div>
+                            </div>`;
+                        setupVixSlider();
+                    } else {
+                        container.innerHTML = `<div class="alert alert-danger"><h5>${window.i18n ? window.i18n.t('error_loading_vix_data') : 'Error Loading VIX Data'}</h5><p>${data.error || ''}</p></div>`;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading VIX range:', err);
+                    container.innerHTML = `<div class="alert alert-danger"><h5>${window.i18n ? window.i18n.t('error_loading_vix_data') : 'Error Loading VIX Data'}</h5><p>${err.message}</p></div>`;
+                })
+                .finally(() => { loading.style.display = 'none'; });
+        }
+
+        function setupVixSlider() {
+            const minEl = document.getElementById('vixMin');
+            const maxEl = document.getElementById('vixMax');
+            const display = document.getElementById('vixRangeValue');
+            function update() {
+                let minV = parseFloat(minEl.value);
+                let maxV = parseFloat(maxEl.value);
+                if (minV > maxV) minEl.value = maxV;
+                if (maxV < minV) maxEl.value = minV;
+                display.textContent = `${minEl.value} to ${maxEl.value}`;
+            }
+            minEl.addEventListener('input', update);
+            maxEl.addEventListener('input', update);
+            update();
+        }
+
+        function runVixAnalysis() {
+            const minVix = parseFloat(document.getElementById('vixMin').value);
+            const maxVix = parseFloat(document.getElementById('vixMax').value);
+            const results = document.getElementById('vixResults');
+            results.style.display = 'block';
+            results.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">${window.i18n ? window.i18n.t('analyzing_vix_data') : 'Analyzing VIX data...'}</p></div>`;
+            fetch('/api/vix/analysis', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ min_vix: minVix, max_vix: maxVix }) })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    displayVixResults(data.data);
+                } else {
+                    results.innerHTML = `<div class="alert alert-danger"><h5>${window.i18n ? window.i18n.t('analysis_error') : 'Analysis Error'}</h5><p>${data.error || ''}</p></div>`;
+                }
+            })
+            .catch(err => {
+                console.error('Error analyzing VIX:', err);
+                results.innerHTML = `<div class="alert alert-danger"><h5>${window.i18n ? window.i18n.t('analysis_error') : 'Analysis Error'}</h5><p>${err.message}</p></div>`;
+            });
+        }
+
+        function displayVixResults(data) {
+            const results = document.getElementById('vixResults');
+            if (!data.strategies || data.strategies.length === 0) {
+                results.innerHTML = `<div class="alert alert-warning"><h5>${window.i18n ? window.i18n.t('no_trades_found') : 'No Trades Found'}</h5><p>${window.i18n ? window.i18n.t('no_trades_in_vix_range') : 'No trades found within the specified VIX range.'}</p></div>`;
+                return;
+            }
+            
+            // Calculate totals
+            const totals = data.strategies.reduce((acc, s) => {
+                acc.totalTrades += s.trade_count;
+                acc.totalPnl += s.total_pnl;
+                acc.totalWins += s.wins;
+                acc.totalLosses += s.losses;
+                return acc;
+            }, { totalTrades: 0, totalPnl: 0, totalWins: 0, totalLosses: 0 });
+            
+            let html = `
+                <div class="card">
+                    <div class="card-header">
+                        <h6>${window.i18n ? window.i18n.t('strategy_performance_by_vix_range') : 'Strategy Performance by VIX Range'}</h6>
+                        <small class="text-muted">${window.i18n ? window.i18n.t('range') : 'Range:'} ${Math.round(data.min_vix)} to ${Math.round(data.max_vix)}</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="vixSummaryTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="sortable custom-tooltip" data-column="0" data-type="text" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_summary_strategy') : 'Strategy name'}">${window.i18n ? window.i18n.t('strategy') : 'Strategy'} <i class="fas fa-sort"></i></th>
+                                        <th class="sortable custom-tooltip" data-column="1" data-type="number" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_summary_trade_count') : 'Number of trades in range'}">Trade Count <i class="fas fa-sort"></i></th>
+                                        <th class="sortable custom-tooltip" data-column="2" data-type="currency" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_summary_total_pnl') : 'Total profit/loss'}">Total P&L <i class="fas fa-sort"></i></th>
+                                        <th class="sortable custom-tooltip" data-column="3" data-type="currency" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_summary_avg_pnl') : 'Average profit/loss per trade'}">Avg P&L <i class="fas fa-sort"></i></th>
+                                        <th class="sortable custom-tooltip" data-column="4" data-type="currency" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_summary_avg_pnl_per_lot') : 'Average profit/loss per contract'}">Avg P&L/Lot <i class="fas fa-sort"></i></th>
+                                        <th class="sortable custom-tooltip" data-column="5" data-type="number" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_summary_win_rate') : 'Winning trades as a percentage'}">Win Rate <i class="fas fa-sort"></i></th>
+                                        <th class="sortable custom-tooltip" data-column="6" data-type="currency" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_summary_avg_win') : 'Average P&L for winning trades'}">Avg Win <i class="fas fa-sort"></i></th>
+                                        <th class="sortable custom-tooltip" data-column="7" data-type="currency" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_summary_avg_loss') : 'Average P&L for losing trades'}">Avg Loss <i class="fas fa-sort"></i></th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+            data.strategies.forEach(s => {
+                const winRate = (s.wins + s.losses) > 0 ? (s.wins / (s.wins + s.losses) * 100).toFixed(2) + '%' : '0%';
+                html += `<tr>
+                    <td>${s.name}</td>
+                    <td>${s.trade_count}</td>
+                    <td>$${s.total_pnl.toLocaleString()}</td>
+                    <td>$${s.avg_pnl.toLocaleString()}</td>
+                    <td>$${s.avg_pnl_per_lot.toLocaleString()}</td>
+                    <td>${winRate}</td>
+                    <td>$${s.avg_win.toLocaleString()}</td>
+                    <td>$${s.avg_loss.toLocaleString()}</td>
+                </tr>`;
+            });
+
+            // Close body and add stable totals footer (not affected by striped tbody)
+            const totalWinRate = totals.totalTrades > 0 ? ((totals.totalWins / totals.totalTrades) * 100).toFixed(2) + '%' : '0%';
+            html += `</tbody>
+                <tfoot>
+                    <tr class="table-dark fw-bold text-white">
+                        <td>${window.i18n ? window.i18n.t('total_label') : 'TOTAL'}</td>
+                        <td>${totals.totalTrades}</td>
+                        <td>$${totals.totalPnl.toLocaleString()}</td>
+                        <td>$${totals.totalTrades > 0 ? (totals.totalPnl / totals.totalTrades).toFixed(2) : '0.00'}</td>
+                        <td>-</td>
+                        <td>${totalWinRate}</td>
+                        <td>-</td>
+                        <td>-</td>
+                    </tr>
+                </tfoot>
+            </table></div></div></div>`;
+            
+            // Add trade list table (sortable with custom tooltips)
+            html += `
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6>${window.i18n ? window.i18n.t('vix_trade_list') : 'VIX Trade List'}</h6>
+                        <small class="text-muted">${window.i18n ? window.i18n.t('individual_trades_in_vix_range') : 'Individual trades within the specified VIX range'}</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="vixTradeListTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="sortable custom-tooltip" onclick="sortVixTradeList('strategy')" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_strategy') : 'Strategy name'}">${window.i18n ? window.i18n.t('strategy') : 'Strategy'} <span id="sort-indicator-vix-strategy"></span></th>
+                                        <th class="sortable custom-tooltip" onclick="sortVixTradeList('date_opened')" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_date_opened') : 'Trade open date/time'}">${window.i18n ? window.i18n.t('date_opened') : 'Date Opened'} <span id="sort-indicator-vix-date_opened"></span></th>
+                                        <th class="sortable custom-tooltip" onclick="sortVixTradeList('date_closed')" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_date_closed') : 'Trade close date/time'}">${window.i18n ? window.i18n.t('date_closed') : 'Date Closed'} <span id="sort-indicator-vix-date_closed"></span></th>
+                                        <th class="sortable custom-tooltip" onclick="sortVixTradeList('opening_vix')" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_opening_vix') : 'VIX at trade open'}">${window.i18n ? window.i18n.t('opening_vix') : 'Opening VIX'} <span id="sort-indicator-vix-opening_vix"></span></th>
+                                        <th class="sortable custom-tooltip" onclick="sortVixTradeList('closing_vix')" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_closing_vix') : 'VIX at trade close'}">${window.i18n ? window.i18n.t('closing_vix') : 'Closing VIX'} <span id="sort-indicator-vix-closing_vix"></span></th>
+                                        <th class="sortable custom-tooltip" onclick="sortVixTradeList('contracts')" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_contracts') : 'Number of contracts'}">${window.i18n ? window.i18n.t('contracts') : 'Contracts'} <span id="sort-indicator-vix-contracts"></span></th>
+                                        <th class="sortable custom-tooltip" onclick="sortVixTradeList('pnl')" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_pnl') : 'Profit and Loss'}">${window.i18n ? window.i18n.t('pnl') : 'P&L'} <span id="sort-indicator-vix-pnl"></span></th>
+                                        <th class="custom-tooltip" data-tooltip="${window.i18n ? window.i18n.t('tooltip_vix_reason_for_close') : 'Reason for closing the trade'}">${window.i18n ? window.i18n.t('reason_for_close') : 'Reason for Close'}</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vixTradeListBody">
+                                    <!-- Trade list will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>`;
+            
+            results.innerHTML = html;
+            
+            // Load trade list
+            loadVixTradeList(data.min_vix, data.max_vix);
+            
+            // Initialize custom tooltips for header
+            if (typeof initializeCustomTooltips === 'function') {
+                initializeCustomTooltips();
+            }
+        }
+        
+        // VIX trade list sorting state
+        let vixTradeListData = [];
+        let vixSortKey = 'date_opened';
+        let vixSortAsc = false; // default descending by open date
+
+        function loadVixTradeList(minVix, maxVix) {
+            fetch('/api/vix/trades', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ min_vix: minVix, max_vix: maxVix })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.trades) {
+                    vixTradeListData = data.trades;
+                    renderVixTradeListTable();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading VIX trade list:', error);
+            });
+        }
+
+        function sortVixTradeList(key) {
+            if (vixSortKey === key) {
+                vixSortAsc = !vixSortAsc;
+            } else {
+                vixSortKey = key;
+                vixSortAsc = true;
+            }
+            renderVixTradeListTable();
+        }
+
+        function renderVixTradeListTable() {
+            const tbody = document.getElementById('vixTradeListBody');
+            if (!tbody) return;
+            const data = [...vixTradeListData];
+            const dir = vixSortAsc ? 1 : -1;
+
+            data.sort((a, b) => {
+                const key = vixSortKey;
+                let va = a[key];
+                let vb = b[key];
+                // Date handling
+                if (key === 'date_opened' || key === 'date_closed') {
+                    const da = va ? Date.parse(va) : 0;
+                    const db = vb ? Date.parse(vb) : 0;
+                    return (da - db) * dir;
+                }
+                // Numeric handling
+                if (key === 'opening_vix' || key === 'closing_vix' || key === 'contracts' || key === 'pnl') {
+                    const na = (va === null || va === undefined) ? 0 : Number(va);
+                    const nb = (vb === null || vb === undefined) ? 0 : Number(vb);
+                    return (na - nb) * dir;
+                }
+                // Text handling
+                const sa = (va || '').toString().toLowerCase();
+                const sb = (vb || '').toString().toLowerCase();
+                if (sa < sb) return -1 * dir;
+                if (sa > sb) return 1 * dir;
+                return 0;
+            });
+
+            tbody.innerHTML = '';
+            data.forEach(trade => {
+                const pnlClass = trade.pnl >= 0 ? 'text-success' : 'text-danger';
+                const openingVix = (trade.opening_vix || trade.opening_vix === 0) ? Number(trade.opening_vix).toFixed(2) : '-';
+                const closingVix = (trade.closing_vix || trade.closing_vix === 0) ? Number(trade.closing_vix).toFixed(2) : '-';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${trade.strategy || ''}</td>
+                    <td>${trade.date_opened || ''}</td>
+                    <td>${trade.date_closed || ''}</td>
+                    <td>${openingVix}</td>
+                    <td>${closingVix}</td>
+                    <td>${trade.contracts != null ? trade.contracts : ''}</td>
+                    <td class="${pnlClass}">$${Number(trade.pnl || 0).toLocaleString()}</td>
+                    <td>${trade.reason_for_close || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateVixTradeListSortIndicators();
+            if (typeof initializeCustomTooltips === 'function') {
+                initializeCustomTooltips();
+            }
+        }
+
+        function updateVixTradeListSortIndicators() {
+            const keys = ['strategy','date_opened','date_closed','opening_vix','closing_vix','contracts','pnl'];
+            keys.forEach(k => {
+                const el = document.getElementById(`sort-indicator-vix-${k}`);
+                if (!el) return;
+                if (vixSortKey === k) {
+                    el.textContent = vixSortAsc ? ' ▲' : ' ▼';
+                } else {
+                    el.textContent = '';
+                }
+            });
+        }
+
         function setupPriceMovementRangeSlider() {
             const minSlider = document.getElementById('priceMovementMin');
             const maxSlider = document.getElementById('priceMovementMax');
@@ -13991,7 +14312,7 @@
                 loading.style.display = 'none';
                 
                 if (!data.success) {
-                    resultsDiv.innerHTML = `<div class="alert alert-warning"><h5>Cross-File Correlation Analysis Error</h5><p>${data.error}</p></div>`;
+                    resultsDiv.innerHTML = `<div class="alert alert-warning"><h5 data-i18n="cross_file_correlation_analysis_error">Cross-File Correlation Analysis Error</h5><p>${data.error}</p></div>`;
                     resultsDiv.style.display = 'block';
                     return;
                 }
