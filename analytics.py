@@ -681,6 +681,7 @@ class StrategyAnalyzer:
                         'opening_price': trade.opening_price,
                         'closing_price': bt_closing_price,
                         'legs': trade.legs,
+                        'premium': trade.premium,
                         'source': 'backtest'
                     })
             
@@ -798,7 +799,8 @@ class StrategyAnalyzer:
                         'close_datetime': f"{bt_trade['date_closed']} {bt_trade['time_closed']}",
                         'reason_for_close': bt_trade['reason_for_close'],
                         'opening_price': bt_opening,
-                        'closing_price': bt_closing
+                        'closing_price': bt_closing,
+                        'premium': bt_trade.get('premium')
                     },
                     'live': {
                         'strategy': live_match['strategy_name'],
@@ -823,7 +825,8 @@ class StrategyAnalyzer:
                         'contracts': bt_trade['contracts'],
                         'pnl': bt_trade['pnl'],
                         'close_datetime': f"{bt_trade['date_closed']} {bt_trade['time_closed']}",
-                        'reason_for_close': bt_trade['reason_for_close']
+                        'reason_for_close': bt_trade['reason_for_close'],
+                        'premium': bt_trade.get('premium')
                     },
                     'live': None,
                     'pnl_diff': None
@@ -946,31 +949,34 @@ class StrategyAnalyzer:
                 if not leg:
                     continue
                     
-                # Parse leg format: "Date Strike Type Action Price"
-                # Example: "1 Sep 26 6605 P BTO 6.65"
+                # Parse leg format: "Contracts Date Strike Type Action Price"
+                # Example: "2 Oct 3 6420 C STO 111.20"
                 parts = leg.split()
                 if len(parts) < 6:
                     continue
                     
-                # Get the action (BTO/STO) and price
-                action = parts[-2]  # BTO or STO
-                price_str = parts[-1]  # Price
-                
+                # Get the number of contracts, action (BTO/STO) and price
                 try:
-                    price = float(price_str)
+                    leg_contracts = int(parts[0])  # Number of contracts for this leg
+                    action = parts[-2]  # BTO or STO
+                    price_str = parts[-1]  # Price per share
+                    price_per_share = float(price_str)
+                    
+                    # Calculate premium for this leg (contracts × price × 100)
+                    leg_premium = leg_contracts * price_per_share * 100
                     
                     # BTO (Buy to Open) = debit (negative)
                     # STO (Sell to Open) = credit (positive)
                     if action == 'BTO':
-                        total_premium -= price
+                        total_premium -= leg_premium
                     elif action == 'STO':
-                        total_premium += price
+                        total_premium += leg_premium
                         
                 except (ValueError, IndexError):
                     continue
             
-            # For backtest data, return total premium without dividing by contracts
-            return round(total_premium, 2)
+            # For backtest data, return total premium divided by contracts and 100 to get per-contract price
+            return round(total_premium / contracts / 100, 2)
                 
         except Exception:
             return None

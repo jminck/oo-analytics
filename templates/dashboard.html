@@ -2093,12 +2093,7 @@
                         <input type="file" id="fileInput" accept=".csv" style="display: none;">
                     </div>
                 </div>
-                <!-- Add an explicit Upload button below the initial capital input -->
-                <div class="mb-2" id="initialCapitalGroup" style="display:none;">
-                    <label for="initialCapitalInput" class="form-label">Initial Capital (real trade logs only):</label>
-                    <input type="number" class="form-control form-control-sm" id="initialCapitalInput" name="initial_capital" min="1" step="1" value="100000">
-                    <small class="text-muted">Used to calculate portfolio values for real trade logs. Default: 100,000</small>
-                </div>
+                <!-- Upload button -->
                 <button class="btn btn-primary mt-2" id="uploadFileBtn" style="display:none;">Upload</button>
                 
                 <!-- Load Sample Data Button -->
@@ -2669,8 +2664,6 @@
         function setupFileUpload() {
             const uploadArea = document.getElementById('uploadArea');
             const fileInput = document.getElementById('fileInput');
-            const initialCapitalGroup = document.getElementById('initialCapitalGroup');
-            const initialCapitalInput = document.getElementById('initialCapitalInput');
             const uploadFileBtn = document.getElementById('uploadFileBtn');
             const uploadContent = document.getElementById('uploadContent');
             const uploadPrompt = document.getElementById('uploadPrompt');
@@ -2721,7 +2714,6 @@
                 selectedFileInfo.style.display = 'none';
                 uploadContent.style.display = '';
                 uploadFileBtn.style.display = 'none';
-                initialCapitalGroup.style.display = 'none';
             });
             // Preview file header to detect real trade log and count lines
             function previewFile(file) {
@@ -2793,18 +2785,7 @@
                             showFileAnalysisModal(file, analysisData);
                         });
                     
-                    // Check if it's a real trade log for initial capital
-                    const firstLine = lines[0];
-                    if (firstLine && firstLine.includes('Initial Premium')) {
-                        initialCapitalGroup.style.display = '';
-                        if (window.lastInitialCapital) {
-                            initialCapitalInput.value = window.lastInitialCapital;
-                        } else {
-                            initialCapitalInput.value = 100000;
-                        }
-                    } else {
-                        initialCapitalGroup.style.display = 'none';
-                    }
+                    // Note: Starting capital input is now handled in the modal
                 };
                 reader.readAsText(file);
             }
@@ -2838,13 +2819,11 @@
             if (friendlyName) {
                 formData.append('friendly_name', friendlyName);
             }
-            // Add initial capital if visible
-            const initialCapitalGroup = document.getElementById('initialCapitalGroup');
-            if (initialCapitalGroup && initialCapitalGroup.style.display !== 'none') {
-                const initialCapital = document.getElementById('initialCapitalInput').value;
-                if (initialCapital) {
-                    formData.append('initial_capital', initialCapital);
-                }
+            // Add initial capital if available from modal
+            if (window.modalInitialCapital) {
+                formData.append('initial_capital', window.modalInitialCapital);
+                // Clear the modal value after use
+                window.modalInitialCapital = null;
             }
             // Show loading state
             const uploadBtn = document.getElementById('uploadFileBtn');
@@ -5142,11 +5121,69 @@
                 const row = document.createElement('tr');
                 
                 // Create cells based on the trade data structure
+                // Calculate punished entry price (Premium / 100)
+                const btPremium = parseFloat(trade.bt_premium) || 0;
+                const punishedEntryPrice = btPremium / 100;
+                
+                // Calculate punished entry diff (live entry price - punished entry price)
+                const liveEntryPrice = parseFloat(trade.live_entry_price) || 0;
+                const punishedEntryDiff = liveEntryPrice - punishedEntryPrice;
+                
+                // Determine if we should show the punished entry diff
+                // Show blank if there's no live trade (only backtest data)
+                const hasLiveTrade = trade.live_entry_price && 
+                                   trade.live_entry_price !== null && 
+                                   trade.live_entry_price !== undefined && 
+                                   trade.live_entry_price !== '' &&
+                                   trade.live_strategy && 
+                                   trade.live_strategy !== '';
+                const showPunishedEntryDiff = hasLiveTrade;
+                
+                // Determine if live execution was better, worse, or same
+                // For credit trades (positive premium): higher live price = better
+                // For debit trades (negative premium): lower live price = better
+                let executionQuality = 'same'; // default
+                let entryDiffQuality = 'same'; // for regular entry diff
+                
+                if (showPunishedEntryDiff) {
+                    if (punishedEntryDiff === 0) {
+                        executionQuality = 'same';
+                    } else if (punishedEntryPrice > 0) {
+                        // Credit trade: higher live price is better (more premium received)
+                        // Punished diff = live - punished, so positive diff = better
+                        executionQuality = punishedEntryDiff > 0 ? 'better' : 'worse';
+                    } else if (punishedEntryPrice < 0) {
+                        // Debit trade: lower live price is better (less premium paid)
+                        // For debit trades, we want live price to be less negative (closer to 0)
+                        // Punished diff = live - punished, so if live is less negative, diff > 0
+                        executionQuality = punishedEntryDiff > 0 ? 'better' : 'worse';
+                    }
+                }
+                
+                // Apply same logic to regular entry diff
+                const btEntryPrice = parseFloat(trade.bt_entry_price) || 0;
+                const entryDiff = parseFloat(trade.entry_diff) || 0;
+                if (hasLiveTrade && trade.entry_diff) {
+                    if (entryDiff === 0) {
+                        entryDiffQuality = 'same';
+                    } else if (btEntryPrice > 0) {
+                        // Credit trade: higher live price is better (more premium received)
+                        // Entry diff = live - backtest, so positive diff = better
+                        entryDiffQuality = entryDiff > 0 ? 'better' : 'worse';
+                    } else if (btEntryPrice < 0) {
+                        // Debit trade: lower live price is better (less premium paid)
+                        // For debit trades, we want live price to be less negative (closer to 0)
+                        // Entry diff = live - backtest, so if live is less negative, diff > 0
+                        entryDiffQuality = entryDiff > 0 ? 'better' : 'worse';
+                    }
+                }
+                
                 const cells = [
                     trade.entry_time || '',
                     trade.bt_strategy || '',
                     trade.bt_contracts || '',
                     trade.bt_entry_price ? `$${parseFloat(trade.bt_entry_price).toFixed(2)}` : '',
+                    punishedEntryPrice ? `$${punishedEntryPrice.toFixed(2)}` : '',
                     trade.bt_exit_price ? `$${parseFloat(trade.bt_exit_price).toFixed(2)}` : '',
                     trade.bt_pnl ? `$${parseFloat(trade.bt_pnl).toFixed(2)}` : '',
                     trade.bt_close_time || '',
@@ -5157,8 +5194,9 @@
                     trade.live_exit_price ? `$${parseFloat(trade.live_exit_price).toFixed(2)}` : '',
                     trade.live_pnl ? `$${parseFloat(trade.live_pnl).toFixed(2)}` : '',
                     trade.live_close_time || '',
-                    trade.live_reason || '',
-                    trade.entry_diff ? `$${parseFloat(trade.entry_diff).toFixed(2)}` : '',
+                    trade.live_reason ? trade.live_reason.split('\n')[0].replace(/<[^>]*>/g, '').trim() : '',
+                    hasLiveTrade && trade.entry_diff ? `$${parseFloat(trade.entry_diff).toFixed(2)}` : '',
+                    showPunishedEntryDiff ? `$${punishedEntryDiff.toFixed(2)}` : '',
                     trade.pnl_diff ? `$${parseFloat(trade.pnl_diff).toFixed(2)}` : '',
                     trade.pnl_diff_contract ? `$${parseFloat(trade.pnl_diff_contract).toFixed(2)}` : ''
                 ];
@@ -5166,17 +5204,43 @@
                 cells.forEach((cellText, index) => {
                     const cell = document.createElement('td');
                     
-                    // Apply colorization for Entry Diff, P&L Diff, and P&L Diff/Contract columns
-                    if (index === 15) { // Entry Diff column
-                        const entryDiff = parseFloat(trade.entry_diff) || 0;
-                        if (entryDiff > 0) {
-                            cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
-                        } else if (entryDiff < 0) {
-                            cell.innerHTML = `<span class="badge bg-danger">${cellText}</span>`;
+                    // Special handling for Live Reason column (index 15) - no colorization
+                    if (index === 15) {
+                        // Debug: log the original reason HTML
+                        console.log('Live Reason HTML:', trade.live_reason);
+                        console.log('Live Reason after split:', trade.live_reason ? trade.live_reason.split('\n')[0] : '');
+                        console.log('Live Reason after HTML strip:', cellText);
+                        cell.textContent = cellText;
+                        row.appendChild(cell);
+                        return;
+                    }
+                    
+                    // Apply colorization for Entry Diff, Punished Entry Diff, P&L Diff, and P&L Diff/Contract columns
+                    if (index === 16) { // Entry Diff column
+                        if (hasLiveTrade) {
+                            if (entryDiffQuality === 'better') {
+                                cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
+                            } else if (entryDiffQuality === 'worse') {
+                                cell.innerHTML = `<span class="badge bg-danger">${cellText}</span>`;
+                            } else {
+                                cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
+                            }
                         } else {
-                            cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
+                            cell.innerHTML = cellText; // Show blank for backtest-only trades
                         }
-                    } else if (index === 16) { // P&L Diff column
+                    } else if (index === 17) { // Punished Entry Diff column
+                        if (showPunishedEntryDiff) {
+                            if (executionQuality === 'better') {
+                                cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
+                            } else if (executionQuality === 'worse') {
+                                cell.innerHTML = `<span class="badge bg-danger">${cellText}</span>`;
+                            } else {
+                                cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
+                            }
+                        } else {
+                            cell.innerHTML = cellText; // Show blank for backtest-only trades
+                        }
+                    } else if (index === 18) { // P&L Diff column
                         const pnlDiff = parseFloat(trade.pnl_diff) || 0;
                         if (pnlDiff > 0) {
                             cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
@@ -5185,14 +5249,18 @@
                         } else {
                             cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
                         }
-                    } else if (index === 17) { // P&L Diff/Contract column
+                    } else if (index === 19) { // P&L Diff/Contract column
                         const pnlDiffContract = parseFloat(trade.pnl_diff_contract) || 0;
-                        if (pnlDiffContract > 0) {
-                            cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
-                        } else if (pnlDiffContract < 0) {
-                            cell.innerHTML = `<span class="badge bg-danger">${cellText}</span>`;
+                        if (hasLiveTrade) {
+                            if (pnlDiffContract > 0) {
+                                cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
+                            } else if (pnlDiffContract < 0) {
+                                cell.innerHTML = `<span class="badge bg-danger">${cellText}</span>`;
+                            } else {
+                                cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
+                            }
                         } else {
-                            cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
+                            cell.innerHTML = cellText; // Show blank for backtest-only trades
                         }
                     } else {
                         cell.textContent = cellText;
@@ -12081,6 +12149,7 @@
                                 <th class="custom-tooltip sortable" data-tooltip="Trading strategy name from backtest data" onclick="sortLiveVsBtTable('bt_strategy')" data-i18n="live_vs_bt_bt_strategy">BT Strategy <span id="sort-indicator-bt_strategy"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Number of contracts traded in backtest" onclick="sortLiveVsBtTable('bt_contracts')" data-i18n="live_vs_bt_bt_contracts">BT Contracts <span id="sort-indicator-bt_contracts"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Entry price from backtest (slippage removed)" onclick="sortLiveVsBtTable('bt_entry_price')" data-i18n="live_vs_bt_bt_entry_price">BT Entry Price <span id="sort-indicator-bt_entry_price"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Punished entry price from backtest (Premium/100)" onclick="sortLiveVsBtTable('bt_punished_entry_price')" data-i18n="live_vs_bt_bt_punished_entry_price">Punished Entry Price <span id="sort-indicator-bt_punished_entry_price"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Exit price from backtest (slippage NOT removed)" onclick="sortLiveVsBtTable('bt_exit_price')" data-i18n="live_vs_bt_bt_exit_price">BT Exit Price <span id="sort-indicator-bt_exit_price"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Profit/Loss from backtest trade" onclick="sortLiveVsBtTable('bt_pnl')" data-i18n="live_vs_bt_bt_pnl">BT P&L <span id="sort-indicator-bt_pnl"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Date and time when the backtest trade was closed" onclick="sortLiveVsBtTable('bt_close_time')" data-i18n="live_vs_bt_bt_close_time">BT Close Time <span id="sort-indicator-bt_close_time"></span></th>
@@ -12093,6 +12162,7 @@
                                 <th class="custom-tooltip sortable" data-tooltip="Date and time when the live trade was closed" onclick="sortLiveVsBtTable('live_close_time')" data-i18n="live_vs_bt_live_close_time">Live Close Time <span id="sort-indicator-live_close_time"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Reason why the live trade was closed" onclick="sortLiveVsBtTable('live_reason')" data-i18n="live_vs_bt_live_reason">Live Reason <span id="sort-indicator-live_reason"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest entry prices (green=better live execution, red=worse)" onclick="sortLiveVsBtTable('entry_diff')" data-i18n="live_vs_bt_entry_diff">Entry Diff <span id="sort-indicator-entry_diff"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Difference between live entry price and backtest punished entry price (green=better live execution, red=worse)" onclick="sortLiveVsBtTable('punished_entry_diff')" data-i18n="live_vs_bt_punished_entry_diff">Punished Entry Diff <span id="sort-indicator-punished_entry_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest P&L (green=better live performance, red=worse)" onclick="sortLiveVsBtTable('pnl_diff')" data-i18n="live_vs_bt_pnl_diff">P&L Diff <span id="sort-indicator-pnl_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="P&L difference normalized per contract" onclick="sortLiveVsBtTable('pnl_diff_contract')" data-i18n="live_vs_bt_pnl_diff_contract">P&L Diff/Contract <span id="sort-indicator-pnl_diff_contract"></span></th>
                             </tr>
@@ -12305,11 +12375,18 @@
                     const isCredit = btPrice > 0;
                     const entryDiff = parseFloat(trade.opening_diff);
                     
+                    // Calculate punished entry diff (Premium / 100 for backtest)
+                    const btPremium = parseFloat(trade.backtest?.premium) || 0;
+                    const punishedEntryPrice = btPremium / 100;
+                    const livePrice = parseFloat(trade.live?.opening_price) || 0;
+                    const punishedEntryDiff = livePrice - punishedEntryPrice;
+                    
                     if (!strategyStats[strategy]) {
                         strategyStats[strategy] = {
                             strategy: strategy,
                             trades: 0,
                             entryDiffs: [],
+                            punishedEntryDiffs: [],
                             betterCount: 0,
                             worseCount: 0
                         };
@@ -12317,6 +12394,7 @@
                     
                     strategyStats[strategy].trades++;
                     strategyStats[strategy].entryDiffs.push(entryDiff);
+                    strategyStats[strategy].punishedEntryDiffs.push(punishedEntryDiff);
                     
                     // Determine if this was better or worse
                     if (isCredit) {
@@ -12333,6 +12411,7 @@
             
             return Object.values(strategyStats).map(stats => {
                 const avgDiff = stats.entryDiffs.reduce((sum, diff) => sum + diff, 0) / stats.entryDiffs.length;
+                const avgPunishedDiff = stats.punishedEntryDiffs.reduce((sum, diff) => sum + diff, 0) / stats.punishedEntryDiffs.length;
                 const bestDiff = Math.max(...stats.entryDiffs);
                 const worstDiff = Math.min(...stats.entryDiffs);
                 
@@ -12340,6 +12419,7 @@
                     strategy: stats.strategy,
                     trades: stats.trades,
                     avgDiff: avgDiff,
+                    avgPunishedDiff: avgPunishedDiff,
                     bestDiff: bestDiff,
                     worstDiff: worstDiff,
                     betterCount: stats.betterCount,
@@ -12390,6 +12470,7 @@
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_strategy_tooltip" data-i18n="live_vs_bt_strategy">Strategy</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_trades_tooltip" data-i18n="live_vs_bt_trades">Trades</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_avg_entry_diff_tooltip" data-i18n="live_vs_bt_avg_entry_diff">Avg Entry Diff</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_avg_punished_entry_diff_tooltip" data-i18n="live_vs_bt_avg_punished_entry_diff">Avg Punished Entry Diff</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_best_entry_diff_tooltip" data-i18n="live_vs_bt_best_entry_diff">Best Entry Diff</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_worst_entry_diff_tooltip" data-i18n="live_vs_bt_worst_entry_diff">Worst Entry Diff</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_better_executions_tooltip" data-i18n="live_vs_bt_better_executions">Better Executions</th>
@@ -12404,6 +12485,11 @@
                                                 <td>
                                                     <span class="badge ${strategy.avgDiff > 0 ? 'bg-success' : strategy.avgDiff < 0 ? 'bg-danger' : 'bg-secondary'}">
                                                         ${strategy.avgDiff > 0 ? '+' : ''}$${strategy.avgDiff.toFixed(2)}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge ${strategy.avgPunishedDiff > 0 ? 'bg-success' : strategy.avgPunishedDiff < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                        ${strategy.avgPunishedDiff > 0 ? '+' : ''}$${strategy.avgPunishedDiff.toFixed(2)}
                                                     </span>
                                                 </td>
                                                 <td>
@@ -12476,6 +12562,7 @@
                                 <th class="custom-tooltip sortable" data-tooltip="Trading strategy name from backtest data" onclick="sortLiveVsBtTable('bt_strategy')" data-i18n="live_vs_bt_bt_strategy">BT Strategy <span id="sort-indicator-bt_strategy"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Number of contracts traded in backtest" onclick="sortLiveVsBtTable('bt_contracts')" data-i18n="live_vs_bt_bt_contracts">BT Contracts <span id="sort-indicator-bt_contracts"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Entry price from backtest (slippage removed)" onclick="sortLiveVsBtTable('bt_entry_price')" data-i18n="live_vs_bt_bt_entry_price">BT Entry Price <span id="sort-indicator-bt_entry_price"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Punished entry price from backtest (Premium/100)" onclick="sortLiveVsBtTable('bt_punished_entry_price')" data-i18n="live_vs_bt_bt_punished_entry_price">Punished Entry Price <span id="sort-indicator-bt_punished_entry_price"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Exit price from backtest (slippage NOT removed)" onclick="sortLiveVsBtTable('bt_exit_price')" data-i18n="live_vs_bt_bt_exit_price">BT Exit Price <span id="sort-indicator-bt_exit_price"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Profit/Loss from backtest trade" onclick="sortLiveVsBtTable('bt_pnl')" data-i18n="live_vs_bt_bt_pnl">BT P&L <span id="sort-indicator-bt_pnl"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Date and time when the backtest trade was closed" onclick="sortLiveVsBtTable('bt_close_time')" data-i18n="live_vs_bt_bt_close_time">BT Close Time <span id="sort-indicator-bt_close_time"></span></th>
@@ -12488,6 +12575,7 @@
                                 <th class="custom-tooltip sortable" data-tooltip="Date and time when the live trade was closed" onclick="sortLiveVsBtTable('live_close_time')" data-i18n="live_vs_bt_live_close_time">Live Close Time <span id="sort-indicator-live_close_time"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Reason why the live trade was closed" onclick="sortLiveVsBtTable('live_reason')" data-i18n="live_vs_bt_live_reason">Live Reason <span id="sort-indicator-live_reason"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest entry prices (green=better live execution, red=worse)" onclick="sortLiveVsBtTable('entry_diff')" data-i18n="live_vs_bt_entry_diff">Entry Diff <span id="sort-indicator-entry_diff"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Difference between live entry price and backtest punished entry price (green=better live execution, red=worse)" onclick="sortLiveVsBtTable('punished_entry_diff')" data-i18n="live_vs_bt_punished_entry_diff">Punished Entry Diff <span id="sort-indicator-punished_entry_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest P&L (green=better live performance, red=worse)" onclick="sortLiveVsBtTable('pnl_diff')" data-i18n="live_vs_bt_pnl_diff">P&L Diff <span id="sort-indicator-pnl_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="P&L difference normalized per contract" onclick="sortLiveVsBtTable('pnl_diff_contract')" data-i18n="live_vs_bt_pnl_diff_contract">P&L Diff/Contract <span id="sort-indicator-pnl_diff_contract"></span></th>
                             </tr>
@@ -12567,6 +12655,7 @@
                 bt_strategy: trade.backtest ? trade.backtest.strategy : '',
                 bt_contracts: trade.backtest ? trade.backtest.contracts : 0,
                 bt_entry_price: trade.backtest && trade.backtest.opening_price !== null ? parseFloat(trade.backtest.opening_price) : 0,
+                bt_premium: trade.backtest && trade.backtest.premium !== null ? parseFloat(trade.backtest.premium) : 0,
                 bt_exit_price: trade.backtest && trade.backtest.closing_price !== null ? parseFloat(trade.backtest.closing_price) : 0,
                 bt_pnl: trade.backtest ? trade.backtest.pnl : 0,
                 bt_close_time: trade.backtest ? trade.backtest.close_datetime : '',
@@ -14700,6 +14789,23 @@ Build User: ${versionInfo.build_user}`;
                 `;
             }
             
+            // Check if it's a live trading file and add starting capital input
+            const isLiveFile = file.name.toLowerCase().includes('live') || 
+                             (analysisData.fileContent && analysisData.fileContent.includes('Initial Premium'));
+            
+            if (isLiveFile) {
+                html += `
+                        <div class="mt-3">
+                            <label for="modalInitialCapitalInput" class="form-label">
+                                <i class="fas fa-dollar-sign text-success"></i> Starting Capital (Live Trading Only)
+                            </label>
+                            <input type="number" class="form-control" id="modalInitialCapitalInput" 
+                                   name="initial_capital" min="1" step="1" value="100000">
+                            <small class="text-muted">Used to calculate portfolio values for live trading data. Default: $100,000</small>
+                        </div>
+                `;
+            }
+            
             html += `
                     </div>
                 </div>
@@ -14729,6 +14835,12 @@ Build User: ${versionInfo.build_user}`;
 
         function confirmFileUpload() {
             if (window.pendingFileUpload) {
+                // Get starting capital from modal if present
+                const modalInitialCapitalInput = document.getElementById('modalInitialCapitalInput');
+                if (modalInitialCapitalInput) {
+                    window.modalInitialCapital = modalInitialCapitalInput.value;
+                }
+                
                 // Close the modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('fileAnalysisModal'));
                 modal.hide();
