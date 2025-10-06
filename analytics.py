@@ -661,11 +661,21 @@ class StrategyAnalyzer:
             for strategy_name, strategy in self.portfolio.strategies.items():
                 for trade in strategy.trades:
                     reason = trade.reason_for_close or 'N/A'
-                    # For backtest, use Avg. Closing Cost / 100 for exit price
+                    # For backtest, normalize Avg. Closing Cost per contract:
+                    # - If Premium was negative (debit), flip sign to make closing cost positive
+                    # - Then divide by 100 in all cases
                     bt_closing_price = None
                     if hasattr(trade, 'avg_closing_cost') and trade.avg_closing_cost is not None:
                         try:
-                            bt_closing_price = float(trade.avg_closing_cost) / 100
+                            raw_close = float(trade.avg_closing_cost)
+                            prem_val = None
+                            try:
+                                prem_val = float(getattr(trade, 'premium', None))
+                            except (ValueError, TypeError):
+                                prem_val = None
+                            if prem_val is not None and prem_val < 0:
+                                raw_close = -raw_close
+                            bt_closing_price = raw_close / 100.0
                         except (ValueError, TypeError):
                             bt_closing_price = None
                     

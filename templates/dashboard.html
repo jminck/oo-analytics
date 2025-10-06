@@ -5144,6 +5144,7 @@
                 // For debit trades (negative premium): lower live price = better
                 let executionQuality = 'same'; // default
                 let entryDiffQuality = 'same'; // for regular entry diff
+                let exitDiffQuality = 'same'; // for exit diff colorization
                 
                 if (showPunishedEntryDiff) {
                     if (punishedEntryDiff === 0) {
@@ -5178,6 +5179,25 @@
                     }
                 }
                 
+                // Compute exit diff quality (credit: lower live exit better; debit: higher live exit better)
+                // Only calculate when reason for close matches
+                const btExitForDiff = parseFloat(trade.bt_exit_price);
+                const liveExitForDiff = parseFloat(trade.live_exit_price);
+                const btReasonForDiff = trade.bt_reason || '';
+                const liveReasonForDiff = trade.live_reason || '';
+                const exitDiffVal = (!isNaN(btExitForDiff) && !isNaN(liveExitForDiff) && btReasonForDiff === liveReasonForDiff) ? (liveExitForDiff - btExitForDiff) : null;
+                if (exitDiffVal !== null) {
+                    if (exitDiffVal === 0) {
+                        exitDiffQuality = 'same';
+                    } else if (btEntryPrice > 0) {
+                        // Credit trade
+                        exitDiffQuality = exitDiffVal < 0 ? 'better' : 'worse';
+                    } else if (btEntryPrice < 0) {
+                        // Debit trade
+                        exitDiffQuality = exitDiffVal > 0 ? 'better' : 'worse';
+                    }
+                }
+
                 const cells = [
                     trade.entry_time || '',
                     trade.bt_strategy || '',
@@ -5197,6 +5217,7 @@
                     trade.live_reason ? trade.live_reason.split('\n')[0].replace(/<[^>]*>/g, '').trim() : '',
                     hasLiveTrade && trade.entry_diff ? `$${parseFloat(trade.entry_diff).toFixed(2)}` : '',
                     showPunishedEntryDiff ? `$${punishedEntryDiff.toFixed(2)}` : '',
+                    hasLiveTrade && exitDiffVal !== null ? `$${exitDiffVal.toFixed(2)}` : '',
                     trade.pnl_diff ? `$${parseFloat(trade.pnl_diff).toFixed(2)}` : '',
                     trade.pnl_diff_contract ? `$${parseFloat(trade.pnl_diff_contract).toFixed(2)}` : ''
                 ];
@@ -5215,7 +5236,7 @@
                         return;
                     }
                     
-                    // Apply colorization for Entry Diff, Punished Entry Diff, P&L Diff, and P&L Diff/Contract columns
+                    // Apply colorization for Entry Diff, Punished Entry Diff, Exit Diff, P&L Diff, and P&L Diff/Contract columns
                     if (index === 16) { // Entry Diff column
                         if (hasLiveTrade) {
                             if (entryDiffQuality === 'better') {
@@ -5240,7 +5261,19 @@
                         } else {
                             cell.innerHTML = cellText; // Show blank for backtest-only trades
                         }
-                    } else if (index === 18) { // P&L Diff column
+                    } else if (index === 18) { // Exit Diff column
+                        if (hasLiveTrade) {
+                            if (exitDiffQuality === 'better') {
+                                cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
+                            } else if (exitDiffQuality === 'worse') {
+                                cell.innerHTML = `<span class="badge bg-danger">${cellText}</span>`;
+                            } else {
+                                cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
+                            }
+                        } else {
+                            cell.innerHTML = cellText; // backtest-only
+                        }
+                    } else if (index === 19) { // P&L Diff column
                         const pnlDiff = parseFloat(trade.pnl_diff) || 0;
                         if (pnlDiff > 0) {
                             cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
@@ -5249,7 +5282,7 @@
                         } else {
                             cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
                         }
-                    } else if (index === 19) { // P&L Diff/Contract column
+                    } else if (index === 20) { // P&L Diff/Contract column
                         const pnlDiffContract = parseFloat(trade.pnl_diff_contract) || 0;
                         if (hasLiveTrade) {
                             if (pnlDiffContract > 0) {
@@ -12163,6 +12196,7 @@
                                 <th class="custom-tooltip sortable" data-tooltip="Reason why the live trade was closed" onclick="sortLiveVsBtTable('live_reason')" data-i18n="live_vs_bt_live_reason">Live Reason <span id="sort-indicator-live_reason"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest entry prices (green=better live execution, red=worse)" onclick="sortLiveVsBtTable('entry_diff')" data-i18n="live_vs_bt_entry_diff">Entry Diff <span id="sort-indicator-entry_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Difference between live entry price and backtest punished entry price (green=better live execution, red=worse)" onclick="sortLiveVsBtTable('punished_entry_diff')" data-i18n="live_vs_bt_punished_entry_diff">Punished Entry Diff <span id="sort-indicator-punished_entry_diff"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest exit prices (credit: lower live is better; debit: higher live is better)" onclick="sortLiveVsBtTable('exit_diff')" data-i18n="live_vs_bt_exit_diff">Exit Diff <span id="sort-indicator-exit_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest P&L (green=better live performance, red=worse)" onclick="sortLiveVsBtTable('pnl_diff')" data-i18n="live_vs_bt_pnl_diff">P&L Diff <span id="sort-indicator-pnl_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="P&L difference normalized per contract" onclick="sortLiveVsBtTable('pnl_diff_contract')" data-i18n="live_vs_bt_pnl_diff_contract">P&L Diff/Contract <span id="sort-indicator-pnl_diff_contract"></span></th>
                             </tr>
@@ -12381,49 +12415,83 @@
                     const livePrice = parseFloat(trade.live?.opening_price) || 0;
                     const punishedEntryDiff = livePrice - punishedEntryPrice;
                     
+                    // Calculate exit diff only when reason for close matches
+                    const btExitPrice = parseFloat(trade.backtest?.closing_price) || 0;
+                    const liveExitPrice = parseFloat(trade.live?.closing_price) || 0;
+                    const btReason = trade.backtest?.reason_for_close || '';
+                    const liveReason = trade.live?.reason_for_close || '';
+                    const exitDiff = (!isNaN(btExitPrice) && !isNaN(liveExitPrice) && btReason === liveReason) ? (liveExitPrice - btExitPrice) : null;
+                    
                     if (!strategyStats[strategy]) {
                         strategyStats[strategy] = {
                             strategy: strategy,
                             trades: 0,
                             entryDiffs: [],
                             punishedEntryDiffs: [],
-                            betterCount: 0,
-                            worseCount: 0
+                            exitDiffs: [],
+                            betterEntryCount: 0,
+                            worseEntryCount: 0,
+                            betterExitCount: 0,
+                            worseExitCount: 0
                         };
                     }
                     
                     strategyStats[strategy].trades++;
                     strategyStats[strategy].entryDiffs.push(entryDiff);
                     strategyStats[strategy].punishedEntryDiffs.push(punishedEntryDiff);
+                    if (exitDiff !== null) {
+                        strategyStats[strategy].exitDiffs.push(exitDiff);
+                    }
                     
-                    // Determine if this was better or worse
+                    // Determine if entry execution was better or worse
                     if (isCredit) {
                         // For credit trades: positive diff = better
-                        if (entryDiff > 0) strategyStats[strategy].betterCount++;
-                        else if (entryDiff < 0) strategyStats[strategy].worseCount++;
+                        if (entryDiff > 0) strategyStats[strategy].betterEntryCount++;
+                        else if (entryDiff < 0) strategyStats[strategy].worseEntryCount++;
                     } else {
                         // For debit trades: positive diff = better (paid less)
-                        if (entryDiff > 0) strategyStats[strategy].betterCount++;
-                        else if (entryDiff < 0) strategyStats[strategy].worseCount++;
+                        if (entryDiff > 0) strategyStats[strategy].betterEntryCount++;
+                        else if (entryDiff < 0) strategyStats[strategy].worseEntryCount++;
+                    }
+                    
+                    // Determine if exit execution was better or worse
+                    if (exitDiff !== null) {
+                        if (isCredit) {
+                            // For credit trades: negative exit diff = better (lower exit price)
+                            if (exitDiff < 0) strategyStats[strategy].betterExitCount++;
+                            else if (exitDiff > 0) strategyStats[strategy].worseExitCount++;
+                        } else {
+                            // For debit trades: positive exit diff = better (higher exit price)
+                            if (exitDiff > 0) strategyStats[strategy].betterExitCount++;
+                            else if (exitDiff < 0) strategyStats[strategy].worseExitCount++;
+                        }
                     }
                 }
             });
             
             return Object.values(strategyStats).map(stats => {
-                const avgDiff = stats.entryDiffs.reduce((sum, diff) => sum + diff, 0) / stats.entryDiffs.length;
+                const avgEntryDiff = stats.entryDiffs.reduce((sum, diff) => sum + diff, 0) / stats.entryDiffs.length;
                 const avgPunishedDiff = stats.punishedEntryDiffs.reduce((sum, diff) => sum + diff, 0) / stats.punishedEntryDiffs.length;
-                const bestDiff = Math.max(...stats.entryDiffs);
-                const worstDiff = Math.min(...stats.entryDiffs);
+                const avgExitDiff = stats.exitDiffs.length > 0 ? stats.exitDiffs.reduce((sum, diff) => sum + diff, 0) / stats.exitDiffs.length : 0;
+                const bestEntryDiff = Math.max(...stats.entryDiffs);
+                const worstEntryDiff = Math.min(...stats.entryDiffs);
+                const bestExitDiff = stats.exitDiffs.length > 0 ? Math.max(...stats.exitDiffs) : 0;
+                const worstExitDiff = stats.exitDiffs.length > 0 ? Math.min(...stats.exitDiffs) : 0;
                 
                 return {
                     strategy: stats.strategy,
                     trades: stats.trades,
-                    avgDiff: avgDiff,
+                    avgEntryDiff: avgEntryDiff,
                     avgPunishedDiff: avgPunishedDiff,
-                    bestDiff: bestDiff,
-                    worstDiff: worstDiff,
-                    betterCount: stats.betterCount,
-                    worseCount: stats.worseCount
+                    avgExitDiff: avgExitDiff,
+                    bestEntryDiff: bestEntryDiff,
+                    worstEntryDiff: worstEntryDiff,
+                    bestExitDiff: bestExitDiff,
+                    worstExitDiff: worstExitDiff,
+                    betterEntryCount: stats.betterEntryCount,
+                    worseEntryCount: stats.worseEntryCount,
+                    betterExitCount: stats.betterExitCount,
+                    worseExitCount: stats.worseExitCount
                 };
             }).sort((a, b) => b.trades - a.trades);
         }
@@ -12456,7 +12524,7 @@
                     <div class="card-header">
                         <h6 class="mb-0">
                             <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#entryDiffSummary" aria-expanded="true" aria-controls="entryDiffSummary">
-                                <i class="fas fa-chart-bar me-2"></i>Entry Diff Summary by Strategy
+                                <i class="fas fa-chart-bar me-2"></i>Entry & Exit Diff Summary by Strategy
                                 <i class="fas fa-chevron-down ms-2"></i>
                             </button>
                         </h6>
@@ -12471,8 +12539,11 @@
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_trades_tooltip" data-i18n="live_vs_bt_trades">Trades</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_avg_entry_diff_tooltip" data-i18n="live_vs_bt_avg_entry_diff">Avg Entry Diff</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_avg_punished_entry_diff_tooltip" data-i18n="live_vs_bt_avg_punished_entry_diff">Avg Punished Entry Diff</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_avg_exit_diff_tooltip" data-i18n="live_vs_bt_avg_exit_diff">Avg Exit Diff</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_best_entry_diff_tooltip" data-i18n="live_vs_bt_best_entry_diff">Best Entry Diff</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_worst_entry_diff_tooltip" data-i18n="live_vs_bt_worst_entry_diff">Worst Entry Diff</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_best_exit_diff_tooltip" data-i18n="live_vs_bt_best_exit_diff">Best Exit Diff</th>
+                                            <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_worst_exit_diff_tooltip" data-i18n="live_vs_bt_worst_exit_diff">Worst Exit Diff</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_better_executions_tooltip" data-i18n="live_vs_bt_better_executions">Better Executions</th>
                                             <th class="custom-tooltip" data-i18n-tooltip="live_vs_bt_worse_executions_tooltip" data-i18n="live_vs_bt_worse_executions">Worse Executions</th>
                                         </tr>
@@ -12483,8 +12554,8 @@
                                                 <td><strong>${strategy.strategy}</strong></td>
                                                 <td>${strategy.trades}</td>
                                                 <td>
-                                                    <span class="badge ${strategy.avgDiff > 0 ? 'bg-success' : strategy.avgDiff < 0 ? 'bg-danger' : 'bg-secondary'}">
-                                                        ${strategy.avgDiff > 0 ? '+' : ''}$${strategy.avgDiff.toFixed(2)}
+                                                    <span class="badge ${strategy.avgEntryDiff > 0 ? 'bg-success' : strategy.avgEntryDiff < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                        ${strategy.avgEntryDiff > 0 ? '+' : ''}$${strategy.avgEntryDiff.toFixed(2)}
                                                     </span>
                                                 </td>
                                                 <td>
@@ -12493,17 +12564,32 @@
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <span class="badge ${strategy.bestDiff > 0 ? 'bg-success' : 'bg-secondary'}">
-                                                        ${strategy.bestDiff > 0 ? '+' : ''}$${strategy.bestDiff.toFixed(2)}
+                                                    <span class="badge ${strategy.avgExitDiff > 0 ? 'bg-success' : strategy.avgExitDiff < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                        ${strategy.avgExitDiff > 0 ? '+' : ''}$${strategy.avgExitDiff.toFixed(2)}
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <span class="badge ${strategy.worstDiff < 0 ? 'bg-danger' : 'bg-secondary'}">
-                                                        ${strategy.worstDiff > 0 ? '+' : ''}$${strategy.worstDiff.toFixed(2)}
+                                                    <span class="badge ${strategy.bestEntryDiff > 0 ? 'bg-success' : 'bg-secondary'}">
+                                                        ${strategy.bestEntryDiff > 0 ? '+' : ''}$${strategy.bestEntryDiff.toFixed(2)}
                                                     </span>
                                                 </td>
-                                                <td><span class="badge bg-success">${strategy.betterCount}</span></td>
-                                                <td><span class="badge bg-danger">${strategy.worseCount}</span></td>
+                                                <td>
+                                                    <span class="badge ${strategy.worstEntryDiff < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                        ${strategy.worstEntryDiff > 0 ? '+' : ''}$${strategy.worstEntryDiff.toFixed(2)}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge ${strategy.bestExitDiff > 0 ? 'bg-success' : 'bg-secondary'}">
+                                                        ${strategy.bestExitDiff > 0 ? '+' : ''}$${strategy.bestExitDiff.toFixed(2)}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge ${strategy.worstExitDiff < 0 ? 'bg-danger' : 'bg-secondary'}">
+                                                        ${strategy.worstExitDiff > 0 ? '+' : ''}$${strategy.worstExitDiff.toFixed(2)}
+                                                    </span>
+                                                </td>
+                                                <td><span class="badge bg-success">${strategy.betterEntryCount}</span></td>
+                                                <td><span class="badge bg-danger">${strategy.worseEntryCount}</span></td>
                                             </tr>
                                         `).join('')}
                                     </tbody>
@@ -12576,6 +12662,7 @@
                                 <th class="custom-tooltip sortable" data-tooltip="Reason why the live trade was closed" onclick="sortLiveVsBtTable('live_reason')" data-i18n="live_vs_bt_live_reason">Live Reason <span id="sort-indicator-live_reason"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest entry prices (green=better live execution, red=worse)" onclick="sortLiveVsBtTable('entry_diff')" data-i18n="live_vs_bt_entry_diff">Entry Diff <span id="sort-indicator-entry_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Difference between live entry price and backtest punished entry price (green=better live execution, red=worse)" onclick="sortLiveVsBtTable('punished_entry_diff')" data-i18n="live_vs_bt_punished_entry_diff">Punished Entry Diff <span id="sort-indicator-punished_entry_diff"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest exit prices (credit: lower live is better; debit: higher live is better)" onclick="sortLiveVsBtTable('exit_diff')" data-i18n="live_vs_bt_exit_diff">Exit Diff <span id="sort-indicator-exit_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Difference between live and backtest P&L (green=better live performance, red=worse)" onclick="sortLiveVsBtTable('pnl_diff')" data-i18n="live_vs_bt_pnl_diff">P&L Diff <span id="sort-indicator-pnl_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="P&L difference normalized per contract" onclick="sortLiveVsBtTable('pnl_diff_contract')" data-i18n="live_vs_bt_pnl_diff_contract">P&L Diff/Contract <span id="sort-indicator-pnl_diff_contract"></span></th>
                             </tr>
@@ -12668,6 +12755,8 @@
                 live_close_time: trade.live ? trade.live.close_datetime : '',
                 live_reason: trade.live ? trade.live.reason_for_close : '',
                 entry_diff: trade.opening_diff,
+                exit_diff: (trade.backtest && trade.live && trade.backtest.closing_price !== null && trade.live.closing_price !== null && trade.backtest.reason_for_close === trade.live.reason_for_close) ?
+                    (parseFloat(trade.live.closing_price) - parseFloat(trade.backtest.closing_price)) : null,
                 pnl_diff: trade.pnl_diff,
                 pnl_diff_contract: trade.pnl_diff !== null && trade.backtest && trade.live && trade.backtest.contracts > 0 && trade.live.contracts > 0 ? 
                     (trade.live.pnl / trade.live.contracts) - (trade.backtest.pnl / trade.backtest.contracts) : null
@@ -13786,7 +13875,7 @@
                 } else {
                     el.textContent = '';
                 }
-            });
+                });
         }
 
         function setupPriceMovementRangeSlider() {
@@ -14794,7 +14883,7 @@ Build User: ${versionInfo.build_user}`;
                              (analysisData.fileContent && analysisData.fileContent.includes('Initial Premium'));
             
             if (isLiveFile) {
-                html += `
+            html += `
                         <div class="mt-3">
                             <label for="modalInitialCapitalInput" class="form-label">
                                 <i class="fas fa-dollar-sign text-success"></i> Starting Capital (Live Trading Only)
