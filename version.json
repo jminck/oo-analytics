@@ -1,12 +1,12 @@
 {
-  "version": "1.0.11",
-  "build_time": "2025-10-05T22:37:45.707702",
-  "build_date": "2025-10-05",
-  "build_time_short": "22:37:45",
-  "build_timestamp": 1759721865,
+  "version": "1.0.12",
+  "build_time": "2025-10-06T14:44:07.154113",
+  "build_date": "2025-10-06",
+  "build_time_short": "14:44:07",
+  "build_timestamp": 1759779847,
   "git": {
-    "commit_hash": "acc772a8b7300fdd3d0d2926ad15fd3ff89fb941",
-    "commit_short": "acc772a8",
+    "commit_hash": "0f372ef9dacb7a2741674695e88c2b8802e98414",
+    "commit_short": "0f372ef9",
     "branch": "main",
     "is_dirty": false,
     "remote_url": "https://github.com/jminck/oo-analytics.git"
