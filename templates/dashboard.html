@@ -3977,7 +3977,7 @@
 
         function loadAvailableCharts() {
             console.log('🔄 Loading available charts from API...');
-            fetch('/api/charts/available')
+            fetch(`/api/charts/available?t=${Date.now()}`)
             .then(response => {
                 console.log('📊 Charts API response status:', response.status);
                 return response.json();
@@ -4588,7 +4588,7 @@
             loading.style.display = 'block';
             container.innerHTML = '';
 
-            fetch(`/api/charts/${chartType}`)
+            fetch(`/api/charts/${chartType}?t=${Date.now()}`)
             .then(response => response.json())
             .then(data => {
                 loading.style.display = 'none';
@@ -5571,7 +5571,7 @@
             loading.style.display = 'none';
             
             // Load the data
-            fetch('/api/portfolio/mfe-mae-analysis')
+            fetch(`/api/portfolio/mfe-mae-analysis?t=${Date.now()}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -7779,7 +7779,7 @@
                 loading.style.display = 'block';
             }
             
-            fetch('/api/charts/win_rates_table')
+            fetch(`/api/charts/win_rates_table?t=${Date.now()}`)
                 .then(response => {
                     console.log('Response status:', response.status);
                     return response.json();
@@ -7932,7 +7932,7 @@
                 loading.style.display = 'block';
             }
             
-            fetch('/api/charts/margin_analysis')
+            fetch(`/api/charts/margin_analysis?t=${Date.now()}`)
                 .then(response => {
                     console.log('Response status:', response.status);
                     return response.json();
@@ -8252,7 +8252,7 @@
                 loading.style.display = 'block';
             }
             
-            fetch('/api/charts/daily_margin_analysis')
+            fetch(`/api/charts/daily_margin_analysis?t=${Date.now()}`)
                 .then(response => {
                     console.log('Daily margin analysis response status:', response.status);
                     if (!response.ok) {
@@ -12374,7 +12374,7 @@
             `;
             
             // Call the API with selected files
-            fetch('/api/portfolio/live-vs-bt-analysis', {
+            fetch(`/api/portfolio/live-vs-bt-analysis?t=${Date.now()}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

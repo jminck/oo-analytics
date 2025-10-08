@@ -3,7 +3,7 @@ Main Flask application for portfolio strategy analytics with authentication.
 Simple but powerful analytics platform optimized for strategy comparison and portfolio balance.
 """
 
-from flask import Flask, request, render_template, jsonify, redirect, url_for, session, send_file
+from flask import Flask, request, render_template, jsonify, redirect, url_for, session, send_file, make_response
 from flask_login import current_user, login_required
 from flask_babel import Babel, gettext, ngettext, get_locale
 import pandas as pd
@@ -30,6 +30,14 @@ from admin import admin_bp
 from config import Config
 from app_insights import app_insights
 from version import get_version_string, get_version_info, get_build_badge
+
+def add_cache_busting_headers(response):
+    """Add cache-busting headers to prevent stale data in Azure App Services."""
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    response.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+    return response
 
 # Configure paths for Azure App Service
 if os.environ.get('WEBSITES_PORT'):
@@ -1406,10 +1414,7 @@ def portfolio_overview():
             'success': True,
             'data': overview
         })
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        return response
+        return add_cache_busting_headers(response)
     except Exception as e:
         print(f"ERROR in portfolio_overview: {e}")
         import traceback
@@ -1650,10 +1655,11 @@ def mfe_mae_analysis():
         
         print("=== MFE/MAE ANALYSIS API COMPLETED ===")
         
-        return jsonify({
+        response = jsonify({
             'success': True,
             'data': mfe_mae_data
         })
+        return add_cache_busting_headers(response)
         
     except Exception as e:
         print(f"ERROR in mfe_mae_analysis: {e}")
@@ -1727,10 +1733,11 @@ def live_vs_bt_analysis():
             
             print("Live vs BT analysis completed successfully")
             
-            return jsonify({
+            response = jsonify({
                 'success': True,
                 'data': comparison_data
             })
+            return add_cache_busting_headers(response)
             
         except Exception as file_error:
             print(f"Error loading files: {file_error}")
@@ -1831,7 +1838,10 @@ def get_chart(chart_type):
             return jsonify(result)
         
         chart_data = chart_factory.create_chart(method_name)
-        return jsonify(chart_data)
+        
+        # Create response with cache-busting headers
+        response = make_response(jsonify(chart_data))
+        return add_cache_busting_headers(response)
         
     except Exception as e:
         print(f"Error generating chart {chart_type}: {e}")
@@ -2768,6 +2778,14 @@ def load_saved_file(filename):
             chart_generator.clear_cache()
         except Exception as cache_error:
             print(f"Warning: Could not clear chart cache: {cache_error}")
+        
+        # Clear portfolio cache from cache manager
+        try:
+            from cache_manager import cache_manager
+            cache_manager.clear_portfolio_cache(filename)
+            print(f"Cleared cache for portfolio: {filename}")
+        except Exception as cache_error:
+            print(f"Warning: Could not clear portfolio cache: {cache_error}")
         
         # Clear Monte Carlo simulation cache for the new portfolio
         try:

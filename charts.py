@@ -288,7 +288,7 @@ class ChartGenerator:
         }
     
     def create_monthly_pnl_stacked(self) -> Dict:
-        """Create stacked bar chart of monthly P&L by strategy."""
+        """Create stacked bar chart of monthly P&L by strategy with improved visibility for losing strategies."""
         monthly_data = self.portfolio.get_monthly_pnl_by_strategy()
         
         if monthly_data.empty:
@@ -302,20 +302,91 @@ class ChartGenerator:
         # Calculate monthly totals for hover
         monthly_totals = monthly_data.sum(axis=1)
         
-        # Add a bar for each strategy
+        # Create separate dataframes for positive and negative values
+        positive_data = monthly_data.copy()
+        negative_data = monthly_data.copy()
+        
+        # Set negative values to 0 in positive_data and positive values to 0 in negative_data
+        positive_data[positive_data < 0] = 0
+        negative_data[negative_data > 0] = 0
+        
+        # Calculate cumulative positions for proper stacking
+        # Positive values stack from 0 upward, negative values stack from 0 downward
+        
+        # Calculate cumulative positive values (bottom-up stacking)
+        positive_cumulative = positive_data.cumsum(axis=1)
+        positive_bottom = positive_cumulative - positive_data  # Bottom position for each bar
+        
+        # Calculate cumulative negative values (top-down stacking from 0)
+        negative_cumulative = negative_data.cumsum(axis=1)
+        negative_top = negative_cumulative - negative_data  # Top position for each bar
+        
+        # For each strategy, create two traces with calculated positions
         for i, strategy in enumerate(monthly_data.columns):
             color = self.colors[i % len(self.colors)]
             
             # Create customdata with monthly totals
             customdata = [monthly_totals[month] for month in monthly_data.index]
             
+            # Add positive values trace (always above 0 line with proper stacking)
             fig.add_trace(go.Bar(
                 x=monthly_data.index,
-                y=monthly_data[strategy],
+                y=positive_data[strategy],
                 name=strategy,
                 marker_color=color,
+                marker_line=dict(color='rgba(0,0,0,0.5)', width=1),  # Add border for better visibility
+                opacity=0.8,  # Add transparency so overlapping segments are visible
                 customdata=customdata,
-                hovertemplate=f'<b>{strategy}</b><br>Month: %{{x}}<br>Strategy P&L: $%{{y:,.2f}}<br>Total Month P&L: $%{{customdata:,.2f}}<extra></extra>'
+                hovertemplate=f'<b>{strategy}</b><br>Month: %{{x}}<br>Strategy P&L: $%{{y:,.2f}}<br>Total Month P&L: $%{{customdata:,.2f}}<extra></extra>',
+                showlegend=True,
+                base=positive_bottom[strategy]  # Set base position for proper stacking
+            ))
+            
+            # Add negative values trace (always below 0 line with proper stacking)
+            fig.add_trace(go.Bar(
+                x=monthly_data.index,
+                y=negative_data[strategy],
+                name=f"{strategy}_neg",  # Different name to avoid conflicts
+                marker_color=color,
+                marker_line=dict(color='rgba(0,0,0,0.6)', width=1.5),  # Stronger border for visibility
+                marker_pattern_shape="x",  # Add pattern to distinguish negative values
+                opacity=0.8,  # Add transparency so overlapping segments are visible
+                customdata=customdata,
+                hovertemplate=f'<b>{strategy}</b><br>Month: %{{x}}<br>Strategy P&L: $%{{y:,.2f}}<br>Total Month P&L: $%{{customdata:,.2f}}<extra></extra>',
+                showlegend=False,  # Hide from legend to avoid duplication
+                base=negative_top[strategy]  # Set base position for proper stacking
+            ))
+        
+        # Add text annotations for total monthly P&L
+        annotations = []
+        for month in monthly_data.index:
+            total_pnl = monthly_totals[month]
+            
+            # Determine position: above bar if positive, below if negative
+            if total_pnl >= 0:
+                # Position above the total positive value (which is the total P&L for positive months)
+                y_position = total_pnl + abs(total_pnl) * 0.05  # 5% above the bar
+                yanchor = 'bottom'
+            else:
+                # Position below the total negative value (which is the total P&L for negative months)
+                y_position = total_pnl - abs(total_pnl) * 0.05  # 5% below the bar
+                yanchor = 'top'
+            
+            # Format the text with color coding
+            color = 'green' if total_pnl >= 0 else 'red'
+            text = f'${total_pnl:,.0f}'
+            
+            annotations.append(dict(
+                x=month,
+                y=y_position,
+                text=text,
+                showarrow=False,
+                font=dict(size=12, color=color, family='Arial Black'),
+                xanchor='center',
+                yanchor=yanchor,
+                bgcolor='rgba(255,255,255,0.8)',
+                bordercolor=color,
+                borderwidth=1
             ))
         
         fig.update_layout(
@@ -332,13 +403,14 @@ class ChartGenerator:
                 y=-0.2,
                 x=0.5,
                 xanchor='center'
-            )
+            ),
+            annotations=annotations
         )
         
         return {
             'chart': fig.to_json(),
             'type': 'monthly_stacked',
-            'description': 'Monthly P&L breakdown stacked by strategy. Shows contribution of each strategy to monthly performance.'
+            'description': 'Monthly P&L breakdown stacked by strategy. Negative values have borders and patterns for better visibility.'
         }
     
     @cache_chart_result()
