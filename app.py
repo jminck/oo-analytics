@@ -2261,7 +2261,23 @@ def upload_csv():
                 chart_generator = ChartGenerator(portfolio)
                 chart_generator.clear_cache()
             except Exception as cache_error:
-                print(f"Warning: Could not clear cache: {cache_error}")
+                print(f"Warning: Could not clear chart cache: {cache_error}")
+            
+            # Clear portfolio cache from cache manager
+            try:
+                from cache_manager import cache_manager
+                cache_manager.clear_portfolio_cache(saved_filename)
+                print(f"Cleared cache for uploaded portfolio: {saved_filename}")
+            except Exception as cache_error:
+                print(f"Warning: Could not clear portfolio cache: {cache_error}")
+            
+            # Clear Monte Carlo simulation cache for the new portfolio
+            try:
+                from analytics import MonteCarloSimulator
+                simulator = MonteCarloSimulator(portfolio)
+                simulator.clear_cache()
+            except Exception as cache_error:
+                print(f"Warning: Could not clear Monte Carlo cache: {cache_error}")
             # Track current data type and initial capital
             global current_data_type, current_initial_capital
             current_data_type = data_type
@@ -2798,10 +2814,11 @@ def load_saved_file(filename):
         
         # Clear any additional caches
         try:
-            from cache_manager import CacheManager
-            cache_manager = CacheManager()
-            cache_manager.clear_all_caches()
-            print("🧹 All caches cleared due to data reload")
+            from cache_manager import cache_manager
+            # Clear chart and analytics caches
+            cache_manager._chart_cache.clear()
+            cache_manager._analytics_cache.clear()
+            print("🧹 Chart and analytics caches cleared due to data reload")
         except Exception as cache_error:
             print(f"Warning: Could not clear all caches: {cache_error}")
         
@@ -5273,6 +5290,333 @@ def get_meic_time_heatmap():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/parse-log', methods=['POST'])
+def parse_log():
+    """Parse debug log file and extract trade data."""
+    try:
+        if 'file' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'No file provided'
+            }), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': 'No file selected'
+            }), 400
+        
+        # Read the log content
+        print(f"DEBUG API: Starting to read file: {file.filename}")
+        log_content = file.read().decode('utf-8')
+        print(f"DEBUG API: File read successfully, content length: {len(log_content)}")
+        
+        # Parse the log using the same logic as the script
+        print("DEBUG API: Starting to extract trades from log")
+        trades = extract_trades_from_log(log_content)
+        print(f"DEBUG API: Trade extraction completed, found {len(trades)} trades")
+        
+        # Debug: log the trades being returned
+        print(f"DEBUG API: Returning {len(trades)} trades")
+        for i, trade in enumerate(trades[:3]):  # Log first 3 trades
+            print(f"DEBUG API: Trade {i+1}: {trade['strategy']} - Initial: {trade['initial_order_price']}, Final: {trade['final_fill_price']}, Slippage: {trade['slippage']}")
+        
+        return jsonify({
+            'success': True,
+            'trades': trades,
+            'count': len(trades)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/example_activitylog.txt')
+def serve_example_log():
+    """Serve the example activity log file."""
+    try:
+        return send_file('example_activitylog.txt', as_attachment=False, mimetype='text/plain')
+    except Exception as e:
+        return f"Error serving example file: {str(e)}", 404
+
+def extract_trades_from_log(log):
+    """Extract trades from debug log content."""
+    import re
+    from datetime import datetime
+    
+    print("DEBUG: Starting extract_trades_from_log")
+    lines = log.splitlines()
+    lines = [l.strip() for l in lines if l.strip()]
+    print(f"DEBUG: Processed {len(lines)} lines")
+    
+    # reverse to chronological
+    lines = lines[::-1]
+    
+    trades = []
+    current_strategy = None
+    i = 0
+    print(f"DEBUG: Starting to process lines, total: {len(lines)}")
+    
+    # First pass: identify all strategy boundaries and create a strategy map
+    strategy_map = {}  # line_index -> strategy_name
+    for idx, line in enumerate(lines):
+        if line.startswith("Activity Log for "):
+            strategy_name = line.split("for ", 1)[1].replace(',', '')
+            strategy_map[idx] = strategy_name
+            print(f"DEBUG: Found strategy '{strategy_name}' at line {idx}")
+    
+    print(f"DEBUG: Found {len(strategy_map)} strategies")
+    
+    while i < len(lines):
+        line = lines[i]
+        
+        # Debug progress every 1000 lines
+        if i % 1000 == 0:
+            print(f"DEBUG: Processing line {i}/{len(lines)}")
+        
+        # Skip example data at the beginning of the file
+        if line.startswith("**Output Format:**") or line.startswith("Example output:") or line.startswith("Now analyze this log data:"):
+            i += 1
+            continue
+        
+        # Skip CSV header and example rows
+        if line.startswith("Strategy,Entry Date,Entry Time") or ("," in line and "Sep 26 2025" in line and "11:20:01 AM" in line):
+            i += 1
+            continue
+        
+        if line.startswith("Activity Log for "):
+            # Extract everything after "Activity Log for " as the strategy name
+            current_strategy = line.split("for ", 1)[1]
+            # Only remove commas, keep everything else
+            current_strategy = current_strategy.replace(',', '')
+            print(f"DEBUG: Set current_strategy to: {current_strategy}")
+            i += 1
+            continue
+        
+        # Find the correct strategy for this line by looking for the most recent strategy before this line
+        # Since we're processing in reverse, we need to find the strategy that comes after this line in the original order
+        line_strategy = None
+        for strategy_line_idx in sorted(strategy_map.keys()):
+            if strategy_line_idx > i:  # Strategy comes after this line in original order
+                line_strategy = strategy_map[strategy_line_idx]
+                break
+        
+        # If no strategy found after this line, use the current strategy
+        if line_strategy is None:
+            line_strategy = current_strategy
+        
+        print(f"DEBUG: Line {i} using strategy: {line_strategy}")
+        
+        # Handle "Trade closed with exit condition" - these are closing trades without "Closing Trade" marker
+        if "Trade closed with exit condition" in line:
+            # Extract the exit condition (status)
+            exit_condition = re.split(r'with exit condition ', line)[1] if 'with exit condition ' in line else "Closed"
+            
+            # Get the timestamp from the previous line
+            timestamp_line = lines[i-1] if i > 0 else ""
+            entry_date = ""
+            entry_time = ""
+            
+            # Extract date and time from timestamp line
+            if timestamp_line:
+                # Parse timestamp like "4:15:02 PM - Friday, Oct 3, 2025"
+                time_match = re.search(r'(\d{1,2}:\d{2}:\d{2} [AP]M)', timestamp_line)
+                date_match = re.search(r'(\w+), (\w+ \d+, \d{4})', timestamp_line)
+                
+                if time_match:
+                    entry_time = time_match.group(1)
+                if date_match:
+                    # Convert to mm/dd/yyyy format
+                    date_str = date_match.group(2).replace(',', '')
+                    try:
+                        parsed_date = datetime.strptime(date_str, "%b %d %Y")
+                        entry_date = parsed_date.strftime("%m/%d/%Y")
+                    except:
+                        entry_date = date_str
+            
+            # Add this as a closing trade with minimal data
+            trades.append({
+                'strategy': line_strategy,
+                'date': entry_date,
+                'time': entry_time,
+                'initial_order_price': None,
+                'modifications': 0,
+                'final_fill_price': None,
+                'quantity': None,
+                'status': exit_condition,
+                'trade_type': 'Closing',
+                'slippage': None
+            })
+            i += 1
+            continue
+        
+        # Handle "No entry" conditions - these are not trades, skip them
+        # Also skip the timestamp line before "No entry" lines
+        if "No entry:" in line:
+            # Check if the previous line was a timestamp (contains time pattern like "11:45:01 AM")
+            if i > 0 and re.search(r'\d{1,2}:\d{2}:\d{2} [AP]M', lines[i-1]):
+                # Skip both the timestamp line and the "No entry" line
+                i += 1
+            else:
+                # Just skip the "No entry" line
+                i += 1
+            continue
+        
+        if "Opening Trade" in line or "Closing Trade" in line:
+            if "Opening Trade" in line:
+                trade_type = 'Opening'
+            elif "Closing Trade" in line:
+                trade_type = 'Closing'
+            
+            # the time line is after the message in reverse
+            next_line = lines[i + 1] if i + 1 < len(lines) else None
+            
+            entry_date = ""
+            entry_time = ""
+            if next_line:
+                match = re.match(r'(\d+:\d+:\d+ [AP]M) - (\w+), ([\w\d\s,]+)', next_line)
+                if match:
+                    entry_time = match.group(1)
+                    # Convert to mm/dd/yyyy format
+                    date_str = match.group(3).replace(',', '')
+                    try:
+                        parsed_date = datetime.strptime(date_str, "%b %d %Y")
+                        entry_date = parsed_date.strftime("%m/%d/%Y")
+                    except:
+                        entry_date = date_str
+            
+            initial_price = None
+            mods = 0
+            final_fill_price = None
+            quantity = None
+            status = ""
+            
+            j = i + 2  # skip the next time line
+            
+            while j < len(lines):
+                line = lines[j]
+                
+                # For closing trades, look for exit conditions
+                if trade_type == "Closing" and "Trade closed with exit condition" in line:
+                    status = re.split(r'with exit condition ', line)[1]
+                
+                # For opening trades, only include if they were successfully filled
+                if trade_type == "Opening":
+                    # Check for "canceled after x attempt(s)" - this means max attempts reached
+                    if "canceled after" in line and "attempt" in line:
+                        status = "FailedMaxAttempts"
+                    # If we see "Expired" in the context of an opening trade, it means the order expired and didn't execute
+                    elif "Expired" in line:
+                        status = "Expired"  # This will be filtered out later
+                    # If we see "Profit" or "Loss" in the context of an opening trade, it means the trade was profitable/lossy
+                    elif "Profit" in line:
+                        status = "Profit"  # This will be filtered out later
+                    elif "Loss" in line:
+                        status = "Loss"  # This will be filtered out later
+                
+                # Look for initial price from any order status line
+                if 'status:' in line and ('price:' in line or 'order price:' in line):
+                    price_match = re.search(r'(?:order )?price: ([\d.]+)', line)
+                    if price_match and initial_price is None:
+                        initial_price = float(price_match.group(1))
+                
+                if "modified to" in line:
+                    mods += 1
+                
+                if "filled for" in line:
+                    q_match = re.search(r'with quantity ([\d.]+)', line)
+                    if q_match:
+                        quantity = float(q_match.group(1))
+                
+                if 'status: "FILLED"' in line or 'status: "Filled"' in line:
+                    # Look for both "price:" and "order price:" patterns
+                    price_match = re.search(r'(?:order )?price: ([\d.]+)', line)
+                    if price_match:
+                        final_fill_price = float(price_match.group(1))
+                    
+                    # For opening trades that are filled, set status to "Filled"
+                    if trade_type == "Opening" and not status:  # Only set if no other status was determined
+                        status = "Filled"
+                
+                if j + 1 < len(lines) and ("Opening Trade" in lines[j + 1] or "Closing Trade" in lines[j + 1] or lines[j + 1].startswith("Activity Log for ")):
+                    break
+                j += 1
+            
+            # For opening trades, only include if they were successfully filled
+            if trade_type == "Opening":
+                # If no status was determined, it means the trade was filled
+                if not status:
+                    status = "Filled"
+                # If status is "Expired", "Profit", or "Loss", it means the trade didn't execute properly
+                # Skip these trades as they didn't actually occur
+                # But include "FailedMaxAttempts" as these are real trade attempts that should be logged
+                elif status in ["Expired", "Profit", "Loss"]:
+                    i = j
+                    continue  # Skip this trade, don't add it to the list
+            
+            # For closing trades, include them even if they don't have price information
+            # Just log whatever information is available (status, type, etc.)
+            if trade_type == "Closing":
+                # If no status was determined, set a default status
+                if not status:
+                    status = "Closed"
+            
+            # Check for duplicate trades (same strategy, date, time, and trade details)
+            # This prevents the same trade from being added multiple times across different strategy sections
+            existing_trade = any(
+                t['strategy'] == current_strategy and t['date'] == entry_date and t['time'] == entry_time and 
+                t['initial_order_price'] == initial_price and t['modifications'] == mods and t['final_fill_price'] == final_fill_price and t['quantity'] == quantity
+                for t in trades
+            )
+            
+            if not existing_trade:
+                # Calculate slippage: Final Fill Price - Initial Order Price
+                slippage = None
+                if initial_price is not None and final_fill_price is not None:
+                    slippage_value = final_fill_price - initial_price
+                    # If initial and final prices are equal, set slippage to 0.0
+                    if slippage_value == 0:
+                        slippage = 0.0
+                    else:
+                        slippage = round(slippage_value, 2)
+                elif final_fill_price is not None and initial_price is None:
+                    # If we have a final price but no initial price, slippage is 0.0
+                    slippage = 0.0
+                else:
+                    # Debug: log when slippage can't be calculated
+                    print(f"DEBUG: Cannot calculate slippage for {line_strategy} - initial_price: {initial_price}, final_fill_price: {final_fill_price}")
+                
+                trade_data = {
+                    'strategy': line_strategy,
+                    'date': entry_date,
+                    'time': entry_time,
+                    'initial_order_price': initial_price,
+                    'modifications': mods,
+                    'final_fill_price': final_fill_price,
+                    'quantity': int(quantity) if quantity is not None else None,
+                    'status': status,
+                    'trade_type': trade_type,
+                    'slippage': slippage
+                }
+                trades.append(trade_data)
+                
+                # Debug: log slippage calculation
+                print(f"DEBUG: Trade slippage - Strategy: {line_strategy}, Initial: {initial_price}, Final: {final_fill_price}, Slippage: {slippage} (type: {type(slippage)})")
+                
+                # Special debug for identical prices
+                if initial_price is not None and final_fill_price is not None and initial_price == final_fill_price:
+                    print(f"DEBUG: IDENTICAL PRICES - Strategy: {line_strategy}, Price: {initial_price}, Slippage should be 0.0, actual: {slippage}")
+            
+            i = j
+        else:
+            i += 1
+    
+    print(f"DEBUG: extract_trades_from_log completed, returning {len(trades)} trades")
+    return trades
 
 # WSGI entry point for Azure App Service
 application = app

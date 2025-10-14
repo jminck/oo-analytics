@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Portfolio Strategy Analytics</title>
+    <title>Portfolio Strategy Analytics - v20241213_8</title>
     
     <!-- Plotly.js for interactive charts -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
@@ -14,7 +14,7 @@
     <!-- Bootstrap for styling -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/i18n.js') }}?v=20241213_6"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}?v=20241213_8"></script>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -2603,9 +2603,34 @@
     </div>
 
     <script>
-        // Cache busting version - v20241213_7
-        console.log('🔧 JavaScript loaded - v20241213_7_i18n_button_debug');
+        // Cache busting version - v20241213_8_log_parser_fix
+        console.log('🔧 JavaScript loaded - v20241213_8_log_parser_fix');
         console.log('🔧 Timestamp:', new Date().toISOString());
+        console.log('🔧 SIMPLE TEST: JavaScript is working!');
+        
+        // Force cache busting
+        const cacheBuster = Date.now();
+        console.log('🔧 Cache buster timestamp:', cacheBuster);
+        
+        // Test if loadLogParser function exists
+        console.log('🔧 loadLogParser function exists:', typeof loadLogParser);
+        if (typeof loadLogParser === 'function') {
+            console.log('🔧 loadLogParser function is available');
+        } else {
+            console.error('🔧 ERROR: loadLogParser function not found!');
+        }
+        
+        // Force page refresh if needed
+        if (localStorage.getItem('forceRefresh') === 'true') {
+            localStorage.removeItem('forceRefresh');
+            console.log('🔧 Forcing page refresh...');
+            window.location.reload(true);
+        }
+        
+        // Immediate test - this should run as soon as the script loads
+        (function() {
+            console.log('🔧 IMMEDIATE TEST: This should run immediately');
+        })();
         
         // Global state
         let currentChart = null;
@@ -2751,7 +2776,8 @@
                                     lineCount: lineCount,
                                     estimatedTradeCount: estimatedTradeCount,
                                     maxTrades: maxTrades,
-                                    warning: null
+                                    warning: null,
+                                    fileContent: content  // Add file content for schema detection
                                 };
                                 
                                 // Check for trade limit warning
@@ -2768,7 +2794,8 @@
                                     lineCount: lineCount,
                                     estimatedTradeCount: estimatedTradeCount,
                                     maxTrades: 3000, // Default fallback
-                                    warning: null
+                                    warning: null,
+                                    fileContent: content  // Add file content for schema detection
                                 };
                                 showFileAnalysisModal(file, analysisData);
                             }
@@ -2780,7 +2807,8 @@
                                 lineCount: lineCount,
                                 estimatedTradeCount: estimatedTradeCount,
                                 maxTrades: 3000, // Default fallback
-                                warning: null
+                                warning: null,
+                                fileContent: content  // Add file content for schema detection
                             };
                             showFileAnalysisModal(file, analysisData);
                         });
@@ -2881,10 +2909,16 @@
                     // Clear all application state before loading new data
                     clearAllAppState();
                     
-                    loadPortfolioData();
-                    loadDataStats();
-                    loadSavedFilesList();
-                    loadFilesOverview();
+                    // Force complete UI refresh with cache busting
+                    setTimeout(() => {
+                        loadPortfolioData();
+                        loadDataStats();
+                        loadSavedFilesList();
+                        loadFilesOverview();
+                        
+                        // Force refresh of all cached components
+                        refreshAllUIComponents();
+                    }, 100);
                 } else {
                     // Track upload failure
                     if (window.appInsights) {
@@ -3774,11 +3808,16 @@
                     // Update filename display
                     updateFilenameDisplay(filename);
                     
-                    // Refresh all data displays
-                    loadDataStats();
-                    loadPortfolioData();
+                    // Force complete UI refresh with cache busting
+                    setTimeout(() => {
+                        loadDataStats();
+                        loadPortfolioData();
+                        
+                        // Force refresh of all cached components
+                        refreshAllUIComponents();
+                    }, 100);
                     
-                    // Clear chart
+                    // Clear chart immediately
                     document.getElementById('chartContainer').innerHTML = 
                         '<div class="text-center text-muted"><h4>📊 Data loaded! Select a chart to view analytics</h4></div>';
                     
@@ -4085,8 +4124,12 @@
                 'mfe_mae': 'MFE/MAE Analysis',
                 'blackout_dates': 'Blackout dates analysis',
                 'price_movement': 'Price movement analysis',
+                'separator': '--- Cross-File Analysis ---',
                 'live_vs_bt': 'Live vs Backtest comparison',
-                'cross_file_correlation': 'Analyze strategies across multiple uploaded files'
+                'cross_file_correlation': 'Analyze strategies across multiple uploaded files',
+                'files_overview': 'Uploaded files overview and management',
+                'separator2': '--- Tools ---',
+                'log_parser': 'Slippage Analyzer'
             };
             renderChartButtons();
         }
@@ -4137,11 +4180,20 @@
                     ['separator', '--- Cross-File Analysis ---'],
                         ['live_vs_bt', 'Live vs Backtest comparison'],
                     ['cross_file_correlation', 'Analyze strategies across multiple uploaded files'],
-                    ['files_overview', 'Uploaded files overview and management']
+                    ['files_overview', 'Uploaded files overview and management'],
+                    ['separator2', '--- Tools ---'],
+                    ['log_parser', 'Slippage Analyzer']
                 ];
                 
-                // Convert array to object for compatibility, but exclude separator
-                availableCharts = Object.fromEntries(fallbackChartsArray.filter(([key, value]) => key !== 'separator'));
+                // Convert array to object for compatibility, but exclude separators from clickable charts
+                availableCharts = Object.fromEntries(fallbackChartsArray.filter(([key, value]) => key !== 'separator' && key !== 'separator2'));
+                
+                // Add separators back for rendering purposes
+                availableCharts['separator'] = '--- Cross-File Analysis ---';
+                availableCharts['separator2'] = '--- Tools ---';
+                
+                // Ensure log_parser is available
+                availableCharts['log_parser'] = 'Slippage Analyzer';
             }
 
             // Define the desired order for charts
@@ -4171,7 +4223,9 @@
                 'separator',
                 'live_vs_bt',
                 'cross_file_correlation',
-                'files_overview'
+                'files_overview',
+                'separator2',
+                'log_parser'
             ];
 
                 // Render buttons in the specified order
@@ -4186,7 +4240,19 @@
                             separator.innerHTML = `
                                 <div class="border-top pt-4 mt-4 mb-3">
                                     <div class="text-center">
-                                        <span class="badge bg-secondary fs-6 px-3 py-2">Cross-File Analysis</span>
+                                        <span class="badge bg-secondary fs-6 px-3 py-2">${window.i18n ? window.i18n.t('cross_file_analysis') : 'Cross-File Analysis'}</span>
+                                    </div>
+                                </div>
+                            `;
+                            container.appendChild(separator);
+                        } else if (chartType === 'separator2') {
+                            // Create a visual separator for Tools section
+                            const separator = document.createElement('div');
+                            separator.className = 'w-100';
+                            separator.innerHTML = `
+                                <div class="border-top pt-4 mt-4 mb-3">
+                                    <div class="text-center">
+                                        <span class="badge bg-secondary fs-6 px-3 py-2">${window.i18n ? window.i18n.t('tools') : 'Tools'}</span>
                                     </div>
                                 </div>
                             `;
@@ -4196,12 +4262,22 @@
                         button.className = 'btn btn-outline-primary btn-chart';
                             const translatedName = formatChartName(chartType);
                             console.log(`🔧 Button for ${chartType}: "${translatedName}"`);
+                            
+                            // Special debug for log_parser
+                            if (chartType === 'log_parser') {
+                                console.log('🔧 DEBUG: Creating log_parser button');
+                                console.log('🔧 DEBUG: availableCharts[log_parser]:', availableCharts[chartType]);
+                            }
+                            
                             button.textContent = translatedName;
                         button.title = availableCharts[chartType];
                             // Fix closure issue by capturing chartType in a local variable
                             const currentChartType = chartType;
                             button.onclick = () => {
                                 console.log('Button clicked for chart type:', currentChartType);
+                                if (currentChartType === 'log_parser') {
+                                    console.log('🔧 DEBUG: log_parser button clicked!');
+                                }
                                 loadChart(currentChartType);
                             };
                         container.appendChild(button);
@@ -4255,7 +4331,9 @@
                 'separator': window.i18n ? '--- ' + window.i18n.t('cross_file_analysis') + ' ---' : '--- Cross-File Analysis ---',
                 'live_vs_bt': window.i18n ? window.i18n.t('chart_live_vs_bt') : '⚖️ Live vs Backtest',
                 'cross_file_correlation': window.i18n ? window.i18n.t('chart_cross_file_correlation') : '🔗 Cross-File Correlation',
-                'files_overview': window.i18n ? window.i18n.t('chart_files_overview') : '📁 Uploaded Files Overview'
+                'files_overview': window.i18n ? window.i18n.t('chart_files_overview') : '📁 Uploaded Files Overview',
+                'separator2': window.i18n ? '--- ' + window.i18n.t('tools') + ' ---' : '--- Tools ---',
+                'log_parser': window.i18n ? window.i18n.t('chart_log_parser') : '🔧 Slippage Analyzer'
             };
             return chartNames[chartType] || chartType;
         }
@@ -4537,6 +4615,18 @@
             if (chartType === 'live_vs_bt') {
                 console.log('🔧 LIVE VS BT ANALYSIS CONDITION REACHED');
                 loadLiveVsBTAnalysis();
+                return;
+            }
+            
+            if (chartType === 'log_parser') {
+                console.log('🔧 LOG PARSER CONDITION REACHED');
+                console.log('DEBUG: About to call loadLogParser()');
+                try {
+                    loadLogParser();
+                    console.log('DEBUG: loadLogParser() call completed successfully');
+                } catch (error) {
+                    console.error('DEBUG: Error in loadLogParser():', error);
+                }
                 return;
             }
             
@@ -13279,6 +13369,57 @@
             console.log('🧹 Application state cleared');
         }
 
+        function refreshAllUIComponents() {
+            console.log('🔄 Forcing complete UI refresh...');
+            
+            // Force refresh of Portfolio Overview
+            const portfolioOverviewContainer = document.getElementById('portfolioOverview');
+            if (portfolioOverviewContainer) {
+                portfolioOverviewContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading portfolio overview...</p></div>';
+            }
+            
+            // Force refresh of Strategy Performance table
+            const strategyTableContainer = document.getElementById('strategyTableContainer');
+            if (strategyTableContainer) {
+                strategyTableContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading strategy performance...</p></div>';
+            }
+            
+            // Force refresh of all chart containers
+            const chartContainer = document.getElementById('chartContainer');
+            if (chartContainer) {
+                chartContainer.innerHTML = '<div class="text-center text-muted"><h4>📊 Data loaded! Select a chart to view analytics</h4></div>';
+            }
+            
+            // Clear any existing analysis results
+            const analysisResults = document.querySelectorAll('[id*="Analysis"], [id*="analysis"]');
+            analysisResults.forEach(container => {
+                if (container.id !== 'portfolioOverview' && container.id !== 'strategyTableContainer') {
+                    container.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading...</p></div>';
+                }
+            });
+            
+            // Force refresh of all cached data with timestamp
+            const timestamp = Date.now();
+            
+            // Reload portfolio data with cache busting
+            setTimeout(() => {
+                loadPortfolioData();
+            }, 50);
+            
+            setTimeout(() => {
+                loadDataStats();
+            }, 100);
+            
+            setTimeout(() => {
+                // Force refresh of any other cached components
+                if (typeof loadAvailableCharts === 'function') {
+                    loadAvailableCharts();
+                }
+            }, 150);
+            
+            console.log('🔄 UI refresh initiated');
+        }
+
         // Function to handle loading completion
         function onDataLoadComplete() {
             isLoadingData = false;
@@ -14878,19 +15019,38 @@ Build User: ${versionInfo.build_user}`;
                 `;
             }
             
-            // Check if it's a live trading file and add starting capital input
-            const isLiveFile = file.name.toLowerCase().includes('live') || 
-                             (analysisData.fileContent && analysisData.fileContent.includes('Initial Premium'));
+            // Check if it's a live trading file using the same logic as backend
+            const isLiveFile = analysisData.fileContent && analysisData.fileContent.includes('Initial Premium');
+            const isBacktestFile = analysisData.fileContent && analysisData.fileContent.includes('Funds at Close');
             
             if (isLiveFile) {
-            html += `
+                // Live trading file - show editable starting capital input
+                html += `
                         <div class="mt-3">
                             <label for="modalInitialCapitalInput" class="form-label">
-                                <i class="fas fa-dollar-sign text-success"></i> Starting Capital (Live Trading Only)
+                                <i class="fas fa-dollar-sign text-success"></i> Starting Capital (Live Trading)
                             </label>
                             <input type="number" class="form-control" id="modalInitialCapitalInput" 
                                    name="initial_capital" min="1" step="1" value="100000">
                             <small class="text-muted">Used to calculate portfolio values for live trading data. Default: $100,000</small>
+                        </div>
+                `;
+            } else if (isBacktestFile) {
+                // Backtest file - show starting capital as informational alert
+                html += `
+                        <div class="mt-3">
+                            <label class="form-label">
+                                <i class="fas fa-chart-line text-info"></i> Starting Capital (Backtest)
+                            </label>
+                            <div class="alert alert-info d-flex align-items-start" role="alert">
+                                <i class="fas fa-info-circle me-2 mt-1" 
+                                   data-bs-toggle="tooltip" 
+                                   title="Backtest files contain account balance progression in the 'Funds at Close' column, so starting capital is automatically calculated from the data."></i>
+                                <div>
+                                    <strong>Backtest Data:</strong> Starting capital is automatically calculated from the "Funds at Close" column in the data.
+                                    <br><small class="text-muted">No manual input required for backtest files.</small>
+                                </div>
+                            </div>
                         </div>
                 `;
             }
@@ -14919,6 +15079,13 @@ Build User: ${versionInfo.build_user}`;
             }
             
             content.innerHTML = html;
+            
+            // Initialize tooltips for the modal
+            const tooltipTriggerList = [].slice.call(content.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
             modal.show();
         }
 
@@ -14955,6 +15122,1095 @@ Build User: ${versionInfo.build_user}`;
             document.getElementById('uploadContent').style.display = '';
             document.getElementById('uploadFileBtn').style.display = 'none';
             document.getElementById('initialCapitalGroup').style.display = 'none';
+        }
+
+        // Load Log Parser
+        function loadLogParser() {
+            console.log('Loading Log Parser...');
+            console.log('DEBUG: loadLogParser function started');
+            
+            try {
+                const container = document.getElementById('chartContainer');
+                const loading = document.getElementById('chartLoading');
+                
+                console.log('DEBUG: container:', container);
+                console.log('DEBUG: loading:', loading);
+                
+                if (!container) {
+                    console.error('DEBUG: chartContainer not found!');
+                    return;
+                }
+            
+            // Show log parser interface
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-tools"></i> <span data-i18n="log_parser_title">Slippage Analyzer</span></h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-4">
+                            <h6><i class="fas fa-info-circle"></i> <span data-i18n="log_parser_what_is">What is Slippage Analyzer?</span></h6>
+                            <p class="mb-2" id="log_parser_description">This tool analyzes debug log files to extract trade data and calculate slippage between initial order prices and final fill prices.</p>
+                            <p class="mb-2"><strong data-i18n="log_parser_why_useful">Why is this useful?</strong></p>
+                            <ul class="mb-2">
+                                <li><strong data-i18n="log_parser_extract_trades">Extract Trades:</strong> Parse opening and closing trades from activity logs</li>
+                                <li><strong data-i18n="log_parser_structured_data">Structured Data:</strong> Convert raw logs into organized CSV format</li>
+                                <li><strong data-i18n="log_parser_slippage_analysis">Slippage Analysis:</strong> Calculate price differences between initial and final fills</li>
+                                <li><strong data-i18n="log_parser_trade_tracking">Trade Tracking:</strong> Track modifications, quantities, and trade status</li>
+                            </ul>
+                            <p class="mb-0"><strong data-i18n="log_parser_how_it_works">How it works:</strong> Upload an Activity Log file with "include debug" turned on and the system will extract all trades, parse timestamps, prices, and status information into a downloadable CSV. You can combine activity logs from multiple strategies into the same log file.</p>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label" data-i18n="log_parser_upload_label">Upload Activity Log File:</label>
+                            <div class="upload-area" id="logUploadArea" onclick="if (!window.selectedLogFile) document.getElementById('logFileInput').click()" style="height: 80px;">
+                                <div class="upload-content" id="logUploadContent">
+                                    <i class="fas fa-file-alt"></i>
+                                    <h6 id="logUploadPrompt" style="font-size: 0.8rem; margin: 0;" data-i18n="drop_log_here">Drop log file here</h6>
+                                    <small class="text-muted" id="logUploadHint" style="font-size: 0.7rem;" data-i18n="or_click_to_browse_log">or click to browse (.txt or .log)</small>
+                                </div>
+                                <div id="logFileInfo" style="display:none;">
+                                    <span id="selectedLogFileName" class="fw-bold" style="font-size: 0.8rem;"></span>
+                                    <button type="button" class="btn btn-link btn-sm text-danger ms-2" id="clearLogFileBtn" style="font-size: 0.7rem;">Remove</button>
+                                    <div class="text-muted" style="font-size: 0.7rem;">Click Parse Log File</div>
+                                </div>
+                            </div>
+                            <input type="file" id="logFileInput" accept=".txt,.log" style="display: none;" onchange="handleLogFileSelection()">
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button class="btn btn-primary" onclick="parseLogFile()" id="parseLogBtn" disabled>
+                                <i class="fas fa-cogs"></i> <span data-i18n="parse_log">Parse Log File</span>
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="clearLogSelection()">
+                                <i class="fas fa-times"></i> <span data-i18n="clear_selection">Clear Selection</span>
+                            </button>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-database"></i> <span data-i18n="master_trade_list">Master Trade List</span></h6>
+                                <p class="mb-2" data-i18n="master_list_description">Trades from each log file are automatically added to your master list for cumulative analysis.</p>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success btn-sm" onclick="loadMasterTradeList()">
+                                        <i class="fas fa-list"></i> <span data-i18n="load_master_list">Load Master List</span>
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteMasterTradeList()">
+                                        <i class="fas fa-trash"></i> <span data-i18n="delete_master_list">Delete Master List</span>
+                                    </button>
+                                    <button class="btn btn-info btn-sm" onclick="downloadMasterTradeList()">
+                                        <i class="fas fa-download"></i> <span data-i18n="download_master_csv">Download Master CSV</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="logParserResults" class="mt-4" style="display: none;">
+                            <!-- Results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            console.log('DEBUG: HTML set, about to show container');
+            
+            // Show container and hide loading
+            container.style.display = 'block';
+            if (loading) {
+                loading.style.display = 'none';
+            }
+            
+                console.log('DEBUG: Container shown, loading hidden');
+                console.log('DEBUG: Container innerHTML length:', container.innerHTML.length);
+                console.log('DEBUG: About to call setupLogFileUpload');
+                // Set up drag and drop handlers for log upload
+                try {
+                    setupLogFileUpload();
+                    console.log('DEBUG: setupLogFileUpload call completed successfully');
+                } catch (error) {
+                    console.error('DEBUG: Error in setupLogFileUpload:', error);
+                }
+                
+                // Update the description with HTML link
+                updateLogParserDescription();
+            } catch (error) {
+                console.error('DEBUG: Error in loadLogParser:', error);
+                alert('Error in loadLogParser: ' + error.message);
+            }
+        }
+        
+        // Sorting functions for log parser tables
+        function sortSlippageSummaryTable(column) {
+            console.log('DEBUG: sortSlippageSummaryTable called with column:', column);
+            const table = document.getElementById('slippageSummaryTable');
+            if (!table) {
+                console.log('DEBUG: slippageSummaryTable not found!');
+                return;
+            }
+            console.log('DEBUG: Found slippageSummaryTable, proceeding with sort');
+            
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Toggle sort direction
+            const currentSort = table.getAttribute('data-sort');
+            const currentDir = table.getAttribute('data-sort-dir') || 'asc';
+            const newDir = (currentSort === column && currentDir === 'asc') ? 'desc' : 'asc';
+            
+            // Update sort indicators
+            updateSortIndicators(table, column, newDir);
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                const aVal = getCellValue(a, column);
+                const bVal = getCellValue(b, column);
+                
+                let comparison = 0;
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    comparison = aVal - bVal;
+                } else {
+                    comparison = String(aVal).localeCompare(String(bVal));
+                }
+                
+                return newDir === 'asc' ? comparison : -comparison;
+            });
+            
+            // Re-append sorted rows
+            rows.forEach(row => tbody.appendChild(row));
+        }
+        
+        function sortLogParserTable(column) {
+            console.log('DEBUG: sortLogParserTable called with column:', column);
+            const table = document.getElementById('logParserTable');
+            if (!table) {
+                console.log('DEBUG: logParserTable not found!');
+                return;
+            }
+            console.log('DEBUG: Found logParserTable, proceeding with sort');
+            
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Toggle sort direction
+            const currentSort = table.getAttribute('data-sort');
+            const currentDir = table.getAttribute('data-sort-dir') || 'asc';
+            const newDir = (currentSort === column && currentDir === 'asc') ? 'desc' : 'asc';
+            
+            // Update sort indicators
+            updateSortIndicators(table, column, newDir);
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                const aVal = getCellValue(a, column);
+                const bVal = getCellValue(b, column);
+                
+                let comparison = 0;
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    comparison = aVal - bVal;
+                } else {
+                    comparison = String(aVal).localeCompare(String(bVal));
+                }
+                
+                return newDir === 'asc' ? comparison : -comparison;
+            });
+            
+            // Re-append sorted rows
+            rows.forEach(row => tbody.appendChild(row));
+        }
+        
+        function getCellValue(row, column) {
+            const cellIndex = getColumnIndex(column);
+            const cell = row.children[cellIndex];
+            if (!cell) return '';
+            
+            const text = cell.textContent.trim();
+            
+            // Try to parse as number for numeric columns
+            if (['count', 'avg_slippage', 'min_slippage', 'max_slippage', 'modifications', 'quantity', 'slippage'].includes(column)) {
+                const num = parseFloat(text);
+                return isNaN(num) ? 0 : num;
+            }
+            
+            // Try to parse as date for date columns
+            if (column === 'date') {
+                const date = new Date(text);
+                return isNaN(date.getTime()) ? text : date;
+            }
+            
+            return text;
+        }
+        
+        function getColumnIndex(column) {
+            const columnMap = {
+                'strategy': 0,
+                'trade_type': 1,
+                'count': 2,
+                'avg_slippage': 3,
+                'min_slippage': 4,
+                'max_slippage': 5,
+                'date': 1,
+                'time': 2,
+                'initial_order_price': 3,
+                'modifications': 4,
+                'final_fill_price': 5,
+                'quantity': 6,
+                'status': 7,
+                'slippage': 9
+            };
+            return columnMap[column] || 0;
+        }
+        
+        function updateSortIndicators(table, column, direction) {
+            // Clear all indicators
+            const headers = table.querySelectorAll('th');
+            headers.forEach(th => {
+                const icon = th.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-sort';
+                }
+            });
+            
+            // Set current indicator
+            const currentHeader = table.querySelector(`th[data-sort="${column}"]`);
+            if (currentHeader) {
+                const icon = currentHeader.querySelector('i');
+                if (icon) {
+                    icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                }
+            }
+            
+            // Update table attributes
+            table.setAttribute('data-sort', column);
+            table.setAttribute('data-sort-dir', direction);
+        }
+        
+        function setupLogParserTableSorting() {
+            console.log('DEBUG: Setting up log parser table sorting');
+            
+            // Set up slippage summary table sorting
+            const slippageTable = document.getElementById('slippageSummaryTable');
+            if (slippageTable) {
+                const headers = slippageTable.querySelectorAll('th.sortable');
+                console.log('DEBUG: Found', headers.length, 'sortable headers in slippage table');
+                headers.forEach((header, index) => {
+                    console.log('DEBUG: Adding click listener to header', index, header.textContent.trim());
+                    // Remove any existing listeners first
+                    header.onclick = null;
+                    header.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        console.log('DEBUG: Slippage table header clicked!');
+                        const column = this.getAttribute('data-sort');
+                        console.log('DEBUG: Column to sort:', column);
+                        sortSlippageSummaryTable(column);
+                    });
+                });
+            } else {
+                console.log('DEBUG: slippageSummaryTable not found');
+            }
+            
+            // Set up individual trades table sorting
+            const tradesTable = document.getElementById('logParserTable');
+            if (tradesTable) {
+                const headers = tradesTable.querySelectorAll('th.sortable');
+                console.log('DEBUG: Found', headers.length, 'sortable headers in trades table');
+                headers.forEach((header, index) => {
+                    console.log('DEBUG: Adding click listener to header', index, header.textContent.trim());
+                    // Remove any existing listeners first
+                    header.onclick = null;
+                    header.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        console.log('DEBUG: Trades table header clicked!');
+                        const column = this.getAttribute('data-sort');
+                        console.log('DEBUG: Column to sort:', column);
+                        sortLogParserTable(column);
+                    });
+                });
+            } else {
+                console.log('DEBUG: logParserTable not found');
+            }
+        }
+        
+        function updateLogParserDescription() {
+            console.log('DEBUG: Updating log parser description with HTML link');
+            const descriptionElement = document.getElementById('log_parser_description');
+            if (descriptionElement) {
+                let baseText;
+                if (window.i18n) {
+                    // Get the translated text
+                    baseText = window.i18n.t('log_parser_description');
+                    console.log('DEBUG: Got translated text:', baseText);
+                } else {
+                    // Fallback to the template text
+                    baseText = descriptionElement.textContent || descriptionElement.innerText;
+                    console.log('DEBUG: Using fallback text:', baseText);
+                }
+                
+                // Remove any existing HTML tags and clean up the text
+                const cleanText = baseText.replace(/<[^>]*>/g, '').trim();
+                
+                // Add the HTML link
+                const linkText = cleanText + ' <a href=\'/example_activitylog.txt\' target=\'_blank\' class=\'text-decoration-none\'>📄 View example log file</a>';
+                descriptionElement.innerHTML = linkText;
+                console.log('DEBUG: Updated description with HTML link');
+            } else {
+                console.log('DEBUG: log_parser_description element not found');
+            }
+        }
+        
+        // Master Trade List Functions
+        function addTradesToMasterList(trades) {
+            console.log('DEBUG: Adding trades to master list:', trades.length);
+            
+            // Get existing master list
+            let masterList = getMasterTradeList();
+            
+            // Add timestamp and source info to each trade
+            const timestamp = new Date().toISOString();
+            const tradesWithMetadata = trades.map(trade => ({
+                ...trade,
+                _added_to_master: timestamp,
+                _source_file: 'log_parser'
+            }));
+            
+            // Deduplicate trades - check if trade already exists in master list
+            const newTrades = [];
+            let duplicateCount = 0;
+            
+            tradesWithMetadata.forEach(newTrade => {
+                // Create a comparison key for the trade (excluding metadata fields)
+                const tradeKey = createTradeKey(newTrade);
+                
+                // Check if this trade already exists in master list
+                const isDuplicate = masterList.some(existingTrade => {
+                    const existingKey = createTradeKey(existingTrade);
+                    return tradeKey === existingKey;
+                });
+                
+                if (!isDuplicate) {
+                    newTrades.push(newTrade);
+                } else {
+                    duplicateCount++;
+                    console.log('DEBUG: Skipping duplicate trade:', tradeKey);
+                }
+            });
+            
+            // Append only new trades to master list
+            masterList = masterList.concat(newTrades);
+            
+            // Save updated master list
+            localStorage.setItem('masterTradeList', JSON.stringify(masterList));
+            
+            console.log(`DEBUG: Master list updated. Added ${newTrades.length} new trades, skipped ${duplicateCount} duplicates. Total trades: ${masterList.length}`);
+            
+            // Show user notification if duplicates were found
+            if (duplicateCount > 0) {
+                console.log(`INFO: ${duplicateCount} duplicate trades were skipped to prevent duplicates in master list`);
+            }
+            
+            return {
+                masterList: masterList,
+                addedCount: newTrades.length,
+                duplicateCount: duplicateCount
+            };
+        }
+        
+        function createTradeKey(trade) {
+            // Create a unique key for trade comparison based on core trade data
+            // Exclude metadata fields like _added_to_master, _source_file
+            const keyFields = [
+                trade.strategy,
+                trade.date,
+                trade.time,
+                trade.initial_order_price,
+                trade.modifications,
+                trade.final_fill_price,
+                trade.quantity,
+                trade.status,
+                trade.trade_type,
+                trade.slippage
+            ];
+            
+            return keyFields.map(field => 
+                field !== null && field !== undefined ? String(field) : ''
+            ).join('|');
+        }
+        
+        function getMasterTradeList() {
+            const stored = localStorage.getItem('masterTradeList');
+            return stored ? JSON.parse(stored) : [];
+        }
+        
+        function loadMasterTradeList() {
+            console.log('DEBUG: Loading master trade list');
+            
+            const masterList = getMasterTradeList();
+            
+            if (masterList.length === 0) {
+                alert('Master trade list is empty. Parse some log files first to build your master list.');
+                return;
+            }
+            
+            // Display master list using the same format as individual log results
+            displayMasterTradeList(masterList);
+        }
+        
+        function displayMasterTradeList(trades) {
+            console.log('DEBUG: Displaying master trade list with', trades.length, 'trades');
+            
+            const resultsDiv = document.getElementById('logParserResults');
+            
+            // Calculate slippage stats for master list
+            const slippageStats = calculateSlippageStats(trades);
+            
+            let html = `
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-database"></i> <span data-i18n="master_trade_list">Master Trade List</span> <span class="badge bg-primary">${trades.length} trades</span></h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-success mb-3">
+                            <i class="fas fa-check-circle"></i> <strong data-i18n="trades_extracted">Trades Extracted:</strong> ${trades.length}
+                        </div>
+            `;
+            
+            // Add slippage summary table for master list
+            html += `
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-chart-line"></i> <span data-i18n="master_slippage_summary">Master List Slippage Summary by Strategy & Trade Type</span></h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped" id="masterSlippageSummaryTable">
+                                <thead>
+                                    <tr>
+                                        <th class="sortable" data-sort="strategy" style="cursor: pointer;"><span data-i18n="strategy">Strategy</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="trade_type" style="cursor: pointer;"><span data-i18n="trade_type">Trade Type</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="count" style="cursor: pointer;"><span data-i18n="trades_count">Trades</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="avg_slippage" style="cursor: pointer;"><span data-i18n="avg_slippage">Avg Slippage</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="min_slippage" style="cursor: pointer;"><span data-i18n="min_slippage">Min Slippage</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="max_slippage" style="cursor: pointer;"><span data-i18n="max_slippage">Max Slippage</span> <i class="fas fa-sort"></i></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+            `;
+            
+            if (slippageStats.length > 0) {
+                slippageStats.forEach(stat => {
+                    html += `
+                        <tr>
+                            <td>${stat.strategy}</td>
+                            <td>${stat.trade_type}</td>
+                            <td>${stat.count}</td>
+                            <td>${typeof stat.avg_slippage === 'number' ? stat.avg_slippage.toFixed(2) : stat.avg_slippage}</td>
+                            <td>${typeof stat.min_slippage === 'number' ? stat.min_slippage.toFixed(2) : stat.min_slippage}</td>
+                            <td>${typeof stat.max_slippage === 'number' ? stat.max_slippage.toFixed(2) : stat.max_slippage}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html += `
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">
+                            <i class="fas fa-info-circle"></i> No slippage data available for analysis.
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Individual Trade Results Table for master list
+            html += `
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="masterLogParserTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="sortable" data-sort="strategy" style="cursor: pointer;"><span data-i18n="strategy">Strategy</span> <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="date" style="cursor: pointer;"><span data-i18n="date">Date</span> <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="time" style="cursor: pointer;"><span data-i18n="time">Time</span> <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="initial_order_price" style="cursor: pointer;"><span data-i18n="initial_order_price">Initial Order Price</span> <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="modifications" style="cursor: pointer;"><span data-i18n="modifications">Modifications</span> <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="final_fill_price" style="cursor: pointer;"><span data-i18n="final_fill_price">Final Fill Price</span> <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="quantity" style="cursor: pointer;"><span data-i18n="quantity">Quantity</span> <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="status" style="cursor: pointer;"><span data-i18n="status">Status</span> <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="trade_type" style="cursor: pointer;"><span data-i18n="trade_type">Trade Type</span> <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="slippage" style="cursor: pointer;"><span data-i18n="slippage">Slippage</span> <i class="fas fa-sort"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            trades.forEach(trade => {
+                html += `
+                    <tr>
+                        <td>${trade.strategy || ''}</td>
+                        <td>${trade.date || ''}</td>
+                        <td>${trade.time || ''}</td>
+                        <td>${trade.initial_order_price || ''}</td>
+                        <td>${trade.modifications || 0}</td>
+                        <td>${trade.final_fill_price || ''}</td>
+                        <td>${trade.quantity || ''}</td>
+                        <td>${trade.status || ''}</td>
+                        <td>${trade.trade_type || ''}</td>
+                        <td>${(trade.slippage !== null && trade.slippage !== undefined) ? (typeof trade.slippage === 'number' ? trade.slippage.toFixed(2) : trade.slippage) : ''}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <button class="btn btn-success" onclick="downloadMasterTradeList()">
+                        <i class="fas fa-download"></i> <span data-i18n="download_master_csv">Download Master CSV</span>
+                    </button>
+                </div>
+            </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+            
+            // Set up sorting for master list tables
+            setupMasterListTableSorting();
+        }
+        
+        function deleteMasterTradeList() {
+            if (confirm('Are you sure you want to delete the master trade list? This action cannot be undone.')) {
+                localStorage.removeItem('masterTradeList');
+                alert('Master trade list has been deleted.');
+                console.log('DEBUG: Master trade list deleted');
+            }
+        }
+        
+        function downloadMasterTradeList() {
+            const masterList = getMasterTradeList();
+            
+            if (masterList.length === 0) {
+                alert('Master trade list is empty.');
+                return;
+            }
+            
+            // Convert to CSV
+            const csvContent = convertTradesToCSV(masterList);
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'master_trade_list.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+        
+        function convertTradesToCSV(trades) {
+            if (!trades || trades.length === 0) return '';
+            
+            // Define CSV headers
+            const headers = [
+                'Strategy',
+                'Date', 
+                'Time',
+                'Initial Order Price',
+                'Modifications',
+                'Final Fill Price',
+                'Quantity',
+                'Status',
+                'Trade Type',
+                'Slippage'
+            ];
+            
+            // Create CSV content
+            let csvContent = headers.join(',') + '\n';
+            
+            trades.forEach(trade => {
+                const row = [
+                    trade.strategy || '',
+                    trade.date || '',
+                    trade.time || '',
+                    trade.initial_order_price || '',
+                    trade.modifications || 0,
+                    trade.final_fill_price || '',
+                    trade.quantity || '',
+                    trade.status || '',
+                    trade.trade_type || '',
+                    (trade.slippage !== null && trade.slippage !== undefined) ? 
+                        (typeof trade.slippage === 'number' ? trade.slippage.toFixed(2) : trade.slippage) : ''
+                ];
+                
+                // Escape commas and quotes in CSV
+                const escapedRow = row.map(field => {
+                    const str = String(field);
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return '"' + str.replace(/"/g, '""') + '"';
+                    }
+                    return str;
+                });
+                
+                csvContent += escapedRow.join(',') + '\n';
+            });
+            
+            return csvContent;
+        }
+        
+        function setupMasterListTableSorting() {
+            console.log('DEBUG: Setting up master list table sorting');
+            
+            // Set up master slippage summary table sorting
+            const slippageTable = document.getElementById('masterSlippageSummaryTable');
+            if (slippageTable) {
+                const headers = slippageTable.querySelectorAll('th.sortable');
+                headers.forEach(header => {
+                    header.addEventListener('click', function() {
+                        const column = this.getAttribute('data-sort');
+                        sortSlippageSummaryTable(column);
+                    });
+                });
+            }
+            
+            // Set up master individual trades table sorting
+            const tradesTable = document.getElementById('masterLogParserTable');
+            if (tradesTable) {
+                const headers = tradesTable.querySelectorAll('th.sortable');
+                headers.forEach(header => {
+                    header.addEventListener('click', function() {
+                        const column = this.getAttribute('data-sort');
+                        sortLogParserTable(column);
+                    });
+                });
+            }
+        }
+        
+        function setupLogFileUpload() {
+            console.log('DEBUG: setupLogFileUpload called');
+            
+            // Wait a bit for DOM to be ready
+            setTimeout(() => {
+                console.log('DEBUG: Looking for DOM elements after timeout');
+                
+                const uploadArea = document.getElementById('logUploadArea');
+                const fileInput = document.getElementById('logFileInput');
+                const clearBtn = document.getElementById('clearLogFileBtn');
+                
+                console.log('DEBUG: uploadArea:', uploadArea);
+                console.log('DEBUG: fileInput:', fileInput);
+                console.log('DEBUG: clearBtn:', clearBtn);
+                
+                if (!uploadArea) {
+                    console.log('DEBUG: No uploadArea found, returning');
+                    return;
+                }
+                
+                // Continue with the rest of the function...
+                setupLogFileUploadHandlers(uploadArea, fileInput, clearBtn);
+            }, 100);
+        }
+        
+        function setupLogFileUploadHandlers(uploadArea, fileInput, clearBtn) {
+            console.log('DEBUG: Setting up event handlers');
+            
+            // Drag and drop handlers
+            uploadArea.addEventListener('dragover', function(e) {
+                console.log('DEBUG: dragover event');
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', function(e) {
+                console.log('DEBUG: dragleave event');
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                console.log('DEBUG: drop event, files:', e.dataTransfer.files.length);
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    console.log('DEBUG: File dropped, setting file input and calling handleLogFileSelection');
+                    // Set the file input value
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(files[0]);
+                    fileInput.files = dataTransfer.files;
+                    handleLogFileSelection();
+                }
+            });
+            
+            // Clear button handler
+            if (clearBtn) {
+                console.log('DEBUG: Setting up clear button handler');
+                clearBtn.addEventListener('click', function(e) {
+                    console.log('DEBUG: Clear button clicked');
+                    e.stopPropagation();
+                    clearLogSelection();
+                });
+            } else {
+                console.log('DEBUG: No clear button found');
+            }
+        }
+
+        function handleLogFileSelection() {
+            console.log('DEBUG: handleLogFileSelection called');
+            
+            const fileInput = document.getElementById('logFileInput');
+            const uploadContent = document.getElementById('logUploadContent');
+            const fileInfo = document.getElementById('logFileInfo');
+            const fileName = document.getElementById('selectedLogFileName');
+            const parseBtn = document.getElementById('parseLogBtn');
+            
+            console.log('DEBUG: fileInput.files.length:', fileInput.files.length);
+            
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                console.log('DEBUG: File selected:', file.name, 'Size:', file.size);
+                fileName.textContent = file.name;
+                uploadContent.style.display = 'none';
+                fileInfo.style.display = 'block';
+                parseBtn.disabled = false;
+                window.selectedLogFile = file;
+                console.log('DEBUG: Parse button enabled, file stored in window.selectedLogFile');
+            } else {
+                console.log('DEBUG: No file selected, hiding file info');
+                uploadContent.style.display = 'block';
+                fileInfo.style.display = 'none';
+                parseBtn.disabled = true;
+                window.selectedLogFile = null;
+            }
+        }
+
+        function clearLogSelection() {
+            document.getElementById('logFileInput').value = '';
+            document.getElementById('logUploadContent').style.display = 'block';
+            document.getElementById('logFileInfo').style.display = 'none';
+            document.getElementById('parseLogBtn').disabled = true;
+            document.getElementById('logParserResults').style.display = 'none';
+            window.selectedLogFile = null;
+        }
+
+        function parseLogFile() {
+            console.log('DEBUG: parseLogFile function called');
+            
+            const fileInput = document.getElementById('logFileInput');
+            const resultsDiv = document.getElementById('logParserResults');
+            const parseBtn = document.getElementById('parseLogBtn');
+            
+            console.log('DEBUG: fileInput:', fileInput);
+            console.log('DEBUG: fileInput.files.length:', fileInput.files.length);
+            console.log('DEBUG: Elements found - fileInput: ' + (fileInput ? 'YES' : 'NO') + ', resultsDiv: ' + (resultsDiv ? 'YES' : 'NO') + ', parseBtn: ' + (parseBtn ? 'YES' : 'NO'));
+            
+            if (!fileInput.files.length) {
+                console.log('DEBUG: No file selected, showing alert');
+                alert('Please select a log file first.');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            console.log('DEBUG: Selected file:', file.name, 'Size:', file.size);
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            console.log('DEBUG: FormData created, file appended');
+            
+            // Show loading state
+            parseBtn.disabled = true;
+            parseBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Parsing...';
+            console.log('DEBUG: Button state updated, starting fetch request');
+            
+            fetch('/api/parse-log', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('DEBUG: Fetch response received:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('DEBUG: JSON data received:', data);
+                if (data.success) {
+                    // Add trades to master list and get deduplication info
+                    const result = addTradesToMasterList(data.trades);
+                    const duplicateCount = result.duplicateCount;
+                    
+                    // Display the results
+                    displayLogParserResults(data.trades, data.count);
+                    
+                    // Show deduplication notification if applicable
+                    if (duplicateCount > 0) {
+                        showAlert(`${duplicateCount} duplicate trades were skipped to prevent duplicates in master list.`, 'info');
+                    }
+                } else {
+                    alert('Error parsing log: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('DEBUG: Fetch error:', error);
+                alert('Error parsing log file: ' + error.message);
+            })
+            .finally(() => {
+                console.log('DEBUG: Fetch finally block executed');
+                // Reset button state
+                parseBtn.disabled = false;
+                parseBtn.innerHTML = '<i class="fas fa-cogs"></i> <span data-i18n="parse_log">Parse Log File</span>';
+            });
+        }
+
+        function displayLogParserResults(trades, count) {
+            try {
+                console.log('DEBUG: displayLogParserResults called with', trades.length, 'trades');
+                const resultsDiv = document.getElementById('logParserResults');
+                
+                if (!resultsDiv) {
+                    console.error('DEBUG: logParserResults element not found!');
+                    return;
+                }
+            
+            // Debug: log raw trades data
+            console.log('DEBUG FRONTEND: Received trades:', trades);
+            console.log('DEBUG FRONTEND: First trade details:', trades[0]);
+            
+            // Calculate average slippage by Strategy and Trade Type
+            const slippageStats = calculateSlippageStats(trades);
+            console.log('Slippage stats:', slippageStats);
+            console.log('Slippage stats length:', slippageStats.length);
+            console.log('Trades with slippage data:', trades.filter(t => t.slippage !== null && t.slippage !== undefined));
+            console.log('All trades slippage values:', trades.map(t => ({ strategy: t.strategy, slippage: t.slippage, slippageType: typeof t.slippage, initial: t.initial_order_price, final: t.final_fill_price })));
+            console.log('Trades with 0 slippage:', trades.filter(t => t.slippage === 0 || t.slippage === 0.0));
+            console.log('Trades with slippage === 0:', trades.filter(t => t.slippage === 0));
+            console.log('Trades with slippage === 0.0:', trades.filter(t => t.slippage === 0.0));
+            console.log('Trades with slippage == 0:', trades.filter(t => t.slippage == 0));
+            
+            let html = `
+                <div class="card">
+                    <div class="card-header">
+                        <h6><i class="fas fa-chart-line"></i> <span data-i18n="parsing_results">Parsing Results</span></h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-success mb-3">
+                            <i class="fas fa-check-circle"></i> <strong data-i18n="trades_extracted">Trades Extracted:</strong> ${count}
+                        </div>
+            `;
+            
+            // Add slippage summary table (always show)
+            html += `
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-chart-line"></i> <span data-i18n="slippage_summary">Slippage Summary by Strategy & Trade Type</span></h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped" id="slippageSummaryTable">
+                                        <thead>
+                                            <tr>
+                                                <th class="sortable" data-sort="strategy" style="cursor: pointer;"><span data-i18n="strategy">Strategy</span> <i class="fas fa-sort"></i></th>
+                                                <th class="sortable" data-sort="trade_type" style="cursor: pointer;"><span data-i18n="trade_type">Trade Type</span> <i class="fas fa-sort"></i></th>
+                                                <th class="sortable" data-sort="count" style="cursor: pointer;"><span data-i18n="trades_count">Trades</span> <i class="fas fa-sort"></i></th>
+                                                <th class="sortable" data-sort="avg_slippage" style="cursor: pointer;"><span data-i18n="avg_slippage">Avg Slippage</span> <i class="fas fa-sort"></i></th>
+                                                <th class="sortable" data-sort="min_slippage" style="cursor: pointer;"><span data-i18n="min_slippage">Min Slippage</span> <i class="fas fa-sort"></i></th>
+                                                <th class="sortable" data-sort="max_slippage" style="cursor: pointer;"><span data-i18n="max_slippage">Max Slippage</span> <i class="fas fa-sort"></i></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+            `;
+            
+            if (slippageStats.length > 0) {
+                slippageStats.forEach(stat => {
+                    html += `
+                        <tr>
+                            <td>${stat.strategy}</td>
+                            <td>${stat.trade_type}</td>
+                            <td>${stat.count}</td>
+                            <td>${typeof stat.avg_slippage === 'number' ? stat.avg_slippage.toFixed(2) : stat.avg_slippage}</td>
+                            <td>${typeof stat.min_slippage === 'number' ? stat.min_slippage.toFixed(2) : stat.min_slippage}</td>
+                            <td>${typeof stat.max_slippage === 'number' ? stat.max_slippage.toFixed(2) : stat.max_slippage}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html += `
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">
+                                <i class="fas fa-info-circle"></i> No slippage data available for analysis.
+                            </td>
+                        </tr>
+                `;
+            }
+            
+            html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+            `;
+            
+            // Individual Trade Results Table
+            html += `
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="logParserTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="sortable" data-sort="strategy" style="cursor: pointer;"><span data-i18n="strategy">Strategy</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="date" style="cursor: pointer;"><span data-i18n="date">Date</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="time" style="cursor: pointer;"><span data-i18n="time">Time</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="initial_order_price" style="cursor: pointer;"><span data-i18n="initial_order_price">Initial Order Price</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="modifications" style="cursor: pointer;"><span data-i18n="modifications">Modifications</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="final_fill_price" style="cursor: pointer;"><span data-i18n="final_fill_price">Final Fill Price</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="quantity" style="cursor: pointer;"><span data-i18n="quantity">Quantity</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="status" style="cursor: pointer;"><span data-i18n="status">Status</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="trade_type" style="cursor: pointer;"><span data-i18n="trade_type">Trade Type</span> <i class="fas fa-sort"></i></th>
+                                        <th class="sortable" data-sort="slippage" style="cursor: pointer;"><span data-i18n="slippage">Slippage</span> <i class="fas fa-sort"></i></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+            `;
+            
+            trades.forEach(trade => {
+                html += `
+                    <tr>
+                        <td>${trade.strategy || ''}</td>
+                        <td>${trade.date || ''}</td>
+                        <td>${trade.time || ''}</td>
+                        <td>${trade.initial_order_price || ''}</td>
+                        <td>${trade.modifications || 0}</td>
+                        <td>${trade.final_fill_price || ''}</td>
+                        <td>${trade.quantity || ''}</td>
+                        <td>${trade.status || ''}</td>
+                        <td>${trade.trade_type || ''}</td>
+                        <td>${(trade.slippage !== null && trade.slippage !== undefined) ? (typeof trade.slippage === 'number' ? trade.slippage.toFixed(2) : trade.slippage) : ''}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-success" onclick="downloadLogParserCSV()">
+                                <i class="fas fa-download"></i> <span data-i18n="download_csv">Download CSV</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+            
+            // Store trades data for CSV download
+            window.logParserTrades = trades;
+            
+        // Set up sorting for both tables
+        setupLogParserTableSorting();
+        
+        // Handle special i18n for log parser description with HTML link
+        updateLogParserDescription();
+        } catch (error) {
+            console.error('DEBUG: Error in displayLogParserResults:', error);
+            alert('Error displaying results: ' + error.message);
+        }
+        }
+        
+        function calculateSlippageStats(trades) {
+            const stats = {};
+            console.log('DEBUG: calculateSlippageStats called with', trades.length, 'trades');
+            
+            trades.forEach(trade => {
+                console.log('DEBUG: Processing trade:', trade.strategy, 'slippage:', trade.slippage, 'type:', typeof trade.slippage);
+                // Include all trades with slippage data, including 0.0 values
+                if (trade.slippage !== null && trade.slippage !== undefined) {
+                    const key = `${trade.strategy}|${trade.trade_type}`;
+                    if (!stats[key]) {
+                        stats[key] = {
+                            strategy: trade.strategy,
+                            trade_type: trade.trade_type,
+                            slippages: []
+                        };
+                    }
+                    stats[key].slippages.push(trade.slippage);
+                    console.log(`DEBUG: Added slippage ${trade.slippage} for ${trade.strategy} ${trade.trade_type}`);
+                } else {
+                    console.log(`DEBUG: Skipping trade with slippage: ${trade.slippage} for ${trade.strategy} ${trade.trade_type}`);
+                }
+            });
+            
+            const result = Object.values(stats).map(stat => {
+                // Handle cases where slippages array might be empty
+                if (stat.slippages.length === 0) {
+                    return {
+                        strategy: stat.strategy,
+                        trade_type: stat.trade_type,
+                        count: 0,
+                        avg_slippage: 'N/A',
+                        min_slippage: 'N/A',
+                        max_slippage: 'N/A'
+                    };
+                }
+                
+                return {
+                    strategy: stat.strategy,
+                    trade_type: stat.trade_type,
+                    count: stat.slippages.length,
+                    avg_slippage: stat.slippages.reduce((a, b) => a + b, 0) / stat.slippages.length,
+                    min_slippage: Math.min(...stat.slippages),
+                    max_slippage: Math.max(...stat.slippages)
+                };
+            });
+            
+            console.log('DEBUG: calculateSlippageStats returning', result.length, 'stats:', result);
+            return result;
+        }
+
+        function downloadLogParserCSV() {
+            if (!window.logParserTrades) {
+                alert('No trades data available for download.');
+                return;
+            }
+            
+            // Create CSV content
+            let csvContent = 'Strategy,Date,Time,Initial Order Price,Number of Modifications,Final Fill Price,Quantity,Status,Trade Type,Slippage\n';
+            
+            window.logParserTrades.forEach(trade => {
+                const row = [
+                    trade.strategy || '',
+                    trade.date || '',
+                    trade.time || '',
+                    trade.initial_order_price || '',
+                    trade.modifications || 0,
+                    trade.final_fill_price || '',
+                    trade.quantity || '',
+                    trade.status || '',
+                    trade.trade_type || '',
+                    trade.slippage || ''
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'parsed_trades.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
         }
     </script>
 </body>

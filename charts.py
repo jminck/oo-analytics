@@ -2122,7 +2122,9 @@ class ChartFactory:
             'separator': '--- Cross-File Analysis ---',
             'live_vs_bt': 'Live vs Backtest comparison analysis',
             'cross_file_correlation': 'Cross-file strategy correlation analysis',
-            'files_overview': 'Uploaded files overview and management'
+            'files_overview': 'Uploaded files overview and management',
+            'separator2': '--- Tools ---',
+            'log_parser': 'Debug Log Parser'
         }
     
     def get_monte_carlo_charts() -> Dict[str, str]:
@@ -2150,7 +2152,8 @@ class ChartFactory:
             'daily_margin_analysis': self.generator.create_daily_margin_analysis_chart,
             'pnl_by_day_of_week': self.generator.create_pnl_by_day_of_week_chart,
             'conflicting_legs': self.generator._empty_chart,  # Will be handled specially in loadChart
-            'cross_file_correlation': self.generator._empty_chart  # Will be handled specially in loadChart
+            'cross_file_correlation': self.generator._empty_chart,  # Will be handled specially in loadChart
+            'log_parser': self.generator._empty_chart  # Will be handled specially in loadChart
         }
         
         if chart_type in chart_methods:

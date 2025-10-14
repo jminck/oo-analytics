@@ -1,0 +1,1630 @@
+
+Activity Log for [CORE - DC] SPX Fri 6/7 Double Calendar 6 day trade [11:45 Fr] (ToS Trading)
+11:45:35 AM - Friday, Oct 10, 2025
+Resting profit target order created: "1004376762215"
+11:45:34 AM - Friday, Oct 10, 2025
+Order 1004376762199 filled after 6 attempt(s)
+11:45:34 AM - Friday, Oct 10, 2025
+Order 1004376762199 filled for 8.05 with quantity 1
+11:45:34 AM - Friday, Oct 10, 2025
+Order 1004376762199 status: "FILLED", order price: 8.05
+11:45:30 AM - Friday, Oct 10, 2025
+Order 1004376762199 modified to 8.05
+11:45:29 AM - Friday, Oct 10, 2025
+Order 1004376762181 status: "WORKING", order price: 8.00
+11:45:25 AM - Friday, Oct 10, 2025
+Order 1004376762181 modified to 8.00
+11:45:24 AM - Friday, Oct 10, 2025
+Order 1004376762164 status: "WORKING", order price: 7.95
+11:45:21 AM - Friday, Oct 10, 2025
+Order 1004376762164 modified to 7.95
+11:45:19 AM - Friday, Oct 10, 2025
+Order 1004376762139 status: "WORKING", order price: 7.90
+11:45:15 AM - Friday, Oct 10, 2025
+Order 1004376762139 modified to 7.90
+11:45:14 AM - Friday, Oct 10, 2025
+Order 1004376762113 status: "WORKING", order price: 7.85
+11:45:10 AM - Friday, Oct 10, 2025
+Order 1004376762113 modified to 7.85
+11:45:09 AM - Friday, Oct 10, 2025
+Order 1004376762084 status: "WORKING", order price: 7.80
+11:45:03 AM - Friday, Oct 10, 2025
+Order: 1004376762084, status: "WORKING"
+11:45:01 AM - Friday, Oct 10, 2025
+Opening Trade: "-1 SPXW251016P06505000 $20.65, -1 SPXW251016C06745000 $11.55, +1 SPXW251017P06505000 $24.05, +1 SPXW251017C06745000 $15.95"
+3:05:27 PM - Thursday, Oct 9, 2025
+Trade closed with exit condition ExitedAtTime
+3:05:27 PM - Thursday, Oct 9, 2025
+Order 1004367654852 filled after 4 attempt(s)
+3:05:27 PM - Thursday, Oct 9, 2025
+Order 1004367654852 filled for -3.80 with quantity 1.00
+3:05:27 PM - Thursday, Oct 9, 2025
+Order 1004367654852 status: "FILLED", price: 3.80
+3:05:23 PM - Thursday, Oct 9, 2025
+Order 1004367654852 modified to 3.80
+3:05:22 PM - Thursday, Oct 9, 2025
+Order 1004367654846 status: "WORKING", price: 3.85
+3:05:18 PM - Thursday, Oct 9, 2025
+Order 1004367654846 modified to 3.85
+3:05:17 PM - Thursday, Oct 9, 2025
+Order 1004367654836 status: "WORKING", price: 3.90
+3:05:13 PM - Thursday, Oct 9, 2025
+Order 1004367654836 modified to 3.90
+3:05:12 PM - Thursday, Oct 9, 2025
+Order 1004367654825 status: "WORKING", price: 3.95
+3:05:06 PM - Thursday, Oct 9, 2025
+Order: 1004367654825, status: "WORKING"
+3:05:04 PM - Thursday, Oct 9, 2025
+Closing Trade
+2:47:11 PM - Wednesday, Oct 8, 2025
+Error processing potential strategy open System.TimeoutException: Timed out waiting for market data VIX
+2:47:11 PM - Wednesday, Oct 8, 2025
+Error getting data for strategy close System.TimeoutException: Timed out waiting for market data UNDERLYING_SPX
+11:45:45 AM - Friday, Oct 3, 2025
+Resting profit target order created: "1004312164350"
+11:45:44 AM - Friday, Oct 3, 2025
+Order 1004312164340 filled after 8 attempt(s)
+11:45:44 AM - Friday, Oct 3, 2025
+Order 1004312164340 filled for 7.70 with quantity 1
+11:45:44 AM - Friday, Oct 3, 2025
+Order 1004312164340 status: "FILLED", order price: 7.70
+11:45:40 AM - Friday, Oct 3, 2025
+Order 1004312164340 modified to 7.70
+11:45:39 AM - Friday, Oct 3, 2025
+Order 1004312164331 status: "WORKING", order price: 7.65
+11:45:35 AM - Friday, Oct 3, 2025
+Order 1004312164331 modified to 7.65
+11:45:34 AM - Friday, Oct 3, 2025
+Order 1004312164314 status: "WORKING", order price: 7.60
+11:45:30 AM - Friday, Oct 3, 2025
+Order 1004312164314 modified to 7.60
+11:45:29 AM - Friday, Oct 3, 2025
+Order 1004312164306 status: "WORKING", order price: 7.55
+11:45:25 AM - Friday, Oct 3, 2025
+Order 1004312164306 modified to 7.55
+11:45:24 AM - Friday, Oct 3, 2025
+Order 1004312164298 status: "WORKING", order price: 7.50
+11:45:21 AM - Friday, Oct 3, 2025
+Order 1004312164298 modified to 7.50
+11:45:19 AM - Friday, Oct 3, 2025
+Order 1004312164288 status: "WORKING", order price: 7.45
+11:45:15 AM - Friday, Oct 3, 2025
+Order 1004312164288 modified to 7.45
+11:45:14 AM - Friday, Oct 3, 2025
+Order 1004312164280 status: "WORKING", order price: 7.40
+11:45:10 AM - Friday, Oct 3, 2025
+Order 1004312164280 modified to 7.40
+11:45:09 AM - Friday, Oct 3, 2025
+Order 1004312164269 status: "WORKING", order price: 7.35
+11:45:04 AM - Friday, Oct 3, 2025
+Order: 1004312164269, status: "WORKING"
+11:45:01 AM - Friday, Oct 3, 2025
+Opening Trade: "-1 SPXW251009P06660000 $11.50, -1 SPXW251009C06805000 $7.95, +1 SPXW251010P06660000 $14.70, +1 SPXW251010C06805000 $12.10"
+10:55:07 AM - Thursday, Oct 2, 2025
+Trade closed with exit condition MaxProfit
+10:55:07 AM - Thursday, Oct 2, 2025
+Resting profit order filled "1004254919451"
+
+Include Debug
+Close
+
+
+Activity Log for [CORE - Fly] Dan Sheridan 30DTE Range Bound Fly max 4 [2:45 Daily] (ToS Trading)
+2:45:15 PM - Monday, Oct 13, 2025
+Resting profit target order created: "1004394880533"
+2:45:14 PM - Monday, Oct 13, 2025
+Order 1004394880521 filled after 2 attempt(s)
+2:45:14 PM - Monday, Oct 13, 2025
+Order 1004394880521 filled for 6.75 with quantity 1
+2:45:14 PM - Monday, Oct 13, 2025
+Order 1004394880521 status: "FILLED", order price: 6.75
+2:45:09 PM - Monday, Oct 13, 2025
+Order 1004394880521 status: "WORKING", order price: 6.75
+2:45:04 PM - Monday, Oct 13, 2025
+Order: 1004394880521, status: "WORKING"
+2:45:03 PM - Monday, Oct 13, 2025
+Opening Trade: "-2 SPXW251112C06650000 $127.60, +1 SPXW251112C06580000 $175.95, +1 SPXW251112C06720000 $86.00"
+2:45:03 PM - Friday, Oct 10, 2025
+No entry: exact strike offset(s) not found; attempted entry: "-2 SPXW251110C06600000 $140.20, +1 SPXW251110C06525000 $191.85, +1 SPXW251110C06670000 $97.80"
+2:45:02 PM - Thursday, Oct 9, 2025
+No entry: price 6721.67 is not below 9-day SMA 6713.59
+2:47:11 PM - Wednesday, Oct 8, 2025
+Error processing potential strategy open System.TimeoutException: Timed out waiting for market data VIX
+2:47:11 PM - Wednesday, Oct 8, 2025
+Error getting data for strategy close System.TimeoutException: Timed out waiting for market data UNDERLYING_SPX
+2:45:02 PM - Wednesday, Oct 8, 2025
+No entry: price 6748.37 is not below 9-day SMA 6704.33
+2:45:02 PM - Tuesday, Oct 7, 2025
+No entry: price 6712.12 is not below 9-day SMA 6688.09
+2:45:02 PM - Monday, Oct 6, 2025
+No entry: price 6745.96 is not below 9-day SMA 6680.48
+2:45:01 PM - Friday, Oct 3, 2025
+No entry: price 6723.48 is not below 9-day SMA 6671.45
+2:45:01 PM - Thursday, Oct 2, 2025
+No entry: price 6720.67 is not below 9-day SMA 6668.73
+2:45:02 PM - Wednesday, Oct 1, 2025
+No entry: price 6716.58 is not below 9-day SMA 6663.07
+2:45:02 PM - Tuesday, Sep 30, 2025
+No entry: price 6667.82 is not below 9-day SMA 6651.39
+
+Include Debug
+Close
+
+
+Activity Log for [CORE - FLY] SPX 25Delta short, 30 wide Bullish upmove 0.2 min 1.4 max [11:15-11:20 Mo/Tu/We/Th/Fr] (ToS Trading)
+11:20:01 AM - Monday, Oct 13, 2025
+No entry: price 6645.56 is not above 5-day SMA 6680.30
+11:19:01 AM - Monday, Oct 13, 2025
+No entry: price 6644.11 is not above 5-day SMA 6680.01
+11:18:02 AM - Monday, Oct 13, 2025
+No entry: price 6643.64 is not above 5-day SMA 6679.92
+11:17:02 AM - Monday, Oct 13, 2025
+No entry: price 6642.09 is not above 5-day SMA 6679.60
+11:16:02 AM - Monday, Oct 13, 2025
+No entry: price 6640.6 is not above 5-day SMA 6679.31
+11:15:01 AM - Monday, Oct 13, 2025
+No entry: price 6638.09 is not above 5-day SMA 6678.80
+11:20:02 AM - Friday, Oct 10, 2025
+No entry: intraday move "(%)" -0.92 is below min move up +0.2
+11:19:01 AM - Friday, Oct 10, 2025
+No entry: intraday move "(%)" -0.94 is below min move up +0.2
+11:18:02 AM - Friday, Oct 10, 2025
+No entry: intraday move "(%)" -0.76 is below min move up +0.2
+11:17:01 AM - Friday, Oct 10, 2025
+No entry: intraday move "(%)" -0.73 is below min move up +0.2
+11:16:02 AM - Friday, Oct 10, 2025
+No entry: intraday move "(%)" -0.60 is below min move up +0.2
+11:15:01 AM - Friday, Oct 10, 2025
+No entry: intraday move "(%)" -0.62 is below min move up +0.2
+11:20:02 AM - Thursday, Oct 9, 2025
+No entry: intraday move "(%)" -0.30 is below min move up +0.2
+11:19:02 AM - Thursday, Oct 9, 2025
+No entry: intraday move "(%)" -0.30 is below min move up +0.2
+11:18:01 AM - Thursday, Oct 9, 2025
+No entry: intraday move "(%)" -0.30 is below min move up +0.2
+11:17:01 AM - Thursday, Oct 9, 2025
+No entry: intraday move "(%)" -0.28 is below min move up +0.2
+11:16:02 AM - Thursday, Oct 9, 2025
+No entry: intraday move "(%)" -0.27 is below min move up +0.2
+11:15:02 AM - Thursday, Oct 9, 2025
+No entry: intraday move "(%)" -0.31 is below min move up +0.2
+4:15:03 PM - Wednesday, Oct 8, 2025
+Trade closed with exit condition Expired
+2:47:11 PM - Wednesday, Oct 8, 2025
+Error processing potential strategy open System.TimeoutException: Timed out waiting for market data VIX
+2:47:11 PM - Wednesday, Oct 8, 2025
+Error getting data for strategy close System.TimeoutException: Timed out waiting for market data UNDERLYING_SPX
+12:15:16 PM - Wednesday, Oct 8, 2025
+Resting profit target order created: "1004351335235"
+12:15:14 PM - Wednesday, Oct 8, 2025
+Manually changing trade exit conditions
+11:29:37 AM - Wednesday, Oct 8, 2025
+Resting profit target order created: "1004349963582"
+11:29:36 AM - Wednesday, Oct 8, 2025
+Manually changing trade exit conditions
+11:15:14 AM - Wednesday, Oct 8, 2025
+Order 1004349962666 filled after 2 attempt(s)
+11:15:14 AM - Wednesday, Oct 8, 2025
+Order 1004349962666 filled for 10.20 with quantity 1
+11:15:14 AM - Wednesday, Oct 8, 2025
+Order 1004349962666 status: "FILLED", order price: 10.20
+11:15:09 AM - Wednesday, Oct 8, 2025
+Order 1004349962666 status: "WORKING", order price: 10.20
+11:15:04 AM - Wednesday, Oct 8, 2025
+Order: 1004349962666, status: "WORKING"
+11:15:02 AM - Wednesday, Oct 8, 2025
+Opening Trade: "-2 SPXW251008C06770000 $0.40, +1 SPXW251008C06740000 $10.90, +1 SPXW251008C06800000 $0.10"
+11:20:02 AM - Tuesday, Oct 7, 2025
+No entry: intraday move "(%)" -0.41 is below min move up +0.2
+11:19:02 AM - Tuesday, Oct 7, 2025
+No entry: intraday move "(%)" -0.40 is below min move up +0.2
+11:18:02 AM - Tuesday, Oct 7, 2025
+No entry: intraday move "(%)" -0.37 is below min move up +0.2
+11:17:02 AM - Tuesday, Oct 7, 2025
+No entry: intraday move "(%)" -0.39 is below min move up +0.2
+11:16:02 AM - Tuesday, Oct 7, 2025
+No entry: intraday move "(%)" -0.45 is below min move up +0.2
+11:15:02 AM - Tuesday, Oct 7, 2025
+No entry: intraday move "(%)" -0.40 is below min move up +0.2
+11:20:02 AM - Monday, Oct 6, 2025
+No entry: intraday move "(%)" 0.02 is below min move up +0.2
+11:19:02 AM - Monday, Oct 6, 2025
+No entry: intraday move "(%)" 0.01 is below min move up +0.2
+11:18:01 AM - Monday, Oct 6, 2025
+No entry: intraday move "(%)" 0.00 is below min move up +0.2
+11:17:01 AM - Monday, Oct 6, 2025
+No entry: intraday move "(%)" 0.01 is below min move up +0.2
+11:16:02 AM - Monday, Oct 6, 2025
+No entry: intraday move "(%)" 0.01 is below min move up +0.2
+11:15:01 AM - Monday, Oct 6, 2025
+No entry: intraday move "(%)" -0.01 is below min move up +0.2
+4:15:01 PM - Friday, Oct 3, 2025
+Trade closed with exit condition Expired
+11:15:10 AM - Friday, Oct 3, 2025
+Order 1004311160697 filled after 1 attempt(s)
+11:15:10 AM - Friday, Oct 3, 2025
+Order 1004311160697 filled for 11.05 with quantity 1
+11:15:10 AM - Friday, Oct 3, 2025
+Order 1004311160697 status: "FILLED", order price: 11.05
+11:15:04 AM - Friday, Oct 3, 2025
+Order: 1004311160697, status: "FILLED"
+11:15:02 AM - Friday, Oct 3, 2025
+Opening Trade: "-2 SPXW251003C06765000 $0.65, +1 SPXW251003C06735000 $12.25, +1 SPXW251003C06795000 $0.10"
+11:20:02 AM - Thursday, Oct 2, 2025
+No entry: intraday move "(%)" -0.49 is below min move up +0.2
+11:19:02 AM - Thursday, Oct 2, 2025
+No entry: intraday move "(%)" -0.49 is below min move up +0.2
+11:18:02 AM - Thursday, Oct 2, 2025
+No entry: intraday move "(%)" -0.49 is below min move up +0.2
+11:17:01 AM - Thursday, Oct 2, 2025
+No entry: intraday move "(%)" -0.48 is below min move up +0.2
+11:16:01 AM - Thursday, Oct 2, 2025
+No entry: intraday move "(%)" -0.49 is below min move up +0.2
+11:15:02 AM - Thursday, Oct 2, 2025
+No entry: intraday move "(%)" -0.48 is below min move up +0.2
+1:38:02 PM - Wednesday, Oct 1, 2025
+Trade closed with exit condition MaxProfit
+1:38:02 PM - Wednesday, Oct 1, 2025
+Resting profit order filled "1004290319785"
+1:37:20 PM - Wednesday, Oct 1, 2025
+Resting profit target order created: "1004290319785"
+1:37:19 PM - Wednesday, Oct 1, 2025
+Manually changing trade exit conditions
+11:15:13 AM - Wednesday, Oct 1, 2025
+Order 1004287627011 filled after 2 attempt(s)
+11:15:13 AM - Wednesday, Oct 1, 2025
+Order 1004287627011 filled for 10.55 with quantity 1
+11:15:13 AM - Wednesday, Oct 1, 2025
+Order 1004287627011 status: "FILLED", order price: 10.55
+11:15:10 AM - Wednesday, Oct 1, 2025
+Order 1004287627011 modified to 10.55
+11:15:08 AM - Wednesday, Oct 1, 2025
+Order 1004287626997 status: "WORKING", order price: 10.50
+11:15:03 AM - Wednesday, Oct 1, 2025
+Order: 1004287626997, status: "WORKING"
+11:15:01 AM - Wednesday, Oct 1, 2025
+Opening Trade: "-2 SPXW251001C06710000 $0.75, +1 SPXW251001C06680000 $11.90, +1 SPXW251001C06740000 $0.10"
+11:20:01 AM - Tuesday, Sep 30, 2025
+No entry: intraday move "(%)" -0.10 is below min move up +0.2
+11:19:01 AM - Tuesday, Sep 30, 2025
+No entry: intraday move "(%)" -0.08 is below min move up +0.2
+11:18:02 AM - Tuesday, Sep 30, 2025
+No entry: intraday move "(%)" -0.08 is below min move up +0.2
+11:17:02 AM - Tuesday, Sep 30, 2025
+No entry: intraday move "(%)" -0.06 is below min move up +0.2
+11:16:02 AM - Tuesday, Sep 30, 2025
+No entry: intraday move "(%)" -0.04 is below min move up +0.2
+11:15:01 AM - Tuesday, Sep 30, 2025
+No entry: intraday move "(%)" -0.04 is below min move up +0.2
+
+Include Debug
+Close
+
+
+Activity Log for [CORE - PCS] Bull short put spread 25d short on 5>40 EMA [9:32-11:32 Mo/We/Th/Fr] (ToS Trading)
+11:32:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:31:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:30:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:29:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:28:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:27:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:26:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:25:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:24:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:23:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:22:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:21:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:20:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:19:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:18:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:17:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:16:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:15:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:14:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:13:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:12:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:11:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:10:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:09:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:08:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:07:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:06:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:05:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:04:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:03:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:02:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:01:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+11:00:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:59:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:58:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:57:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:56:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:55:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:54:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:53:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:52:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:51:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:50:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:49:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:48:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:47:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:46:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:45:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:44:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:43:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:42:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:41:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:40:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:39:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:38:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:37:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:36:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:35:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:34:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:33:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:32:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:31:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:30:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:29:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:28:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:27:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:26:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:25:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:24:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:23:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:22:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:21:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:20:09 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:20:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:19:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:18:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:17:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:16:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:15:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:14:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:13:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:12:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:11:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:10:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:09:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:08:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:07:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:06:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:05:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:04:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:03:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:02:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:01:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+10:00:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:59:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:58:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:57:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:56:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:55:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:54:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:53:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:52:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:51:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:50:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:49:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:48:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:47:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:46:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:45:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:44:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:43:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:42:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:41:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:40:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:39:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:38:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:37:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:36:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:35:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:34:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:33:02 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+9:32:01 AM - Monday, Oct 13, 2025
+No entry: VIX gap "(%)" -7.25 is below min gap up +0.01
+4:15:02 PM - Friday, Oct 10, 2025
+Trade closed with exit condition Expired
+10:58:07 AM - Friday, Oct 10, 2025
+Resting profit target order created: "1004374224797"
+10:58:06 AM - Friday, Oct 10, 2025
+Manually changing trade exit conditions
+9:32:08 AM - Friday, Oct 10, 2025
+Order 1004370776305 filled after 1 attempt(s)
+9:32:08 AM - Friday, Oct 10, 2025
+Order 1004370776305 filled for -2.60 with quantity 1
+9:32:08 AM - Friday, Oct 10, 2025
+Order 1004370776305 status: "FILLED", order price: 2.55
+9:32:03 AM - Friday, Oct 10, 2025
+Order: 1004370776305, status: "FILLED"
+9:32:01 AM - Friday, Oct 10, 2025
+Opening Trade: "-1 SPXW251010P06725000 $4.40, +1 SPXW251010P06700000 $1.85"
+4:15:02 PM - Thursday, Oct 9, 2025
+Trade closed with exit condition Expired
+9:32:09 AM - Thursday, Oct 9, 2025
+Order 1004357811553 filled after 1 attempt(s)
+9:32:09 AM - Thursday, Oct 9, 2025
+Order 1004357811553 filled for -2.70 with quantity 1
+9:32:09 AM - Thursday, Oct 9, 2025
+Order 1004357811553 status: "FILLED", order price: 2.60
+9:32:04 AM - Thursday, Oct 9, 2025
+Order: 1004357811553, status: "WORKING"
+9:32:02 AM - Thursday, Oct 9, 2025
+Opening Trade: "-1 SPXW251009P06745000 $4.25, +1 SPXW251009P06720000 $1.65"
+2:47:11 PM - Wednesday, Oct 8, 2025
+Error processing potential strategy open System.TimeoutException: Timed out waiting for market data VIX
+2:47:11 PM - Wednesday, Oct 8, 2025
+Error getting data for strategy close System.TimeoutException: Timed out waiting for market data UNDERLYING_SPX
+11:32:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:31:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:30:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:29:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:28:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:27:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:26:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:25:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:24:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:23:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:22:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:21:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:20:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:19:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:18:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:17:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:16:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:15:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:14:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:13:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:12:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:11:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:10:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:09:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:08:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:07:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:06:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:05:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:04:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:03:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:02:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:01:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+11:00:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:59:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:58:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:57:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:56:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:55:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:54:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:53:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:52:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:51:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:50:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:49:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:48:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:47:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:46:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:45:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:44:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:43:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:42:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:41:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:40:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:39:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:38:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:37:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:36:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:35:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:34:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:33:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:32:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:31:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:30:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:29:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:28:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:27:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:26:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:25:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:24:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:23:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:22:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:21:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:20:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:19:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:18:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:17:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:16:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:15:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:14:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:13:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:12:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:11:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:10:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:09:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:08:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:07:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:06:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:05:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:04:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:03:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:02:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:01:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+10:00:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:59:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:58:03 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:57:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:56:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:55:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:54:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:53:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:52:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:51:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:50:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:49:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:48:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:47:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:46:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:45:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:44:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:43:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:42:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:41:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:40:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:39:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:38:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:37:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:36:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:35:01 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:34:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:33:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+9:32:02 AM - Wednesday, Oct 8, 2025
+No entry: VIX gap "(%)" -1.04 is below min gap up +0.01
+1:53:04 PM - Monday, Oct 6, 2025
+Trade closed with exit condition MaxProfit
+1:53:04 PM - Monday, Oct 6, 2025
+Resting profit order filled "1004324217838"
+11:08:10 AM - Monday, Oct 6, 2025
+Resting profit target order created: "1004324217838"
+11:08:09 AM - Monday, Oct 6, 2025
+Manually changing trade exit conditions
+9:32:09 AM - Monday, Oct 6, 2025
+Order 1004320560439 filled after 1 attempt(s)
+9:32:09 AM - Monday, Oct 6, 2025
+Order 1004320560439 filled for -2.65 with quantity 1
+9:32:09 AM - Monday, Oct 6, 2025
+Order 1004320560439 status: "FILLED", order price: 2.65
+9:32:04 AM - Monday, Oct 6, 2025
+Order: 1004320560439, status: "WORKING"
+9:32:02 AM - Monday, Oct 6, 2025
+Opening Trade: "-1 SPXW251006P06720000 $4.30, +1 SPXW251006P06695000 $1.65"
+11:32:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:31:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:30:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:29:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:28:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:27:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:26:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:25:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:24:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:23:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:22:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:21:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:20:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:19:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:18:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:17:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:16:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:15:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:14:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:13:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:12:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:11:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:10:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:09:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:08:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:07:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:06:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:05:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:04:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:03:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:02:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:01:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:00:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:59:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:58:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:57:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:56:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:55:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:54:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:53:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:52:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:51:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:50:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:49:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:48:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:47:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:46:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:45:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:44:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:43:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:42:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:41:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:40:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:39:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:38:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:37:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:36:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:35:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:34:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:33:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:32:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:31:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:30:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:29:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:28:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:27:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:26:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:25:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:24:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:23:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:22:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:21:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:20:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:19:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:18:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:17:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:16:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:15:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:14:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:13:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:12:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:11:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:10:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:09:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:08:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:07:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:06:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:05:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:04:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:03:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:02:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:01:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+10:00:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:59:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:58:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:57:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:56:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:55:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:54:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:53:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:52:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:51:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:50:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:49:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:48:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:47:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:46:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:45:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:44:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:43:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:42:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:41:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:40:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:39:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:38:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:37:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:36:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:35:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:34:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:33:01 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+9:32:02 AM - Friday, Oct 3, 2025
+No entry: VIX gap "(%)" -1.20 is below min gap up +0.01
+11:32:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:31:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:30:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:29:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:28:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:27:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:26:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:25:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:24:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:23:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:22:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:21:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:20:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:19:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:18:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:17:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:16:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:15:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:14:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:13:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:12:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:11:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:10:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:09:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:08:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:07:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:06:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:05:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:04:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:03:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:02:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:01:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:00:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:59:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:58:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:57:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:56:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:55:06 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:54:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:53:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:52:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:51:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:50:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:49:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:48:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:47:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:46:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:45:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:44:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:43:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:42:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:41:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:40:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:39:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:38:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:37:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:36:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:35:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:34:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:33:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:32:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:31:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:30:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:29:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:28:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:27:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:26:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:25:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:24:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:23:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:22:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:21:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:20:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:19:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:18:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:17:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:16:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:15:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:14:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:13:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:12:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:11:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:10:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:09:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:08:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:07:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:06:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:05:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:04:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:03:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:02:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:01:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+10:00:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:59:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:58:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:57:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:56:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:55:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:54:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:53:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:52:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:51:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:50:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:49:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:48:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:47:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:46:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:45:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:44:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:43:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:42:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:41:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:40:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:39:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:38:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:37:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:36:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:35:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:34:01 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:33:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+9:32:02 AM - Thursday, Oct 2, 2025
+No entry: VIX gap "(%)" -1.53 is below min gap up +0.01
+11:53:05 AM - Wednesday, Oct 1, 2025
+Trade closed with exit condition MaxProfit
+11:53:05 AM - Wednesday, Oct 1, 2025
+Resting profit order filled "1004288509024"
+11:52:16 AM - Wednesday, Oct 1, 2025
+Resting profit target order created: "1004288509024"
+11:52:14 AM - Wednesday, Oct 1, 2025
+Manually changing trade exit conditions
+11:23:00 AM - Wednesday, Oct 1, 2025
+Manually changing trade exit conditions
+10:11:10 AM - Wednesday, Oct 1, 2025
+Order 1004285650423 filled after 1 attempt(s)
+10:11:10 AM - Wednesday, Oct 1, 2025
+Order 1004285650423 filled for -3.05 with quantity 1
+10:11:10 AM - Wednesday, Oct 1, 2025
+Order 1004285650423 status: "FILLED", order price: 3.05
+10:11:04 AM - Wednesday, Oct 1, 2025
+Order: 1004285650423, status: "WORKING"
+10:11:02 AM - Wednesday, Oct 1, 2025
+Opening Trade: "-1 SPXW251001P06650000 $4.75, +1 SPXW251001P06625000 $1.70"
+10:10:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6668.48 is not above 40-minute EMA 6669.48
+10:09:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6668.00 is not above 40-minute EMA 6669.47
+10:08:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6668.05 is not above 40-minute EMA 6669.55
+10:07:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6668.99 is not above 40-minute EMA 6669.75
+10:06:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6668.55 is not above 40-minute EMA 6669.74
+10:05:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6668.31 is not above 40-minute EMA 6669.79
+10:04:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6666.38 is not above 40-minute EMA 6669.63
+10:03:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6665.12 is not above 40-minute EMA 6669.63
+10:02:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6665.15 is not above 40-minute EMA 6669.88
+10:01:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6664.73 is not above 40-minute EMA 6670.07
+10:00:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6663.39 is not above 40-minute EMA 6670.16
+9:59:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6664.47 is not above 40-minute EMA 6670.64
+9:58:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6666.12 is not above 40-minute EMA 6671.18
+9:57:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6665.86 is not above 40-minute EMA 6671.42
+9:56:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6662.85 is not above 40-minute EMA 6671.32
+9:55:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6662.90 is not above 40-minute EMA 6671.76
+9:54:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6662.38 is not above 40-minute EMA 6672.15
+9:53:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6661.31 is not above 40-minute EMA 6672.51
+9:52:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6662.02 is not above 40-minute EMA 6673.16
+9:51:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6662.84 is not above 40-minute EMA 6673.82
+9:50:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6663.43 is not above 40-minute EMA 6674.41
+9:49:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6667.78 is not above 40-minute EMA 6675.49
+9:48:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6671.66 is not above 40-minute EMA 6676.36
+9:47:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6673.90 is not above 40-minute EMA 6676.88
+9:46:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6674.96 is not above 40-minute EMA 6677.16
+9:45:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6677.11 is not above 40-minute EMA 6677.56
+9:44:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6675.92 is not above 40-minute EMA 6677.43
+9:43:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6676.29 is not above 40-minute EMA 6677.56
+9:42:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6675.70 is not above 40-minute EMA 6677.56
+9:41:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6675.80 is not above 40-minute EMA 6677.69
+9:40:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6674.68 is not above 40-minute EMA 6677.66
+9:39:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6672.48 is not above 40-minute EMA 6677.53
+9:38:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6672.26 is not above 40-minute EMA 6677.77
+9:37:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6671.29 is not above 40-minute EMA 6677.93
+9:36:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6671.70 is not above 40-minute EMA 6678.32
+9:35:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6671.68 is not above 40-minute EMA 6678.66
+9:34:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6671.71 is not above 40-minute EMA 6679.01
+9:33:01 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6671.90 is not above 40-minute EMA 6679.39
+9:32:02 AM - Wednesday, Oct 1, 2025
+No entry: 5-minute EMA 6672.28 is not above 40-minute EMA 6679.78
+
+Include Debug
+Close
+
+
+Activity Log for [FLY] ORB (call fly), >5 SMA, IM up, EC on test [10:15, 10:30 Tu/We/Th] (ToS Trading)
+10:30:02 AM - Thursday, Oct 9, 2025
+No entry: intraday move "(%)" -0.36 is below min move up +0.01
+10:15:02 AM - Thursday, Oct 9, 2025
+No entry: intraday move "(%)" -0.24 is below min move up +0.01
+4:15:04 PM - Wednesday, Oct 8, 2025
+Trade closed with exit condition Expired
+2:47:11 PM - Wednesday, Oct 8, 2025
+Error processing potential strategy open System.TimeoutException: Timed out waiting for market data VIX
+2:47:11 PM - Wednesday, Oct 8, 2025
+Error getting data for strategy close System.TimeoutException: Timed out waiting for market data UNDERLYING_SPX
+12:16:03 PM - Wednesday, Oct 8, 2025
+Resting profit target order created: "1004351335302"
+12:16:01 PM - Wednesday, Oct 8, 2025
+Manually changing trade exit conditions
+11:30:34 AM - Wednesday, Oct 8, 2025
+Resting profit target order created: "1004349963652"
+11:30:33 AM - Wednesday, Oct 8, 2025
+Manually changing trade exit conditions
+11:30:10 AM - Wednesday, Oct 8, 2025
+Resting profit target order created: "1004349963618"
+11:30:09 AM - Wednesday, Oct 8, 2025
+Manually changing trade exit conditions
+10:30:38 AM - Wednesday, Oct 8, 2025
+Order 1004348660354 filled after 7 attempt(s)
+10:30:38 AM - Wednesday, Oct 8, 2025
+Order 1004348660354 filled for 10.45 with quantity 1
+10:30:38 AM - Wednesday, Oct 8, 2025
+Order 1004348660354 status: "FILLED", order price: 10.45
+10:30:35 AM - Wednesday, Oct 8, 2025
+Order 1004348660354 modified to 10.45
+10:30:33 AM - Wednesday, Oct 8, 2025
+Order 1004348660340 status: "WORKING", order price: 10.40
+10:30:30 AM - Wednesday, Oct 8, 2025
+Order 1004348660340 modified to 10.40
+10:30:28 AM - Wednesday, Oct 8, 2025
+Order 1004348660328 status: "WORKING", order price: 10.35
+10:30:25 AM - Wednesday, Oct 8, 2025
+Order 1004348660328 modified to 10.35
+10:30:24 AM - Wednesday, Oct 8, 2025
+Order 1004348660313 status: "WORKING", order price: 10.30
+10:30:20 AM - Wednesday, Oct 8, 2025
+Order 1004348660313 modified to 10.30
+10:30:18 AM - Wednesday, Oct 8, 2025
+Order 1004348660302 status: "WORKING", order price: 10.25
+10:30:15 AM - Wednesday, Oct 8, 2025
+Order 1004348660302 modified to 10.25
+10:30:13 AM - Wednesday, Oct 8, 2025
+Order 1004348660291 status: "WORKING", order price: 10.20
+10:30:09 AM - Wednesday, Oct 8, 2025
+Order 1004348660291 modified to 10.20
+10:30:08 AM - Wednesday, Oct 8, 2025
+Order 1004348660280 status: "WORKING", order price: 10.15
+10:30:03 AM - Wednesday, Oct 8, 2025
+Order: 1004348660280, status: "WORKING"
+10:30:02 AM - Wednesday, Oct 8, 2025
+Opening Trade: "-2 SPXW251008C06785000 $0.20, +1 SPXW251008C06740000 $10.50, +1 SPXW251008C06825000 $0.05"
+10:15:54 AM - Wednesday, Oct 8, 2025
+Order 1004348042577 canceled after 10 attempt(s)
+10:15:54 AM - Wednesday, Oct 8, 2025
+Order 1004348042577 status: "WORKING", order price: 9.90
+10:15:51 AM - Wednesday, Oct 8, 2025
+Order 1004348042577 modified to 9.90
+10:15:49 AM - Wednesday, Oct 8, 2025
+Order 1004348042564 status: "WORKING", order price: 9.85
+10:15:45 AM - Wednesday, Oct 8, 2025
+Order 1004348042564 modified to 9.85
+10:15:44 AM - Wednesday, Oct 8, 2025
+Order 1004348042551 status: "WORKING", order price: 9.80
+10:15:40 AM - Wednesday, Oct 8, 2025
+Order 1004348042551 modified to 9.80
+10:15:39 AM - Wednesday, Oct 8, 2025
+Order 1004348042535 status: "WORKING", order price: 9.75
+10:15:36 AM - Wednesday, Oct 8, 2025
+Order 1004348042535 modified to 9.75
+10:15:34 AM - Wednesday, Oct 8, 2025
+Order 1004348042519 status: "WORKING", order price: 9.70
+10:15:30 AM - Wednesday, Oct 8, 2025
+Order 1004348042519 modified to 9.70
+10:15:29 AM - Wednesday, Oct 8, 2025
+Order 1004348042502 status: "WORKING", order price: 9.65
+10:15:25 AM - Wednesday, Oct 8, 2025
+Order 1004348042502 modified to 9.65
+10:15:24 AM - Wednesday, Oct 8, 2025
+Order 1004348042487 status: "WORKING", order price: 9.60
+10:15:20 AM - Wednesday, Oct 8, 2025
+Order 1004348042487 modified to 9.60
+10:15:19 AM - Wednesday, Oct 8, 2025
+Order 1004348042468 status: "WORKING", order price: 9.55
+10:15:15 AM - Wednesday, Oct 8, 2025
+Order 1004348042468 modified to 9.55
+10:15:14 AM - Wednesday, Oct 8, 2025
+Order 1004348042453 status: "WORKING", order price: 9.50
+10:15:10 AM - Wednesday, Oct 8, 2025
+Order 1004348042453 modified to 9.50
+10:15:09 AM - Wednesday, Oct 8, 2025
+Order 1004348042429 status: "WORKING", order price: 9.45
+10:15:04 AM - Wednesday, Oct 8, 2025
+Order: 1004348042429, status: "WORKING"
+10:15:01 AM - Wednesday, Oct 8, 2025
+Opening Trade: "-2 SPXW251008C06780000 $0.30, +1 SPXW251008C06740000 $10.00, +1 SPXW251008C06820000 $0.05"
+10:30:02 AM - Tuesday, Oct 7, 2025
+No entry: intraday move "(%)" -0.14 is below min move up +0.01
+10:15:01 AM - Tuesday, Oct 7, 2025
+No entry: intraday move "(%)" -0.05 is below min move up +0.01
+10:30:01 AM - Thursday, Oct 2, 2025
+No entry: intraday move "(%)" -0.29 is below min move up +0.01
+10:15:02 AM - Thursday, Oct 2, 2025
+No entry: intraday move "(%)" -0.29 is below min move up +0.01
+1:07:02 PM - Wednesday, Oct 1, 2025
+Trade closed with exit condition MaxProfit
+1:07:02 PM - Wednesday, Oct 1, 2025
+Resting profit order filled "1004288509431"
+12:01:28 PM - Wednesday, Oct 1, 2025
+Resting profit target order created: "1004288509431"
+12:01:27 PM - Wednesday, Oct 1, 2025
+Manually changing trade exit conditions
+11:53:06 AM - Wednesday, Oct 1, 2025
+Resting profit target order created: "1004288509062"
+11:53:05 AM - Wednesday, Oct 1, 2025
+Manually changing trade exit conditions
+11:52:44 AM - Wednesday, Oct 1, 2025
+Resting profit target order created: "1004288509043"
+11:52:43 AM - Wednesday, Oct 1, 2025
+Manually changing trade exit conditions
+11:32:02 AM - Wednesday, Oct 1, 2025
+Trade closed with exit condition MaxProfit
+11:32:02 AM - Wednesday, Oct 1, 2025
+Resting profit order filled "1004287627657"
+11:27:32 AM - Wednesday, Oct 1, 2025
+Resting profit target order created: "1004287627657"
+11:27:31 AM - Wednesday, Oct 1, 2025
+Manually changing trade exit conditions
+11:26:58 AM - Wednesday, Oct 1, 2025
+Resting profit target order created: "1004287627617"
+11:26:57 AM - Wednesday, Oct 1, 2025
+Manually changing trade exit conditions
+10:30:33 AM - Wednesday, Oct 1, 2025
+Order 1004285651895 filled after 6 attempt(s)
+10:30:33 AM - Wednesday, Oct 1, 2025
+Order 1004285651895 filled for 9.30 with quantity 1
+10:30:33 AM - Wednesday, Oct 1, 2025
+Order 1004285651895 status: "FILLED", order price: 9.30
+10:30:29 AM - Wednesday, Oct 1, 2025
+Order 1004285651895 modified to 9.30
+10:30:28 AM - Wednesday, Oct 1, 2025
+Order 1004285651885 status: "WORKING", order price: 9.25
+10:30:24 AM - Wednesday, Oct 1, 2025
+Order 1004285651885 modified to 9.25
+10:30:23 AM - Wednesday, Oct 1, 2025
+Order 1004285651871 status: "WORKING", order price: 9.20
+10:30:19 AM - Wednesday, Oct 1, 2025
+Order 1004285651871 modified to 9.20
+10:30:18 AM - Wednesday, Oct 1, 2025
+Order 1004285651866 status: "WORKING", order price: 9.15
+10:30:15 AM - Wednesday, Oct 1, 2025
+Order 1004285651866 modified to 9.15
+10:30:13 AM - Wednesday, Oct 1, 2025
+Order 1004285651856 status: "WORKING", order price: 9.10
+10:30:09 AM - Wednesday, Oct 1, 2025
+Order 1004285651856 modified to 9.10
+10:30:08 AM - Wednesday, Oct 1, 2025
+Order 1004285651837 status: "WORKING", order price: 9.05
+10:30:03 AM - Wednesday, Oct 1, 2025
+Order: 1004285651837, status: "PENDING_ACKNOWLEDGEMENT"
+10:30:02 AM - Wednesday, Oct 1, 2025
+Opening Trade: "-2 SPXW251001C06720000 $0.30, +1 SPXW251001C06680000 $9.55, +1 SPXW251001C06760000 $0.10"
+10:15:33 AM - Wednesday, Oct 1, 2025
+Order 1004285650772 filled after 6 attempt(s)
+10:15:33 AM - Wednesday, Oct 1, 2025
+Order 1004285650772 filled for 10.70 with quantity 1
+10:15:33 AM - Wednesday, Oct 1, 2025
+Order 1004285650772 status: "FILLED", order price: 10.70
+10:15:28 AM - Wednesday, Oct 1, 2025
+Order 1004285650772 status: "WORKING", order price: 10.70
+10:15:24 AM - Wednesday, Oct 1, 2025
+Order 1004285650772 modified to 10.70
+10:15:23 AM - Wednesday, Oct 1, 2025
+Order 1004285650758 status: "WORKING", order price: 10.65
+10:15:19 AM - Wednesday, Oct 1, 2025
+Order 1004285650758 modified to 10.65
+10:15:18 AM - Wednesday, Oct 1, 2025
+Order 1004285650747 status: "WORKING", order price: 10.60
+10:15:14 AM - Wednesday, Oct 1, 2025
+Order 1004285650747 modified to 10.60
+10:15:13 AM - Wednesday, Oct 1, 2025
+Order 1004285650739 status: "WORKING", order price: 10.55
+10:15:09 AM - Wednesday, Oct 1, 2025
+Order 1004285650739 modified to 10.55
+10:15:08 AM - Wednesday, Oct 1, 2025
+Order 1004285650717 status: "WORKING", order price: 10.50
+10:15:03 AM - Wednesday, Oct 1, 2025
+Order: 1004285650717, status: "WORKING"
+10:15:01 AM - Wednesday, Oct 1, 2025
+Opening Trade: "-2 SPXW251001C06710000 $0.50, +1 SPXW251001C06670000 $11.40, +1 SPXW251001C06750000 $0.10"
+10:30:01 AM - Tuesday, Sep 30, 2025
+No entry: intraday move "(%)" -0.04 is below min move up +0.01
+10:15:01 AM - Tuesday, Sep 30, 2025
+No entry: intraday move "(%)" -0.06 is below min move up +0.01
+
+Include Debug
+Close
+
