@@ -15242,12 +15242,18 @@ Build User: ${versionInfo.build_user}`;
         // Sorting functions for log parser tables
         function sortSlippageSummaryTable(column) {
             console.log('DEBUG: sortSlippageSummaryTable called with column:', column);
-            const table = document.getElementById('slippageSummaryTable');
+            let table = document.getElementById('slippageSummaryTable');
             if (!table) {
-                console.log('DEBUG: slippageSummaryTable not found!');
-                return;
+                // Try master list table
+                table = document.getElementById('masterSlippageSummaryTable');
+                if (!table) {
+                    console.log('DEBUG: Neither slippageSummaryTable nor masterSlippageSummaryTable found!');
+                    return;
+                }
+                console.log('DEBUG: Found masterSlippageSummaryTable, proceeding with sort');
+            } else {
+                console.log('DEBUG: Found slippageSummaryTable, proceeding with sort');
             }
-            console.log('DEBUG: Found slippageSummaryTable, proceeding with sort');
             
             const tbody = table.querySelector('tbody');
             const rows = Array.from(tbody.querySelectorAll('tr'));
@@ -15281,12 +15287,18 @@ Build User: ${versionInfo.build_user}`;
         
         function sortLogParserTable(column) {
             console.log('DEBUG: sortLogParserTable called with column:', column);
-            const table = document.getElementById('logParserTable');
+            let table = document.getElementById('logParserTable');
             if (!table) {
-                console.log('DEBUG: logParserTable not found!');
-                return;
+                // Try master list table
+                table = document.getElementById('masterLogParserTable');
+                if (!table) {
+                    console.log('DEBUG: Neither logParserTable nor masterLogParserTable found!');
+                    return;
+                }
+                console.log('DEBUG: Found masterLogParserTable, proceeding with sort');
+            } else {
+                console.log('DEBUG: Found logParserTable, proceeding with sort');
             }
-            console.log('DEBUG: Found logParserTable, proceeding with sort');
             
             const tbody = table.querySelector('tbody');
             const rows = Array.from(tbody.querySelectorAll('tr'));
@@ -15390,18 +15402,39 @@ Build User: ${versionInfo.build_user}`;
             // Set up slippage summary table sorting
             const slippageTable = document.getElementById('slippageSummaryTable');
             if (slippageTable) {
+                console.log('DEBUG: Found slippageSummaryTable element');
                 const headers = slippageTable.querySelectorAll('th.sortable');
                 console.log('DEBUG: Found', headers.length, 'sortable headers in slippage table');
+                
+                if (headers.length === 0) {
+                    console.log('DEBUG: No sortable headers found! Checking all th elements...');
+                    const allHeaders = slippageTable.querySelectorAll('th');
+                    console.log('DEBUG: Total th elements:', allHeaders.length);
+                    allHeaders.forEach((th, i) => {
+                        console.log(`DEBUG: Header ${i}:`, th.textContent.trim(), 'classes:', th.className);
+                    });
+                }
+                
                 headers.forEach((header, index) => {
                     console.log('DEBUG: Adding click listener to header', index, header.textContent.trim());
                     // Remove any existing listeners first
                     header.onclick = null;
+                    
+                    // Add a test click handler first
                     header.addEventListener('click', function(e) {
                         e.preventDefault();
+                        e.stopPropagation();
                         console.log('DEBUG: Slippage table header clicked!');
                         const column = this.getAttribute('data-sort');
                         console.log('DEBUG: Column to sort:', column);
-                        sortSlippageSummaryTable(column);
+                        
+                        // Test if the sorting function exists
+                        if (typeof sortSlippageSummaryTable === 'function') {
+                            console.log('DEBUG: Calling sortSlippageSummaryTable');
+                            sortSlippageSummaryTable(column);
+                        } else {
+                            console.error('DEBUG: sortSlippageSummaryTable function not found!');
+                        }
                     });
                 });
             } else {
@@ -15411,18 +15444,38 @@ Build User: ${versionInfo.build_user}`;
             // Set up individual trades table sorting
             const tradesTable = document.getElementById('logParserTable');
             if (tradesTable) {
+                console.log('DEBUG: Found logParserTable element');
                 const headers = tradesTable.querySelectorAll('th.sortable');
                 console.log('DEBUG: Found', headers.length, 'sortable headers in trades table');
+                
+                if (headers.length === 0) {
+                    console.log('DEBUG: No sortable headers found! Checking all th elements...');
+                    const allHeaders = tradesTable.querySelectorAll('th');
+                    console.log('DEBUG: Total th elements:', allHeaders.length);
+                    allHeaders.forEach((th, i) => {
+                        console.log(`DEBUG: Header ${i}:`, th.textContent.trim(), 'classes:', th.className);
+                    });
+                }
+                
                 headers.forEach((header, index) => {
                     console.log('DEBUG: Adding click listener to header', index, header.textContent.trim());
                     // Remove any existing listeners first
                     header.onclick = null;
+                    
                     header.addEventListener('click', function(e) {
                         e.preventDefault();
+                        e.stopPropagation();
                         console.log('DEBUG: Trades table header clicked!');
                         const column = this.getAttribute('data-sort');
                         console.log('DEBUG: Column to sort:', column);
-                        sortLogParserTable(column);
+                        
+                        // Test if the sorting function exists
+                        if (typeof sortLogParserTable === 'function') {
+                            console.log('DEBUG: Calling sortLogParserTable');
+                            sortLogParserTable(column);
+                        } else {
+                            console.error('DEBUG: sortLogParserTable function not found!');
+                        }
                     });
                 });
             } else {
@@ -15434,6 +15487,12 @@ Build User: ${versionInfo.build_user}`;
             console.log('DEBUG: Updating log parser description with HTML link');
             const descriptionElement = document.getElementById('log_parser_description');
             if (descriptionElement) {
+                // Check if we've already added the link to avoid duplication
+                if (descriptionElement.innerHTML.includes('📄 View example log file')) {
+                    console.log('DEBUG: Link already exists, skipping update');
+                    return;
+                }
+                
                 let baseText;
                 if (window.i18n) {
                     // Get the translated text
@@ -15456,6 +15515,37 @@ Build User: ${versionInfo.build_user}`;
                 console.log('DEBUG: log_parser_description element not found');
             }
         }
+        
+        // Test function for debugging sorting
+        window.testSorting = function() {
+            console.log('DEBUG: Testing sorting functionality...');
+            
+            // Test if functions exist
+            console.log('sortSlippageSummaryTable exists:', typeof sortSlippageSummaryTable);
+            console.log('sortLogParserTable exists:', typeof sortLogParserTable);
+            
+            // Test if tables exist
+            const slippageTable = document.getElementById('slippageSummaryTable');
+            const tradesTable = document.getElementById('logParserTable');
+            console.log('slippageSummaryTable exists:', !!slippageTable);
+            console.log('logParserTable exists:', !!tradesTable);
+            
+            if (slippageTable) {
+                const headers = slippageTable.querySelectorAll('th.sortable');
+                console.log('Slippage table sortable headers:', headers.length);
+            }
+            
+            if (tradesTable) {
+                const headers = tradesTable.querySelectorAll('th.sortable');
+                console.log('Trades table sortable headers:', headers.length);
+            }
+            
+            // Try to call sorting functions directly
+            if (typeof sortSlippageSummaryTable === 'function') {
+                console.log('DEBUG: Testing sortSlippageSummaryTable with strategy column');
+                sortSlippageSummaryTable('strategy');
+            }
+        };
         
         // Master Trade List Functions
         function addTradesToMasterList(trades) {
@@ -15769,25 +15859,43 @@ Build User: ${versionInfo.build_user}`;
             // Set up master slippage summary table sorting
             const slippageTable = document.getElementById('masterSlippageSummaryTable');
             if (slippageTable) {
+                console.log('DEBUG: Found masterSlippageSummaryTable element');
                 const headers = slippageTable.querySelectorAll('th.sortable');
-                headers.forEach(header => {
-                    header.addEventListener('click', function() {
+                console.log('DEBUG: Found', headers.length, 'sortable headers in master slippage table');
+                headers.forEach((header, index) => {
+                    console.log('DEBUG: Adding click listener to master slippage header', index, header.textContent.trim());
+                    header.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('DEBUG: Master slippage table header clicked!');
                         const column = this.getAttribute('data-sort');
+                        console.log('DEBUG: Column to sort:', column);
                         sortSlippageSummaryTable(column);
                     });
                 });
+            } else {
+                console.log('DEBUG: masterSlippageSummaryTable not found');
             }
             
             // Set up master individual trades table sorting
             const tradesTable = document.getElementById('masterLogParserTable');
             if (tradesTable) {
+                console.log('DEBUG: Found masterLogParserTable element');
                 const headers = tradesTable.querySelectorAll('th.sortable');
-                headers.forEach(header => {
-                    header.addEventListener('click', function() {
+                console.log('DEBUG: Found', headers.length, 'sortable headers in master trades table');
+                headers.forEach((header, index) => {
+                    console.log('DEBUG: Adding click listener to master trades header', index, header.textContent.trim());
+                    header.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('DEBUG: Master trades table header clicked!');
                         const column = this.getAttribute('data-sort');
+                        console.log('DEBUG: Column to sort:', column);
                         sortLogParserTable(column);
                     });
                 });
+            } else {
+                console.log('DEBUG: masterLogParserTable not found');
             }
         }
         
