@@ -1733,6 +1733,13 @@ def live_vs_bt_analysis():
             
             print("Live vs BT analysis completed successfully")
             
+            # Debug: Print first trade to verify structure
+            if comparison_data and 'comparison_data' in comparison_data and len(comparison_data['comparison_data']) > 0:
+                first_trade = comparison_data['comparison_data'][0]
+                print(f"DEBUG: First trade keys: {first_trade.keys()}")
+                print(f"DEBUG: live_entry_datetime: {first_trade.get('live_entry_datetime')}")
+                print(f"DEBUG: time_diff: {first_trade.get('time_diff')}")
+            
             response = jsonify({
                 'success': True,
                 'data': comparison_data

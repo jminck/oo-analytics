@@ -2088,7 +2088,7 @@
                         <div id="selectedFileInfo" style="display:none;">
                             <span id="selectedFileName" class="fw-bold" style="font-size: 0.8rem;"></span>
                             <button type="button" class="btn btn-link btn-sm text-danger ms-2" id="clearFileBtn" style="font-size: 0.7rem;">Remove</button>
-                            <div class="text-muted" style="font-size: 0.7rem;">Click Upload</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">Ready to upload</div>
                         </div>
                         <input type="file" id="fileInput" accept=".csv" style="display: none;">
                     </div>
@@ -2723,7 +2723,10 @@
             });
             // Prefill initial capital from backend if available
             if (window.lastInitialCapital) {
-                initialCapitalInput.value = window.lastInitialCapital;
+                const initialCapitalInput = document.getElementById('modalInitialCapitalInput') || document.getElementById('initialCapitalInput');
+                if (initialCapitalInput) {
+                    initialCapitalInput.value = window.lastInitialCapital;
+                }
             }
             // Upload button handler
             uploadFileBtn.addEventListener('click', function() {
@@ -2749,14 +2752,19 @@
                 uploadFileBtn.style.display = 'none'; // Hide upload button until modal is shown
                 
                 // Show loading state for file analysis
-                const originalFileName = selectedFileName.textContent;
-                selectedFileName.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing file...';
+                const originalFileName = selectedFileName ? selectedFileName.textContent : '';
+                if (selectedFileName) {
+                    selectedFileName.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing file...';
+                }
                 
                 const reader = new FileReader();
                 reader.onload = function(evt) {
                     const content = evt.target.result;
                     const lines = content.split('\n');
                     const lineCount = lines.length;
+                    
+                    // Check if this is a live trade file (has "Initial Premium" column)
+                    const isLiveFile = content.includes('Initial Premium');
                     
                     // Estimate trade count (subtract 1 for header, filter out empty lines)
                     const nonEmptyLines = lines.filter(line => line.trim() !== '').length;
@@ -2786,7 +2794,10 @@
                                 }
                                 
                                 // Show the modal with analysis results
-                                showFileAnalysisModal(file, analysisData);
+                                console.log('🔍 About to call showFileAnalysisModal');
+                                setTimeout(() => {
+                                    showFileAnalysisModal(file, analysisData);
+                                }, 50);
                                 
                             } else {
                                 // Fallback if config fetch fails
@@ -2797,7 +2808,9 @@
                                     warning: null,
                                     fileContent: content  // Add file content for schema detection
                                 };
-                                showFileAnalysisModal(file, analysisData);
+                                setTimeout(() => {
+                                    showFileAnalysisModal(file, analysisData);
+                                }, 50);
                             }
                         })
                         .catch(error => {
@@ -2810,7 +2823,9 @@
                                 warning: null,
                                 fileContent: content  // Add file content for schema detection
                             };
-                            showFileAnalysisModal(file, analysisData);
+                            setTimeout(() => {
+                                showFileAnalysisModal(file, analysisData);
+                            }, 50);
                         });
                     
                     // Note: Starting capital input is now handled in the modal
@@ -2820,6 +2835,7 @@
         }
 
         function handleFileUpload(file) {
+            console.log('🔄 handleFileUpload called with file:', file.name);
             // Track file upload attempt
             if (window.appInsights) {
                 window.appInsights.trackEvent('frontend_file_upload_attempted', {
@@ -2864,48 +2880,139 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('🔄 Upload response received:', response.status, response.statusText);
+                return response.json();
+            })
             .then(data => {
+                console.log('🔄 Upload response data:', data);
+                console.log('🔄 data.success:', data.success);
+                console.log('🔄 typeof data.success:', typeof data.success);
+                console.log('🔄 data.data:', data.data);
+                console.log('🔄 data.data.trades_count:', data.data?.trades_count);
+                console.log('🔄 data.data.strategies_count:', data.data?.strategies_count);
                 if (data.success) {
-                    // Track successful upload
-                    if (window.appInsights) {
-                        window.appInsights.trackEvent('frontend_file_upload_success', {
-                            fileName: file.name,
-                            tradesCount: data.data.trades_count,
-                            strategiesCount: data.data.strategies_count,
-                            friendlyName: data.data.friendly_name
-                        }, {
-                            tradesCount: data.data.trades_count,
-                            strategiesCount: data.data.strategies_count
+                    console.log('🔄 Success condition met, executing success handler');
+                    
+                    try {
+                        // Track successful upload
+                        if (window.appInsights) {
+                            window.appInsights.trackEvent('frontend_file_upload_success', {
+                                fileName: file.name,
+                                tradesCount: data.data.trades_count,
+                                strategiesCount: data.data.strategies_count,
+                                friendlyName: data.data.friendly_name
+                            }, {
+                                tradesCount: data.data.trades_count,
+                                strategiesCount: data.data.strategies_count
+                            });
+                        }
+                        
+                        const displayName = data.data.friendly_name || file.name;
+                        showAlert(`Success! Uploaded ${data.data.trades_count} trades from ${data.data.strategies_count} strategies as "${displayName}"`, 'success');
+                        
+                        // Show warning if file exceeds recommended trade limit
+                        if (data.warning) {
+                            console.log('DEBUG: Showing warning alert:', data.warning);
+                            showAlert(data.warning, 'warning');
+                        } else {
+                            console.log('DEBUG: No warning in response data');
+                        }
+                        
+                        // Update filename display
+                        updateFilenameDisplay(data.data.filename || file.name);
+                        
+                        document.getElementById('friendlyNameInput').value = '';
+                        if (data.data && data.data.initial_capital && data.data.initial_capital !== null) {
+                            window.lastInitialCapital = data.data.initial_capital;
+                            const initialCapitalInput = document.getElementById('modalInitialCapitalInput') || document.getElementById('initialCapitalInput');
+                            if (initialCapitalInput) {
+                                initialCapitalInput.value = data.data.initial_capital;
+                            }
+                        }
+                        // Reset upload area completely
+                        console.log('🔄 Resetting upload area after successful upload');
+                        window.selectedFile = null;
+                        window.pendingFileUpload = null;
+                        document.getElementById('fileInput').value = '';
+                        document.getElementById('selectedFileInfo').style.display = 'none';
+                        document.getElementById('uploadContent').style.display = '';
+                        document.getElementById('uploadFileBtn').style.display = 'none';
+                        const initialCapitalGroup = document.getElementById('initialCapitalGroup');
+                        if (initialCapitalGroup) {
+                            initialCapitalGroup.style.display = 'none';
+                        }
+                        
+                        // Reset the selected file name display to clear any previous state
+                        document.getElementById('selectedFileName').textContent = '';
+                        console.log('🔄 Upload area reset complete');
+                        
+                        // Refresh the files overview to show the newly uploaded file
+                        console.log('🔄 Refreshing files overview after upload');
+                        loadFilesOverview();
+                        
+                        // Refresh portfolio data and stats without changing the current page
+                        console.log('🔄 Refreshing portfolio data and stats');
+                        loadPortfolioData();
+                        loadDataStats();
+                        
+                        // Add a timeout to ensure reset happens even if something goes wrong
+                        setTimeout(() => {
+                            console.log('🔄 Timeout: Ensuring upload area is reset');
+                            document.getElementById('selectedFileInfo').style.display = 'none';
+                            document.getElementById('uploadContent').style.display = '';
+                            document.getElementById('selectedFileName').textContent = '';
+                        }, 1000);
+                    } catch (error) {
+                        console.error('🚨 Error in success handler:', error);
+                        console.error('🚨 Error stack:', error.stack);
+                        
+                        // Fallback: Reset upload area even if there's an error
+                        console.log('🔄 Fallback: Resetting upload area due to error');
+                        window.selectedFile = null;
+                        window.pendingFileUpload = null;
+                        document.getElementById('fileInput').value = '';
+                        document.getElementById('selectedFileInfo').style.display = 'none';
+                        document.getElementById('uploadContent').style.display = '';
+                        document.getElementById('uploadFileBtn').style.display = 'none';
+                        const initialCapitalGroup2 = document.getElementById('initialCapitalGroup');
+                        if (initialCapitalGroup2) {
+                            initialCapitalGroup2.style.display = 'none';
+                        }
+                        document.getElementById('selectedFileName').textContent = '';
+                    }
+                    
+                    // Add debugging to track if something is re-showing the file info
+                    const selectedFileInfo = document.getElementById('selectedFileInfo');
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                                console.log('🔍 selectedFileInfo style changed:', selectedFileInfo.style.display);
+                            }
                         });
-                    }
+                    });
+                    observer.observe(selectedFileInfo, { attributes: true, attributeFilter: ['style'] });
                     
-                    const displayName = data.data.friendly_name || file.name;
-                    showAlert(`Success! Uploaded ${data.data.trades_count} trades from ${data.data.strategies_count} strategies as "${displayName}"`, 'success');
+                    // Force hide the selected file info to ensure it's not visible
+                    setTimeout(() => {
+                        console.log('🔄 First timeout reset (50ms)');
+                        document.getElementById('selectedFileInfo').style.display = 'none';
+                        document.getElementById('uploadContent').style.display = '';
+                        // Also clear the filename again to ensure it's empty
+                        document.getElementById('selectedFileName').textContent = '';
+                        console.log('🔄 First timeout reset complete');
+                    }, 50);
                     
-                    // Show warning if file exceeds recommended trade limit
-                    if (data.warning) {
-                        console.log('DEBUG: Showing warning alert:', data.warning);
-                        showAlert(data.warning, 'warning');
-                    } else {
-                        console.log('DEBUG: No warning in response data');
-                    }
-                    
-                    // Update filename display
-                    updateFilenameDisplay(data.data.filename || file.name);
-                    
-                    document.getElementById('friendlyNameInput').value = '';
-                    if (data.data.initial_capital) {
-                        window.lastInitialCapital = data.data.initial_capital;
-                        document.getElementById('initialCapitalInput').value = data.data.initial_capital;
-                    }
-                    // Reset upload area
-                    window.selectedFile = null;
-                    document.getElementById('fileInput').value = '';
-                    document.getElementById('selectedFileInfo').style.display = 'none';
-                    document.getElementById('uploadContent').style.display = '';
-                    document.getElementById('uploadFileBtn').style.display = 'none';
-                    document.getElementById('initialCapitalGroup').style.display = 'none';
+                    // Additional reset after a longer delay to catch any race conditions
+                    setTimeout(() => {
+                        console.log('🔄 Second timeout reset (200ms)');
+                        document.getElementById('selectedFileInfo').style.display = 'none';
+                        document.getElementById('uploadContent').style.display = '';
+                        document.getElementById('selectedFileName').textContent = '';
+                        // Ensure the upload area is in its initial state
+                        document.getElementById('uploadArea').style.cursor = 'pointer';
+                        console.log('🔄 Second timeout reset complete');
+                    }, 200);
                     // Clear all application state before loading new data
                     clearAllAppState();
                     
@@ -2928,11 +3035,11 @@
                         });
                     }
                     showAlert(`Upload failed: ${data.error}`, 'danger');
+                    
+                    // Restore button state only on failure
+                    uploadBtn.innerHTML = originalBtnText;
+                    uploadBtn.disabled = false;
                 }
-                
-                // Restore button state
-                uploadBtn.innerHTML = originalBtnText;
-                uploadBtn.disabled = false;
             })
             .catch(error => {
                 // Track upload error
@@ -3005,6 +3112,7 @@
                 showAlert(`Error loading sample data: ${error.message}`, 'danger');
             });
         }
+        
         
         function loadSampleMEICData() {
             // Track sample MEIC data load attempt
@@ -3211,9 +3319,12 @@
                     loadFilesOverview();
                     
                     // When loading a saved file, prefill initial capital if present
-                    if (data.data.initial_capital) {
+                    if (data.data && data.data.initial_capital && data.data.initial_capital !== null) {
                         window.lastInitialCapital = data.data.initial_capital;
-                        document.getElementById('initialCapitalInput').value = data.data.initial_capital;
+                        const initialCapitalInput = document.getElementById('modalInitialCapitalInput') || document.getElementById('initialCapitalInput');
+                        if (initialCapitalInput) {
+                            initialCapitalInput.value = data.data.initial_capital;
+                        }
                     }
 
                     // Reset the flag after a delay
@@ -3800,42 +3911,102 @@
             clearAllAppState();
             
             fetch(`/api/load-file/${encodeURIComponent(filename)}`)
-            .then(response => response.json())
+            .then(response => {
+                console.log('🔄 Load file response received:', response.status, response.statusText);
+                return response.json();
+            })
             .then(data => {
+                console.log('🔄 Load file response data:', data);
+                console.log('🔄 data.success:', data.success);
+                console.log('🔄 typeof data.success:', typeof data.success);
+                
                 if (data.success) {
-                    statusDiv.innerHTML = `<small class="text-success">✅ ${data.message}</small>`;
+                    console.log('🔄 Load file success condition met, executing success handler');
                     
-                    // Update filename display
-                    updateFilenameDisplay(filename);
-                    
-                    // Force complete UI refresh with cache busting
-                    setTimeout(() => {
-                        loadDataStats();
-                        loadPortfolioData();
+                    try {
+                        console.log('🔄 Setting success message');
+                        statusDiv.innerHTML = `<small class="text-success">✅ ${data.message}</small>`;
                         
-                        // Force refresh of all cached components
-                        refreshAllUIComponents();
-                    }, 100);
-                    
-                    // Clear chart immediately
-                    document.getElementById('chartContainer').innerHTML = 
-                        '<div class="text-center text-muted"><h4>📊 Data loaded! Select a chart to view analytics</h4></div>';
-                    
-                    // When loading a saved file, prefill initial capital if present
-                    if (data.data.initial_capital) {
-                        window.lastInitialCapital = data.data.initial_capital;
-                        document.getElementById('initialCapitalInput').value = data.data.initial_capital;
-                    }
+                        // Update filename display
+                        console.log('🔄 Updating filename display');
+                        try {
+                            updateFilenameDisplay(filename);
+                            console.log('🔄 Filename display updated successfully');
+                        } catch (error) {
+                            console.error('🚨 Error updating filename display:', error);
+                        }
+                        
+                        // Force complete UI refresh with cache busting
+                        console.log('🔄 Setting up UI refresh timeout');
+                        setTimeout(() => {
+                            try {
+                                console.log('🔄 Loading data stats');
+                                loadDataStats();
+                                console.log('🔄 Loading portfolio data');
+                                loadPortfolioData();
+                                
+                                console.log('🔄 Refreshing all UI components');
+                                // Force refresh of all cached components
+                                try {
+                                    // Temporarily disable refreshAllUIComponents to isolate the issue
+                                    // refreshAllUIComponents();
+                                    console.log('🔄 UI refresh skipped for debugging');
+                                } catch (error) {
+                                    console.error('🚨 Error in refreshAllUIComponents:', error);
+                                    console.error('🚨 refreshAllUIComponents error stack:', error.stack);
+                                }
+                            } catch (error) {
+                                console.error('🚨 Error in UI refresh:', error);
+                                console.error('🚨 UI refresh error stack:', error.stack);
+                            }
+                        }, 100);
+                        
+                        // Clear chart immediately
+                        console.log('🔄 Clearing chart container');
+                        document.getElementById('chartContainer').innerHTML = 
+                            '<div class="text-center text-muted"><h4>📊 Data loaded! Select a chart to view analytics</h4></div>';
+                        
+                        // When loading a saved file, prefill initial capital if present
+                        console.log('🔄 Checking initial capital');
+                        if (data.data && data.data.initial_capital && data.data.initial_capital !== null) {
+                            console.log('🔄 Setting initial capital:', data.data.initial_capital);
+                            window.lastInitialCapital = data.data.initial_capital;
+                            // Try to find the initial capital input field (could be in modal or elsewhere)
+                            const initialCapitalInput = document.getElementById('modalInitialCapitalInput') || document.getElementById('initialCapitalInput');
+                            if (initialCapitalInput) {
+                                console.log('🔄 Found initial capital input, setting value');
+                                initialCapitalInput.value = data.data.initial_capital;
+                            } else {
+                                console.log('🔄 Initial capital input not found in DOM');
+                            }
+                        } else {
+                            console.log('🔄 No initial capital to set');
+                        }
 
-                    setTimeout(() => {
-                        statusDiv.innerHTML = '';
-                    }, 3000);
+                        console.log('🔄 Setting status clear timeout');
+                        setTimeout(() => {
+                            statusDiv.innerHTML = '';
+                        }, 3000);
+                        
+                        console.log('🔄 Load file success handler completed');
+                    } catch (error) {
+                        console.error('🚨 Error in load file success handler:', error);
+                        console.error('🚨 Error stack:', error.stack);
+                        
+                        // Still show success message since the file loaded
+                        statusDiv.innerHTML = `<small class="text-success">✅ File loaded successfully</small>`;
+                        setTimeout(() => {
+                            statusDiv.innerHTML = '';
+                        }, 3000);
+                    }
                 } else {
+                    console.log('🔄 Load file failed:', data.error);
                     statusDiv.innerHTML = `<small class="text-danger">❌ ${data.error}</small>`;
                 }
             })
             .catch(error => {
-                console.error('Error loading file:', error);
+                console.error('🚨 Error loading file:', error);
+                console.error('🚨 Error stack:', error.stack);
                 statusDiv.innerHTML = '<small class="text-danger">❌ Error loading file</small>';
             });
         }
@@ -5290,6 +5461,8 @@
 
                 const cells = [
                     trade.entry_time || '',
+                    trade.live_entry_time || '',
+                    trade.time_diff !== null && trade.time_diff !== undefined ? `${trade.time_diff.toFixed(1)}m` : '',
                     trade.bt_strategy || '',
                     trade.bt_contracts || '',
                     trade.bt_entry_price ? `$${parseFloat(trade.bt_entry_price).toFixed(2)}` : '',
@@ -5315,8 +5488,8 @@
                 cells.forEach((cellText, index) => {
                     const cell = document.createElement('td');
                     
-                    // Special handling for Live Reason column (index 15) - no colorization
-                    if (index === 15) {
+                    // Special handling for Live Reason column (index 17) - no colorization
+                    if (index === 17) {
                         // Debug: log the original reason HTML
                         console.log('Live Reason HTML:', trade.live_reason);
                         console.log('Live Reason after split:', trade.live_reason ? trade.live_reason.split('\n')[0] : '');
@@ -5327,7 +5500,7 @@
                     }
                     
                     // Apply colorization for Entry Diff, Punished Entry Diff, Exit Diff, P&L Diff, and P&L Diff/Contract columns
-                    if (index === 16) { // Entry Diff column
+                    if (index === 18) { // Entry Diff column
                         if (hasLiveTrade) {
                             if (entryDiffQuality === 'better') {
                                 cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
@@ -5339,7 +5512,7 @@
                         } else {
                             cell.innerHTML = cellText; // Show blank for backtest-only trades
                         }
-                    } else if (index === 17) { // Punished Entry Diff column
+                    } else if (index === 19) { // Punished Entry Diff column
                         if (showPunishedEntryDiff) {
                             if (executionQuality === 'better') {
                                 cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
@@ -5351,7 +5524,7 @@
                         } else {
                             cell.innerHTML = cellText; // Show blank for backtest-only trades
                         }
-                    } else if (index === 18) { // Exit Diff column
+                    } else if (index === 20) { // Exit Diff column
                         if (hasLiveTrade) {
                             if (exitDiffQuality === 'better') {
                                 cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
@@ -5363,7 +5536,7 @@
                         } else {
                             cell.innerHTML = cellText; // backtest-only
                         }
-                    } else if (index === 19) { // P&L Diff column
+                    } else if (index === 21) { // P&L Diff column
                         const pnlDiff = parseFloat(trade.pnl_diff) || 0;
                         if (pnlDiff > 0) {
                             cell.innerHTML = `<span class="badge bg-success">${cellText}</span>`;
@@ -5372,7 +5545,7 @@
                         } else {
                             cell.innerHTML = `<span class="badge bg-secondary">${cellText}</span>`;
                         }
-                    } else if (index === 20) { // P&L Diff/Contract column
+                    } else if (index === 22) { // P&L Diff/Contract column
                         const pnlDiffContract = parseFloat(trade.pnl_diff_contract) || 0;
                         if (hasLiveTrade) {
                             if (pnlDiffContract > 0) {
@@ -7929,7 +8102,8 @@
                 "Average loss amount for losing trades",
                 "Largest profit from a single winning trade",
                 "Largest loss from a single losing trade",
-                "Expected profit/loss per contract per trade"
+                "Expected profit/loss per contract per trade",
+                "Kelly Weight: Relative sizing factor (1.0 = baseline, >1.0 = larger allocation, <1.0 = smaller allocation). For strategies with overlapping trades (e.g., multi-day positions), divide by max concurrent trades."
             ];
 
             // Add headers with sort functionality and tooltips
@@ -8143,10 +8317,14 @@
                         if (!isNaN(expectancyValue)) {
                             cellClass = expectancyValue >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
                         }
-                    } else if (j === 12) { // Efficiency column
-                        const efficiencyValue = parseFloat(value);
-                        if (!isNaN(efficiencyValue)) {
-                            cellClass = efficiencyValue >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+                    } else if (j === 12) { // Kelly column
+                        const kellyValue = parseFloat(value.replace('%', ''));
+                        if (!isNaN(kellyValue)) {
+                            if (kellyValue > 0) {
+                                cellClass = 'text-info fw-bold'; // Blue for positive Kelly
+                            } else {
+                                cellClass = 'text-muted'; // Gray for zero/negative Kelly
+                            }
                         }
                     }
                     
@@ -12147,7 +12325,7 @@
                             <h6><i class="fas fa-exclamation-triangle"></i> <span data-i18n="live_vs_bt_important_rules">Important Matching Rules:</span></h6>
                             <ul class="mb-0">
                                 <li><strong data-i18n="live_vs_bt_strategy_names_rule">Strategy Names:</strong> Backtest strategy names must be a substring of live strategy names (e.g., "Iron Condor" matches "Iron Condor (Tasty)")</li>
-                                <li><strong data-i18n="live_vs_bt_time_matching_rule">Time Matching:</strong> Entry times can differ by up to 4 minutes 59 seconds between files</li>
+                                <li><strong data-i18n="live_vs_bt_time_matching_rule">Time Matching:</strong> Entry times can differ by up to 9 minutes 59 seconds between files</li>
                                 <li><strong data-i18n="live_vs_bt_file_types_rule">File Types:</strong> Select one backtest file and one live trading file for comparison</li>
                                 <li><strong data-i18n="live_vs_bt_datetime_only_rule">Date/Time Only:</strong> Use the checkbox to match trades based only on date/time, ignoring strategy names</li>
                             </ul>
@@ -12269,6 +12447,8 @@
                         <thead class="table-dark">
                             <tr>
                                 <th class="custom-tooltip sortable" data-tooltip="Date and time when the trade was opened" onclick="sortLiveVsBtTable('entry_time')" data-i18n="live_vs_bt_entry_time">Entry Date/Time <span id="sort-indicator-entry_time"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Date and time when the live trade was opened" onclick="sortLiveVsBtTable('live_entry_time')" data-i18n="live_vs_bt_live_entry_time">Live Entry Time <span id="sort-indicator-live_entry_time"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Time difference between backtest and live entry times" onclick="sortLiveVsBtTable('time_diff')" data-i18n="live_vs_bt_time_diff">Time Diff <span id="sort-indicator-time_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Trading strategy name from backtest data" onclick="sortLiveVsBtTable('bt_strategy')" data-i18n="live_vs_bt_bt_strategy">BT Strategy <span id="sort-indicator-bt_strategy"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Number of contracts traded in backtest" onclick="sortLiveVsBtTable('bt_contracts')" data-i18n="live_vs_bt_bt_contracts">BT Contracts <span id="sort-indicator-bt_contracts"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Entry price from backtest (slippage removed)" onclick="sortLiveVsBtTable('bt_entry_price')" data-i18n="live_vs_bt_bt_entry_price">BT Entry Price <span id="sort-indicator-bt_entry_price"></span></th>
@@ -12295,9 +12475,12 @@
                             ${liveVsBtData.comparison_data.map(trade => `
                                 <tr>
                                     <td><strong>${trade.entry_datetime}</strong></td>
+                                    <td>${trade.live_entry_datetime || '-'}</td>
+                                    <td>${trade.time_diff !== null && trade.time_diff !== undefined ? `${trade.time_diff.toFixed(1)}m` : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.strategy : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.contracts : '-'}</td>
                                     <td>${trade.backtest && trade.backtest.opening_price !== null && trade.backtest.opening_price !== undefined ? `$${parseFloat(trade.backtest.opening_price).toFixed(2)}` : '-'}</td>
+                                    <td>${trade.backtest && trade.backtest.premium !== null && trade.backtest.premium !== undefined ? `$${(parseFloat(trade.backtest.premium) / 100).toFixed(2)}` : '-'}</td>
                                     <td>${trade.backtest && trade.backtest.closing_price !== null && trade.backtest.closing_price !== undefined ? `$${parseFloat(trade.backtest.closing_price).toFixed(2)}` : '-'}</td>
                                     <td>${trade.backtest ? `$${trade.backtest.pnl.toFixed(2)}` : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.close_datetime : '-'}</td>
@@ -12735,6 +12918,8 @@
                         <thead class="table-dark">
                             <tr>
                                 <th class="custom-tooltip sortable" data-tooltip="Date and time when the trade was opened" onclick="sortLiveVsBtTable('entry_time')" data-i18n="live_vs_bt_entry_time">Entry Date/Time <span id="sort-indicator-entry_time"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Date and time when the live trade was opened" onclick="sortLiveVsBtTable('live_entry_time')" data-i18n="live_vs_bt_live_entry_time">Live Entry Time <span id="sort-indicator-live_entry_time"></span></th>
+                                <th class="custom-tooltip sortable" data-tooltip="Time difference between backtest and live entry times" onclick="sortLiveVsBtTable('time_diff')" data-i18n="live_vs_bt_time_diff">Time Diff <span id="sort-indicator-time_diff"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Trading strategy name from backtest data" onclick="sortLiveVsBtTable('bt_strategy')" data-i18n="live_vs_bt_bt_strategy">BT Strategy <span id="sort-indicator-bt_strategy"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Number of contracts traded in backtest" onclick="sortLiveVsBtTable('bt_contracts')" data-i18n="live_vs_bt_bt_contracts">BT Contracts <span id="sort-indicator-bt_contracts"></span></th>
                                 <th class="custom-tooltip sortable" data-tooltip="Entry price from backtest (slippage removed)" onclick="sortLiveVsBtTable('bt_entry_price')" data-i18n="live_vs_bt_bt_entry_price">BT Entry Price <span id="sort-indicator-bt_entry_price"></span></th>
@@ -12761,9 +12946,12 @@
                             ${liveVsBtData.comparison_data.map(trade => `
                                 <tr>
                                     <td><strong>${trade.entry_datetime}</strong></td>
+                                    <td>${trade.live_entry_datetime || '-'}</td>
+                                    <td>${trade.time_diff !== null && trade.time_diff !== undefined ? `${trade.time_diff.toFixed(1)}m` : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.strategy : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.contracts : '-'}</td>
                                     <td>${trade.backtest && trade.backtest.opening_price !== null && trade.backtest.opening_price !== undefined ? `$${parseFloat(trade.backtest.opening_price).toFixed(2)}` : '-'}</td>
+                                    <td>${trade.backtest && trade.backtest.premium !== null && trade.backtest.premium !== undefined ? `$${(parseFloat(trade.backtest.premium) / 100).toFixed(2)}` : '-'}</td>
                                     <td>${trade.backtest && trade.backtest.closing_price !== null && trade.backtest.closing_price !== undefined ? `$${parseFloat(trade.backtest.closing_price).toFixed(2)}` : '-'}</td>
                                     <td>${trade.backtest ? `$${trade.backtest.pnl.toFixed(2)}` : '-'}</td>
                                     <td>${trade.backtest ? trade.backtest.close_datetime : '-'}</td>
@@ -12829,6 +13017,8 @@
             // Store data for sorting
             liveVsBtTableData = liveVsBtData.comparison_data.map(trade => ({
                 entry_time: trade.entry_datetime,
+                live_entry_time: trade.live_entry_datetime || '',
+                time_diff: trade.time_diff !== null && trade.time_diff !== undefined ? trade.time_diff : 0,
                 bt_strategy: trade.backtest ? trade.backtest.strategy : '',
                 bt_contracts: trade.backtest ? trade.backtest.contracts : 0,
                 bt_entry_price: trade.backtest && trade.backtest.opening_price !== null ? parseFloat(trade.backtest.opening_price) : 0,
@@ -14789,6 +14979,121 @@
             console.log('🔧 Initialized', tooltipList.length, 'Bootstrap tooltips on page load');
         });
 
+        // Load Log Parser
+        function loadLogParser() {
+            console.log('Loading Log Parser...');
+            console.log('DEBUG: loadLogParser function started');
+            
+            try {
+                const container = document.getElementById('chartContainer');
+                const loading = document.getElementById('chartLoading');
+                
+                console.log('DEBUG: container:', container);
+                console.log('DEBUG: loading:', loading);
+                
+                if (!container) {
+                    console.error('DEBUG: chartContainer not found!');
+                    return;
+                }
+            
+            // Show log parser interface
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-tools"></i> <span data-i18n="log_parser_title">Slippage Analyzer</span></h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-4">
+                            <h6><i class="fas fa-info-circle"></i> <span data-i18n="log_parser_what_is">What is Slippage Analyzer?</span></h6>
+                            <p class="mb-2" id="log_parser_description">This tool analyzes debug log files to extract trade data and calculate slippage between initial order prices and final fill prices.</p>
+                            <p class="mb-2"><strong data-i18n="log_parser_why_useful">Why is this useful?</strong></p>
+                            <ul class="mb-2">
+                                <li><strong data-i18n="log_parser_extract_trades">Extract Trades:</strong> Parse opening and closing trades from activity logs</li>
+                                <li><strong data-i18n="log_parser_structured_data">Structured Data:</strong> Convert raw logs into organized CSV format</li>
+                                <li><strong data-i18n="log_parser_slippage_analysis">Slippage Analysis:</strong> Calculate price differences between initial and final fills</li>
+                                <li><strong data-i18n="log_parser_trade_tracking">Trade Tracking:</strong> Track modifications, quantities, and trade status</li>
+                            </ul>
+                            <p class="mb-0"><strong data-i18n="log_parser_how_it_works">How it works:</strong> Upload an Activity Log file with "include debug" turned on and the system will extract all trades, parse timestamps, prices, and status information into a downloadable CSV. You can combine activity logs from multiple strategies into the same log file.</p>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label" data-i18n="log_parser_upload_label">Upload Activity Log File:</label>
+                            <div class="upload-area" id="logUploadArea" onclick="if (!window.selectedLogFile) document.getElementById('logFileInput').click()" style="height: 80px;">
+                                <div class="upload-content" id="logUploadContent">
+                                    <i class="fas fa-file-alt"></i>
+                                    <h6 id="logUploadPrompt" style="font-size: 0.8rem; margin: 0;" data-i18n="drop_log_here">Drop log file here</h6>
+                                    <small class="text-muted" id="logUploadHint" style="font-size: 0.7rem;" data-i18n="or_click_to_browse_log">or click to browse (.txt or .log)</small>
+                                </div>
+                                <div id="logFileInfo" style="display:none;">
+                                    <span id="selectedLogFileName" class="fw-bold" style="font-size: 0.8rem;"></span>
+                                    <button type="button" class="btn btn-link btn-sm text-danger ms-2" id="clearLogFileBtn" style="font-size: 0.7rem;">Remove</button>
+                                    <div class="text-muted" style="font-size: 0.7rem;">Click Parse Log File</div>
+                                </div>
+                            </div>
+                            <input type="file" id="logFileInput" accept=".txt,.log" style="display: none;" onchange="handleLogFileSelection()">
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button class="btn btn-primary" onclick="parseLogFile()" id="parseLogBtn" disabled>
+                                <i class="fas fa-cogs"></i> <span data-i18n="parse_log">Parse Log File</span>
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="clearLogSelection()">
+                                <i class="fas fa-times"></i> <span data-i18n="clear_selection">Clear Selection</span>
+                            </button>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-database"></i> <span data-i18n="master_trade_list">Master Trade List</span></h6>
+                                <p class="mb-2" data-i18n="master_list_description">Trades from each log file are automatically added to your master list for cumulative analysis.</p>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success btn-sm" onclick="loadMasterTradeList()">
+                                        <i class="fas fa-list"></i> <span data-i18n="load_master_list">Load Master List</span>
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteMasterTradeList()">
+                                        <i class="fas fa-trash"></i> <span data-i18n="delete_master_list">Delete Master List</span>
+                                    </button>
+                                    <button class="btn btn-info btn-sm" onclick="downloadMasterTradeList()">
+                                        <i class="fas fa-download"></i> <span data-i18n="download_master_csv">Download Master CSV</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="logParserResults" class="mt-4" style="display: none;">
+                            <!-- Results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            console.log('DEBUG: HTML set, about to show container');
+            
+            // Show container and hide loading
+            container.style.display = 'block';
+            if (loading) {
+                loading.style.display = 'none';
+            }
+            
+                console.log('DEBUG: Container shown, loading hidden');
+                console.log('DEBUG: Container innerHTML length:', container.innerHTML.length);
+                console.log('DEBUG: About to call setupLogFileUpload');
+                // Set up drag and drop handlers for log upload
+                try {
+                    setupLogFileUpload();
+                    console.log('DEBUG: setupLogFileUpload call completed successfully');
+                } catch (error) {
+                    console.error('DEBUG: Error in setupLogFileUpload:', error);
+                }
+                
+                // Update the description with HTML link
+                updateLogParserDescription();
+            } catch (error) {
+                console.error('DEBUG: Error in loadLogParser:', error);
+                alert('Error in loadLogParser: ' + error.message);
+            }
+        }
+
     </script>
 
     <!-- Version Info Modal -->
@@ -14961,10 +15266,157 @@ Build User: ${versionInfo.build_user}`;
             });
         }
 
+        // Fallback modal creation function
+        function createFallbackModal(file, analysisData) {
+            console.log('🔧 Creating fallback modal for file:', file?.name);
+            
+            // Check if modal already exists
+            const existingModal = document.getElementById('fileAnalysisModal');
+            if (existingModal) {
+                console.log('🔧 Modal already exists, removing old one');
+                existingModal.remove();
+            }
+            
+            // Create modal HTML
+            const modalHtml = `
+                <div class="modal fade" id="fileAnalysisModal" tabindex="-1" aria-labelledby="fileAnalysisModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="fileAnalysisModalLabel">
+                                    <i class="fas fa-file-csv text-success"></i> File Analysis Results
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="fileAnalysisContent">
+                                    <!-- File analysis results will be populated here -->
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-success" id="confirmUploadBtn" onclick="confirmFileUpload()">
+                                    <i class="fas fa-upload"></i> Upload File
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="cancelFileUpload()">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            console.log('🔧 Fallback modal created');
+            
+            // Now try to show the modal again
+            setTimeout(() => {
+                const retryModal = document.getElementById('fileAnalysisModal');
+                const retryContent = document.getElementById('fileAnalysisContent');
+                if (retryModal && retryContent) {
+                    console.log('🔧 Fallback modal created successfully, showing modal');
+                    showFileAnalysisModal(file, analysisData);
+                } else {
+                    console.error('🔧 Fallback modal creation failed, using direct upload');
+                    // Direct upload without modal
+                    directFileUpload(file);
+                }
+            }, 50);
+        }
+
+        // Direct file upload fallback (no modal)
+        function directFileUpload(file) {
+            console.log('🔧 Direct file upload fallback for file:', file?.name);
+            
+            // Show a simple alert with file info and proceed with upload
+            const estimatedTrades = Math.max(0, file.size / 100); // Rough estimate
+            const proceed = confirm(`File: ${file.name}\nEstimated trades: ${Math.round(estimatedTrades)}\n\nProceed with upload?`);
+            
+            if (proceed) {
+                // Store the file for upload
+                window.pendingFileUpload = file;
+                
+                // Show loading state
+                showAlert('Uploading file...', 'info');
+                
+                // Proceed with upload
+                handleFileUpload(file);
+            } else {
+                // Reset upload area
+                resetUploadArea();
+            }
+        }
+
+        // Reset upload area function
+        function resetUploadArea() {
+            console.log('🔧 Resetting upload area');
+            
+            // Reset file selection
+            window.selectedFile = null;
+            window.pendingFileUpload = null;
+            
+            // Reset upload area display
+            const uploadContent = document.getElementById('uploadContent');
+            const selectedFileInfo = document.getElementById('selectedFileInfo');
+            const selectedFileName = document.getElementById('selectedFileName');
+            const uploadFileBtn = document.getElementById('uploadFileBtn');
+            
+            if (uploadContent) uploadContent.style.display = '';
+            if (selectedFileInfo) selectedFileInfo.style.display = 'none';
+            if (selectedFileName) selectedFileName.textContent = '';
+            if (uploadFileBtn) uploadFileBtn.style.display = 'none';
+        }
+
         // File Analysis Modal Functions
         function showFileAnalysisModal(file, analysisData) {
-            const modal = new bootstrap.Modal(document.getElementById('fileAnalysisModal'));
+            console.log('🔍 showFileAnalysisModal called with file:', file?.name);
+            console.log('🔍 DOM ready state:', document.readyState);
+            console.log('🔍 Looking for fileAnalysisModal element...');
+            
+            const modalElement = document.getElementById('fileAnalysisModal');
+            console.log('🔍 fileAnalysisModal element:', modalElement);
+            
+            if (!modalElement) {
+                console.error('🚨 fileAnalysisModal element not found in DOM');
+                console.log('🔍 Document body children count:', document.body?.children?.length);
+                console.log('🔍 All modal elements:', document.querySelectorAll('[class*="modal"]'));
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(modalElement);
             const content = document.getElementById('fileAnalysisContent');
+            
+            console.log('🔍 fileAnalysisContent element:', content);
+            
+            // Check if content element exists
+            if (!content) {
+                console.error('🚨 fileAnalysisContent element not found in DOM');
+                console.log('🔍 Available elements with "fileAnalysis" in ID:');
+                const allElements = document.querySelectorAll('[id*="fileAnalysis"]');
+                allElements.forEach(el => console.log('  -', el.id, el));
+                
+                // Try to wait a bit and retry
+                console.log('🔍 Retrying after 100ms...');
+                setTimeout(() => {
+                    const retryContent = document.getElementById('fileAnalysisContent');
+                    if (retryContent) {
+                        console.log('🔍 Retry successful, content found');
+                        showFileAnalysisModal(file, analysisData);
+                    } else {
+                        console.error('🚨 Retry failed, content still not found');
+                        console.log('🔍 Creating fallback modal...');
+                        createFallbackModal(file, analysisData);
+                    }
+                }, 100);
+                return;
+            }
+            
+            // Clear the "Analyzing file..." message and show the filename
+            const selectedFileName = document.getElementById('selectedFileName');
+            if (selectedFileName) {
+                selectedFileName.textContent = file.name;
+            }
             
             // Store the file for later use
             window.pendingFileUpload = file;
@@ -15090,11 +15542,14 @@ Build User: ${versionInfo.build_user}`;
         }
 
         function confirmFileUpload() {
+            console.log('🔄 confirmFileUpload called');
             if (window.pendingFileUpload) {
+                console.log('🔄 Pending file found:', window.pendingFileUpload.name);
                 // Get starting capital from modal if present
                 const modalInitialCapitalInput = document.getElementById('modalInitialCapitalInput');
                 if (modalInitialCapitalInput) {
                     window.modalInitialCapital = modalInitialCapitalInput.value;
+                    console.log('🔄 Modal initial capital:', window.modalInitialCapital);
                 }
                 
                 // Close the modal
@@ -15102,10 +15557,13 @@ Build User: ${versionInfo.build_user}`;
                 modal.hide();
                 
                 // Proceed with upload
+                console.log('🔄 Calling handleFileUpload');
                 handleFileUpload(window.pendingFileUpload);
                 
                 // Clear the pending file
                 window.pendingFileUpload = null;
+            } else {
+                console.log('🔄 No pending file found');
             }
         }
 
@@ -15121,123 +15579,12 @@ Build User: ${versionInfo.build_user}`;
             document.getElementById('selectedFileInfo').style.display = 'none';
             document.getElementById('uploadContent').style.display = '';
             document.getElementById('uploadFileBtn').style.display = 'none';
-            document.getElementById('initialCapitalGroup').style.display = 'none';
+            const initialCapitalGroup3 = document.getElementById('initialCapitalGroup');
+            if (initialCapitalGroup3) {
+                initialCapitalGroup3.style.display = 'none';
+            }
         }
 
-        // Load Log Parser
-        function loadLogParser() {
-            console.log('Loading Log Parser...');
-            console.log('DEBUG: loadLogParser function started');
-            
-            try {
-                const container = document.getElementById('chartContainer');
-                const loading = document.getElementById('chartLoading');
-                
-                console.log('DEBUG: container:', container);
-                console.log('DEBUG: loading:', loading);
-                
-                if (!container) {
-                    console.error('DEBUG: chartContainer not found!');
-                    return;
-                }
-            
-            // Show log parser interface
-            container.innerHTML = `
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-tools"></i> <span data-i18n="log_parser_title">Slippage Analyzer</span></h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-info mb-4">
-                            <h6><i class="fas fa-info-circle"></i> <span data-i18n="log_parser_what_is">What is Slippage Analyzer?</span></h6>
-                            <p class="mb-2" id="log_parser_description">This tool analyzes debug log files to extract trade data and calculate slippage between initial order prices and final fill prices.</p>
-                            <p class="mb-2"><strong data-i18n="log_parser_why_useful">Why is this useful?</strong></p>
-                            <ul class="mb-2">
-                                <li><strong data-i18n="log_parser_extract_trades">Extract Trades:</strong> Parse opening and closing trades from activity logs</li>
-                                <li><strong data-i18n="log_parser_structured_data">Structured Data:</strong> Convert raw logs into organized CSV format</li>
-                                <li><strong data-i18n="log_parser_slippage_analysis">Slippage Analysis:</strong> Calculate price differences between initial and final fills</li>
-                                <li><strong data-i18n="log_parser_trade_tracking">Trade Tracking:</strong> Track modifications, quantities, and trade status</li>
-                            </ul>
-                            <p class="mb-0"><strong data-i18n="log_parser_how_it_works">How it works:</strong> Upload an Activity Log file with "include debug" turned on and the system will extract all trades, parse timestamps, prices, and status information into a downloadable CSV. You can combine activity logs from multiple strategies into the same log file.</p>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label class="form-label" data-i18n="log_parser_upload_label">Upload Activity Log File:</label>
-                            <div class="upload-area" id="logUploadArea" onclick="if (!window.selectedLogFile) document.getElementById('logFileInput').click()" style="height: 80px;">
-                                <div class="upload-content" id="logUploadContent">
-                                    <i class="fas fa-file-alt"></i>
-                                    <h6 id="logUploadPrompt" style="font-size: 0.8rem; margin: 0;" data-i18n="drop_log_here">Drop log file here</h6>
-                                    <small class="text-muted" id="logUploadHint" style="font-size: 0.7rem;" data-i18n="or_click_to_browse_log">or click to browse (.txt or .log)</small>
-                                </div>
-                                <div id="logFileInfo" style="display:none;">
-                                    <span id="selectedLogFileName" class="fw-bold" style="font-size: 0.8rem;"></span>
-                                    <button type="button" class="btn btn-link btn-sm text-danger ms-2" id="clearLogFileBtn" style="font-size: 0.7rem;">Remove</button>
-                                    <div class="text-muted" style="font-size: 0.7rem;">Click Parse Log File</div>
-                                </div>
-                            </div>
-                            <input type="file" id="logFileInput" accept=".txt,.log" style="display: none;" onchange="handleLogFileSelection()">
-                        </div>
-                        
-                        <div class="mt-4">
-                            <button class="btn btn-primary" onclick="parseLogFile()" id="parseLogBtn" disabled>
-                                <i class="fas fa-cogs"></i> <span data-i18n="parse_log">Parse Log File</span>
-                            </button>
-                            <button class="btn btn-outline-secondary ms-2" onclick="clearLogSelection()">
-                                <i class="fas fa-times"></i> <span data-i18n="clear_selection">Clear Selection</span>
-                            </button>
-                        </div>
-                        
-                        <div class="mt-3">
-                            <div class="alert alert-info">
-                                <h6><i class="fas fa-database"></i> <span data-i18n="master_trade_list">Master Trade List</span></h6>
-                                <p class="mb-2" data-i18n="master_list_description">Trades from each log file are automatically added to your master list for cumulative analysis.</p>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-success btn-sm" onclick="loadMasterTradeList()">
-                                        <i class="fas fa-list"></i> <span data-i18n="load_master_list">Load Master List</span>
-                                    </button>
-                                    <button class="btn btn-danger btn-sm" onclick="deleteMasterTradeList()">
-                                        <i class="fas fa-trash"></i> <span data-i18n="delete_master_list">Delete Master List</span>
-                                    </button>
-                                    <button class="btn btn-info btn-sm" onclick="downloadMasterTradeList()">
-                                        <i class="fas fa-download"></i> <span data-i18n="download_master_csv">Download Master CSV</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div id="logParserResults" class="mt-4" style="display: none;">
-                            <!-- Results will be displayed here -->
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            console.log('DEBUG: HTML set, about to show container');
-            
-            // Show container and hide loading
-            container.style.display = 'block';
-            if (loading) {
-                loading.style.display = 'none';
-            }
-            
-                console.log('DEBUG: Container shown, loading hidden');
-                console.log('DEBUG: Container innerHTML length:', container.innerHTML.length);
-                console.log('DEBUG: About to call setupLogFileUpload');
-                // Set up drag and drop handlers for log upload
-                try {
-                    setupLogFileUpload();
-                    console.log('DEBUG: setupLogFileUpload call completed successfully');
-                } catch (error) {
-                    console.error('DEBUG: Error in setupLogFileUpload:', error);
-                }
-                
-                // Update the description with HTML link
-                updateLogParserDescription();
-            } catch (error) {
-                console.error('DEBUG: Error in loadLogParser:', error);
-                alert('Error in loadLogParser: ' + error.message);
-            }
-        }
         
         // Sorting functions for log parser tables
         function sortSlippageSummaryTable(column) {

@@ -800,8 +800,13 @@ class StrategyAnalyzer:
                 if bt_closing is not None and live_closing is not None:
                     closing_diff = round(live_closing - bt_closing, 2)
                 
+                # Calculate time difference between backtest and live entry times
+                time_diff = self._calculate_time_difference(bt_trade['time_opened'], live_match['time_opened'])
+                
                 matched_trades.append({
                     'entry_datetime': f"{bt_trade['date_opened']} {bt_trade['time_opened']}",
+                    'live_entry_datetime': f"{live_match['date_opened']} {live_match['time_opened']}",
+                    'time_diff': time_diff,
                     'backtest': {
                         'strategy': bt_trade['strategy_name'],
                         'contracts': bt_trade['contracts'],
@@ -830,6 +835,8 @@ class StrategyAnalyzer:
                 # Only backtest trade found
                 matched_trades.append({
                     'entry_datetime': f"{bt_trade['date_opened']} {bt_trade['time_opened']}",
+                    'live_entry_datetime': None,
+                    'time_diff': None,
                     'backtest': {
                         'strategy': bt_trade['strategy_name'],
                         'contracts': bt_trade['contracts'],
@@ -847,6 +854,8 @@ class StrategyAnalyzer:
             if i not in used_live_indices:
                 matched_trades.append({
                     'entry_datetime': f"{live_trade['date_opened']} {live_trade['time_opened']}",
+                    'live_entry_datetime': f"{live_trade['date_opened']} {live_trade['time_opened']}",
+                    'time_diff': None,
                     'backtest': None,
                     'live': {
                         'strategy': live_trade['strategy_name'],
@@ -861,6 +870,27 @@ class StrategyAnalyzer:
         # Sort by entry datetime
         matched_trades.sort(key=lambda x: x['entry_datetime'])
         return matched_trades
+    
+    def _calculate_time_difference(self, bt_time_str: str, live_time_str: str) -> float:
+        """Calculate time difference in minutes between two time strings."""
+        try:
+            from datetime import datetime
+            
+            # Handle different time formats
+            if ':' in bt_time_str and ':' in live_time_str:
+                # Parse HH:MM:SS or HH:MM format
+                bt_time = datetime.strptime(bt_time_str, '%H:%M:%S' if len(bt_time_str.split(':')) == 3 else '%H:%M')
+                live_time = datetime.strptime(live_time_str, '%H:%M:%S' if len(live_time_str.split(':')) == 3 else '%H:%M')
+                
+                # Calculate time difference in minutes
+                time_diff = abs((bt_time - live_time).total_seconds() / 60)
+                return round(time_diff, 1)
+            else:
+                # Fallback to 0 if parsing fails
+                return 0.0
+        except Exception:
+            # If parsing fails, return 0
+            return 0.0
     
     def _trades_match(self, bt_trade: Dict, live_trade: Dict, match_only_datetime: bool = False) -> bool:
         """Check if two trades match based on date, time (within 1 minute), and optionally strategy."""
@@ -885,8 +915,8 @@ class StrategyAnalyzer:
                 # Calculate time difference in minutes
                 time_diff = abs((bt_time - live_time).total_seconds() / 60)
                 
-                # Allow up to 4 minutes 59 seconds difference (4.983 minutes)
-                if time_diff > 4.983:
+                # Allow up to 9 minutes 59 seconds difference (9.983 minutes)
+                if time_diff > 9.983:
                     return False
             else:
                 # Fallback to exact minute matching if parsing fails

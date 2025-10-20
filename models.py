@@ -485,6 +485,23 @@ class Strategy:
                 if margin_for_efficiency > 0:
                     efficiency = (expectancy_per_lot / margin_for_efficiency) * (self.win_rate / 100)
 
+        # Calculate Kelly Criterion
+        kelly_percentage = 0.0
+        if wins_count > 0 and losses_count > 0 and avg_win_per_lot > 0 and avg_loss_per_lot > 0:
+            # Kelly formula: f* = (bp - q) / b
+            # where b = net odds (avg_win_per_lot / avg_loss_per_lot), p = win_rate, q = loss_rate
+            # Note: avg_loss_per_lot is stored as positive, so we use it directly
+            b = avg_win_per_lot / avg_loss_per_lot  # Net odds
+            p = win_rate / 100  # Win probability
+            q = 1 - p  # Loss probability
+            raw_kelly = (b * p - q) / b
+            # Ensure Kelly is between 0 and 1 (0% to 100%)
+            raw_kelly = max(0, min(1, raw_kelly))
+            
+            # Convert to relative portfolio sizing (fractional Kelly for safety)
+            # Use 25% of full Kelly for more conservative position sizing
+            kelly_percentage = raw_kelly * 0.25
+
         result = {
             'name': self.name,
             'strategy_type': self.strategy_type,
@@ -509,7 +526,9 @@ class Strategy:
             'max_loss_streak': self.max_loss_streak,
             'max_win_streak': self.max_win_streak,
             'margin_percentage': round(margin_percentage, 2),
-            'efficiency': round(efficiency, 4)
+            'efficiency': round(efficiency, 4),
+            'kelly_percentage': round(kelly_percentage * 100, 2),  # Convert to percentage
+            'raw_kelly': round(raw_kelly * 100, 2) if 'raw_kelly' in locals() else 0.0  # Store raw Kelly for normalization
         }
         
         # Cache the result and mark as clean
