@@ -1131,10 +1131,118 @@ class ChartGenerator:
             hovermode='x unified'
         )
         
+        # Calculate volatility metrics
+        import numpy as np
+        
+        # Calculate daily returns (percentage change from account balance)
+        daily_returns = []
+        for i in range(1, len(balance_values)):
+            if balance_values[i-1] != 0:
+                # Calculate return as percentage of account balance
+                daily_return = (pnl_values[i] / balance_values[i-1]) * 100
+            else:
+                daily_return = 0
+            daily_returns.append(daily_return)
+        
+        # Calculate volatility metrics
+        if daily_returns:
+            # Calculate daily volatility and mean return
+            daily_volatility = np.std(daily_returns)
+            mean_daily_return = np.mean(daily_returns)
+            
+            # Annualize the metrics
+            annual_volatility = daily_volatility * np.sqrt(252)  # 252 trading days per year
+            
+            # Calculate proper annual return using CAGR from actual account balance
+            # Use the same method as Portfolio Overview
+            if len(balance_values) > 1 and balance_values[0] > 0:
+                initial_balance = balance_values[0]
+                final_balance = balance_values[-1]
+                
+                # Calculate years between first and last date
+                from datetime import datetime
+                first_date = pd.to_datetime(dates[0])
+                last_date = pd.to_datetime(dates[-1])
+                years = (last_date - first_date).days / 365.25  # Use actual calendar days
+                
+                if years > 0 and final_balance > 0:
+                    annual_return = ((final_balance / initial_balance) ** (1/years) - 1) * 100
+                else:
+                    annual_return = 0
+            else:
+                # Fallback: use the mean daily return * 252
+                annual_return = mean_daily_return * 252
+            
+            # Calculate max drawdown from daily P&L first
+            cumulative_pnl = np.cumsum(pnl_values)
+            running_max = np.maximum.accumulate(cumulative_pnl)
+            drawdown = cumulative_pnl - running_max
+            max_drawdown = np.min(drawdown)
+            
+            # Calculate Sharpe ratio using annualized metrics
+            # Assume 5% risk-free rate (current treasury rate)
+            risk_free_rate = 5.0
+            sharpe_ratio = (annual_return - risk_free_rate) / annual_volatility if annual_volatility != 0 else 0
+            
+            # Calculate Sortino ratio (focuses on downside volatility)
+            negative_returns = [r for r in daily_returns if r < 0]
+            downside_volatility = np.std(negative_returns) * np.sqrt(252) if negative_returns else 0
+            sortino_ratio = (annual_return - risk_free_rate) / downside_volatility if downside_volatility != 0 else 0
+            
+            # Calculate max drawdown percentage using the same method as Portfolio Overview
+            # Calculate running maximum (peaks) from account balance progression
+            account_values = initial_balance + cumulative_pnl
+            running_max_account = np.maximum.accumulate(account_values)
+            
+            # Calculate drawdown percentage at each point: (peak - current) / peak * 100
+            # Avoid division by zero by setting minimum peak value
+            running_max_account = np.maximum(running_max_account, 1)  # Avoid division by zero
+            drawdown_pct = (running_max_account - account_values) / running_max_account * 100
+            max_drawdown_pct = np.max(drawdown_pct)
+            
+            # Calculate Calmar ratio (annual return / max drawdown percentage)
+            calmar_ratio = annual_return / max_drawdown_pct if max_drawdown_pct != 0 else 0
+            
+            # Debug: Print values to help troubleshoot
+            print(f"DEBUG: Initial balance: {balance_values[0] if balance_values else 'N/A'}")
+            print(f"DEBUG: Final balance: {balance_values[-1] if balance_values else 'N/A'}")
+            print(f"DEBUG: Years: {len(dates) / 252 if dates else 'N/A'}")
+            print(f"DEBUG: Annual return: {annual_return}")
+            print(f"DEBUG: Max drawdown: {max_drawdown}")
+            print(f"DEBUG: Calmar ratio: {calmar_ratio}")
+            
+            volatility_metrics = {
+                'daily_volatility': daily_volatility,
+                'mean_daily_return': mean_daily_return,
+                'sharpe_ratio': sharpe_ratio,
+                'sortino_ratio': sortino_ratio,
+                'calmar_ratio': calmar_ratio,
+                'max_drawdown': max_drawdown,
+                'max_drawdown_pct': max_drawdown_pct,
+                'total_days': len(dates),
+                'positive_days': len([p for p in pnl_values if p > 0]),
+                'negative_days': len([p for p in pnl_values if p < 0]),
+                'win_rate': len([p for p in pnl_values if p > 0]) / len(pnl_values) * 100 if pnl_values else 0,
+                'annual_volatility': annual_volatility,
+                'annual_return': annual_return
+            }
+        else:
+            volatility_metrics = {
+                'daily_volatility': 0,
+                'mean_daily_return': 0,
+                'sharpe_ratio': 0,
+                'max_drawdown': 0,
+                'total_days': len(dates),
+                'positive_days': 0,
+                'negative_days': 0,
+                'win_rate': 0
+            }
+        
         return {
             'chart': fig.to_json(),
             'type': 'daily_pnl',
-            'description': 'Daily P&L distribution showing portfolio performance over time in both dollars and percentage.'
+            'description': 'Daily P&L distribution showing portfolio performance over time in both dollars and percentage.',
+            'volatility_metrics': volatility_metrics
         }
 
     @cache_chart_result()
@@ -1948,6 +2056,12 @@ class ChartGenerator:
                 height=600
             )
             
+            # Calculate percentiles for margin percentages
+            margin_pct_50th = np.percentile(margin_percentages, 50)
+            margin_pct_90th = np.percentile(margin_percentages, 90)
+            margin_pct_95th = np.percentile(margin_percentages, 95)
+            margin_pct_99th = np.percentile(margin_percentages, 99)
+            
             return {
                 'chart': fig.to_json(),
                 'table': table_fig.to_json(),
@@ -1959,7 +2073,11 @@ class ChartGenerator:
                     'max_margin_dollars': max(margin_dollars),
                     'max_margin_percentage': max(margin_percentages),
                     'min_margin_dollars': min(margin_dollars),
-                    'min_margin_percentage': min(margin_percentages)
+                    'min_margin_percentage': min(margin_percentages),
+                    'p50_margin_percentage': margin_pct_50th,
+                    'p90_margin_percentage': margin_pct_90th,
+                    'p95_margin_percentage': margin_pct_95th,
+                    'p99_margin_percentage': margin_pct_99th
                 }
             }
             

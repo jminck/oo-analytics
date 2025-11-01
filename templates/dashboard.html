@@ -1007,15 +1007,15 @@
         .portfolio-overview-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.75rem;
+            gap: 0.5rem;
             justify-content: flex-start;
             align-items: stretch;
         }
         
         .metric-card-wrapper {
-            flex: 1 1 auto;
-            min-width: 120px;
-            max-width: 200px;
+            flex: 0 0 auto;
+            min-width: 110px;
+            /* max-width removed to allow autosizing based on content */
         }
         
         .metric-card {
@@ -2133,6 +2133,7 @@
                 <div class="metric-card-wrapper">
                 <div class="card metric-card">
                     <div class="card-body text-center">
+                        <div class="metric-spacer" style="font-size: 0.8em; color: #666; margin-bottom: 4px;">&nbsp;</div>
                         <div class="metric-title" data-i18n="starting_capital">Starting Capital</div>
                         <div class="metric-value" id="startingCapital">$0</div>
                         <div class="metric-subtitle" id="startDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
@@ -2142,6 +2143,7 @@
                 <div class="metric-card-wrapper">
                 <div class="card metric-card">
                     <div class="card-body text-center">
+                        <div class="metric-spacer" style="font-size: 0.8em; color: #666; margin-bottom: 4px;">&nbsp;</div>
                         <div class="metric-title" data-i18n="ending_capital">Ending Capital</div>
                         <div class="metric-value" id="endingCapital">$0</div>
                         <div class="metric-subtitle" id="endDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
@@ -2201,6 +2203,14 @@
                     <div class="card-body text-center">
                             <div class="metric-title">Strategies</div>
                             <div class="metric-value" id="strategyCount">0</div>
+                    </div>
+                </div>
+            </div>
+                <div class="metric-card-wrapper">
+                <div class="card metric-card">
+                    <div class="card-body text-center">
+                        <div class="metric-title">Positive Days %</div>
+                        <div class="metric-value" id="positiveDaysPct">0%</div>
                     </div>
                 </div>
             </div>
@@ -4858,7 +4868,11 @@
                 if (data.error) {
                     container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
                 } else if (data.chart) {
-                    console.log('Chart data to parse:', data.chart);
+                    // Check if this is daily P&L chart and has volatility metrics
+                    if (chartType === 'daily_pnl' && data.volatility_metrics) {
+                        createDailyPnlView(data);
+                    } else {
+                        console.log('Chart data to parse:', data.chart);
                     const chartData = JSON.parse(data.chart);
                     console.log('Parsed chart data:', chartData);
                     
@@ -4886,6 +4900,7 @@
                         }
                     });
                     }
+                }
                 } else {
                     console.error('Unexpected response format:', data);
                     container.innerHTML = '<div class="alert alert-danger">Unexpected response format from chart API</div>';
@@ -4896,6 +4911,127 @@
                 console.error('Error loading chart:', error);
                 container.innerHTML = '<div class="alert alert-danger">Error loading chart</div>';
             });
+        }
+
+        function createDailyPnlView(data) {
+            const container = document.getElementById('chartContainer');
+            const metrics = data.volatility_metrics;
+            
+            // Create HTML with volatility summary at the top
+            let html = `
+                <div class="row">
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">📊 Daily P&L Volatility Analysis</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Standard deviation of daily returns. Measures how much daily P&L varies from the average. Example: If your average daily return is 0.25% and volatility is 0.86%, then ~68% of days will fall between -0.61% and +1.11%. Lower values indicate more consistent performance.">
+                                            <h6>Daily Volatility</h6>
+                                            <h4>${metrics.daily_volatility.toFixed(2)}%</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Average daily return as percentage of account balance. Calculated as: (Daily P&L / Previous Day Balance) × 100%">
+                                            <h6>Mean Daily Return</h6>
+                                            <h4>${metrics.mean_daily_return.toFixed(2)}%</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Risk-adjusted return metric using total volatility. Calculated as: (Annual Return - Risk-Free Rate) ÷ Annual Volatility. Higher values indicate better risk-adjusted performance. Values >1.0 are good, >2.0 are excellent, >3.0 are exceptional.">
+                                            <h6>Sharpe Ratio</h6>
+                                            <h4>${metrics.sharpe_ratio.toFixed(3)}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Risk-adjusted return metric focusing only on downside volatility. Better than Sharpe ratio for traders since it only penalizes negative returns. Calculated as: (Annual Return - Risk-Free Rate) ÷ Downside Volatility. Higher values are better.">
+                                            <h6>Sortino Ratio</h6>
+                                            <h4>${metrics.sortino_ratio.toFixed(3)}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Risk-adjusted return metric. Calculated as: Annual Return ÷ Max Drawdown %. Higher values indicate better risk-adjusted performance relative to worst-case losses. Values >1.0 are good, >2.0 are excellent.">
+                                            <h6>MAR Ratio</h6>
+                                            <h4>${metrics.calmar_ratio.toFixed(3)}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Largest peak-to-trough decline as percentage of account value. Shows the worst-case scenario loss from a high point. Lower (less negative) values are better.">
+                                            <h6>Max Drawdown</h6>
+                                            <h4>${metrics.max_drawdown_pct.toFixed(2)}%</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-2">
+                                        <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Percentage of trading days with positive P&L. Calculated as: (Positive Days ÷ Total Days) × 100%. Higher values indicate more consistent profitability.">
+                                            <h6>Win Rate</h6>
+                                            <h4>${metrics.win_rate.toFixed(1)}%</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Total number of trading days analyzed. Used as the sample size for all volatility calculations.">
+                                            <h6>Total Days</h6>
+                                            <h4>${metrics.total_days}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Annualized return calculated using CAGR from actual account balance progression. This is the true annual return with compounding effects.">
+                                            <h6>Annual Return</h6>
+                                            <h4>${metrics.annual_return.toFixed(2)}%</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Daily P&L Chart</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="dailyPnlChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            
+            // Initialize tooltips
+            setTimeout(() => {
+                // Initialize Bootstrap tooltips
+                const tooltipTriggerList = [].slice.call(container.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }, 50);
+            
+            // Render the chart
+            setTimeout(() => {
+                const chartData = JSON.parse(data.chart);
+                Plotly.newPlot('dailyPnlChart', chartData.data, chartData.layout, {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    useResizeHandler: true
+                }).then(() => {
+                    // Ensure chart is properly sized after rendering
+                    const chartContainer = document.getElementById('dailyPnlChart');
+                    if (chartContainer) {
+                        Plotly.relayout('dailyPnlChart', {
+                            width: chartContainer.clientWidth - 60,
+                            height: chartContainer.clientHeight - 60
+                        });
+                    }
+                });
+            }, 100);
         }
 
         function renderDrawdownChartWithStats(chartData, strategyStats) {
@@ -5098,6 +5234,8 @@
                 data.avg_days_to_new_high !== undefined && data.avg_days_to_new_high !== null ? data.avg_days_to_new_high : 'N/A';
             document.getElementById('longestDaysSinceToNewHigh').textContent =
                 data.longest_days_since_to_new_high !== undefined && data.longest_days_since_to_new_high !== null ? data.longest_days_since_to_new_high : 'N/A';
+            document.getElementById('positiveDaysPct').textContent =
+                data.positive_days_pct !== undefined ? `${data.positive_days_pct.toFixed(1)}%` : '0%';
         }
 
         // Add global sort state
@@ -8530,6 +8668,13 @@
                 })
                 .then(data => {
                     console.log('Daily margin analysis data received:', data);
+                    console.log('Data type:', typeof data);
+                    console.log('Data keys:', Object.keys(data || {}));
+                    console.log('data.chart exists:', 'chart' in (data || {}));
+                    console.log('data.table exists:', 'table' in (data || {}));
+                    console.log('data.table_data exists:', 'table_data' in (data || {}));
+                    console.log('data.summary exists:', 'summary' in (data || {}));
+                    
                     if (loading) {
                         loading.style.display = 'none';
                     }
@@ -8557,11 +8702,83 @@
         function createDailyMarginAnalysisView(data) {
             const container = document.getElementById('chartContainer');
             
-            // Parse the chart and table data
-            const chartData = JSON.parse(data.chart);
-            const tableData = JSON.parse(data.table);
-            const tableRawData = data.table_data;  // Raw data for custom sorting
-            const summary = data.summary;
+            console.log('createDailyMarginAnalysisView - data received:', data);
+            console.log('data.chart type:', typeof data.chart);
+            console.log('data.table type:', typeof data.table);
+            console.log('data.table_data type:', typeof data.table_data);
+            console.log('data.summary type:', typeof data.summary);
+            
+            // Check if we have the required data
+            if (!data.chart) {
+                console.error('No chart data received');
+                container.innerHTML = '<div class="alert alert-danger">Error: No chart data received from server</div>';
+                return;
+            }
+            
+            // Parse the chart data
+            let chartData;
+            if (typeof data.chart === 'string') {
+                try {
+                    chartData = JSON.parse(data.chart);
+                } catch (parseError) {
+                    console.error('Error parsing chart JSON:', parseError);
+                    console.error('Chart data string:', data.chart);
+                    container.innerHTML = '<div class="alert alert-danger">Error: Failed to parse chart data</div>';
+                    return;
+                }
+            } else if (typeof data.chart === 'object') {
+                chartData = data.chart;
+            } else {
+                console.error('data.chart is neither string nor object:', data.chart);
+                container.innerHTML = '<div class="alert alert-danger">Error: Invalid chart data format</div>';
+                return;
+            }
+            
+            // Handle missing table and summary data gracefully
+            let tableData = null;
+            let tableRawData = null;
+            let summary = null;
+            
+            if (data.table) {
+                if (typeof data.table === 'string') {
+                    try {
+                        tableData = JSON.parse(data.table);
+                    } catch (parseError) {
+                        console.error('Error parsing table JSON:', parseError);
+                        console.error('Table data string:', data.table);
+                    }
+                } else if (typeof data.table === 'object') {
+                    tableData = data.table;
+                }
+            }
+            
+            if (data.table_data) {
+                tableRawData = data.table_data;
+            }
+            
+            if (data.summary) {
+                summary = data.summary;
+            }
+            
+            // If we don't have table data, show a message
+            if (!tableData && !tableRawData) {
+                console.warn('No table data available, showing chart only');
+            }
+            
+            // If we don't have summary data, create a basic one
+            if (!summary) {
+                console.warn('No summary data available, using defaults');
+                summary = {
+                    total_days: 0,
+                    avg_margin_dollars: 0,
+                    avg_margin_percentage: 0,
+                    max_margin_percentage: 0,
+                    p50_margin_percentage: 0,
+                    p90_margin_percentage: 0,
+                    p95_margin_percentage: 0,
+                    p99_margin_percentage: 0
+                };
+            }
             
             // Create the combined view
             let html = `
@@ -8573,28 +8790,40 @@
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <div class="text-center">
                                             <h6>Total Days</h6>
-                                            <h4 class="text-primary">${summary.total_days}</h4>
+                                            <h4>${summary.total_days}</h4>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
-                                        <div class="text-center">
-                                            <h6>Avg Margin ($)</h6>
-                                            <h4 class="text-info">$${summary.avg_margin_dollars.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h4>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="text-center">
-                                            <h6>Avg Margin (%)</h6>
-                                            <h4 class="text-warning">${summary.avg_margin_percentage.toFixed(2)}%</h4>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <div class="text-center">
                                             <h6>Max Margin (%)</h6>
-                                            <h4 class="text-danger">${summary.max_margin_percentage.toFixed(2)}%</h4>
+                                            <h4>${summary.max_margin_percentage.toFixed(2)}%</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <h6>50th Percentile</h6>
+                                            <h4>${summary.p50_margin_percentage.toFixed(2)}%</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <h6>90th Percentile</h6>
+                                            <h4>${summary.p90_margin_percentage.toFixed(2)}%</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <h6>95th Percentile</h6>
+                                            <h4>${summary.p95_margin_percentage.toFixed(2)}%</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <h6>99th Percentile</h6>
+                                            <h4>${summary.p99_margin_percentage.toFixed(2)}%</h4>
                                         </div>
                                     </div>
                                 </div>
@@ -8642,14 +8871,31 @@
                 });
             }, 100);
             
-            // Render the custom sortable table
-            setTimeout(() => {
-                createSortableMarginTable(tableRawData);
-            }, 200);
+            // Render the custom sortable table if we have data
+            if (tableRawData) {
+                setTimeout(() => {
+                    createSortableMarginTable(tableRawData);
+                }, 200);
+            } else {
+                // Show a message that table data is not available
+                setTimeout(() => {
+                    const tableContainer = document.getElementById('dailyMarginTable');
+                    if (tableContainer) {
+                        tableContainer.innerHTML = `
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Table data is not available. This may be due to insufficient margin data or a server configuration issue.
+                            </div>
+                        `;
+                    }
+                }, 200);
+            }
         }
 
         function createSortableMarginTable(tableData) {
             const container = document.getElementById('dailyMarginTable');
+            
+            // Extract the data array from the table_data structure
+            const data = tableData.data || [];
             
             // Create table HTML with sortable headers
             let tableHTML = `
@@ -8680,16 +8926,17 @@
                         <tbody>
             `;
             
-            // Add table rows
-            for (let i = 0; i < tableData.dates.length; i++) {
+            // Add table rows using the data array
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
                 tableHTML += `
                     <tr>
-                        <td data-sort-value="${tableData.dates[i]}">${tableData.dates[i]}</td>
-                        <td data-sort-value="${tableData.margin_dollars[i]}">$${tableData.margin_dollars[i].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td data-sort-value="${tableData.margin_percentages[i]}">${tableData.margin_percentages[i].toFixed(2)}%</td>
-                        <td data-sort-value="${tableData.account_balances[i]}">$${tableData.account_balances[i].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td data-sort-value="${tableData.trades_counts[i]}">${tableData.trades_counts[i]}</td>
-                        <td data-sort-value="${tableData.strategies_counts[i]}">${tableData.strategies_counts[i]}</td>
+                        <td data-sort-value="${row.date}">${row.date}</td>
+                        <td data-sort-value="${row.margin_dollars}">$${row.margin_dollars.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td data-sort-value="${row.margin_percentage}">${row.margin_percentage.toFixed(2)}%</td>
+                        <td data-sort-value="${row.account_balance}">$${row.account_balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td data-sort-value="${row.trades_count}">${row.trades_count}</td>
+                        <td data-sort-value="${row.strategies_count}">${row.strategies_count}</td>
                     </tr>
                 `;
             }

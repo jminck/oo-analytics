@@ -1846,6 +1846,15 @@ def get_chart(chart_type):
         
         chart_data = chart_factory.create_chart(method_name)
         
+        # Debug: Check if chart_data is valid
+        print(f"DEBUG: Chart data for {method_name}: {type(chart_data)}")
+        if chart_data is None:
+            print(f"DEBUG: Chart data is None for {method_name}")
+            return jsonify({'error': f'Chart data is None for {method_name}'}), 500
+        if not isinstance(chart_data, dict):
+            print(f"DEBUG: Chart data is not a dict for {method_name}: {type(chart_data)}")
+            return jsonify({'error': f'Chart data is not a dict for {method_name}'}), 500
+        
         # Create response with cache-busting headers
         response = make_response(jsonify(chart_data))
         return add_cache_busting_headers(response)

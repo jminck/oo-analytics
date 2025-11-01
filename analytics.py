@@ -1146,6 +1146,21 @@ class PortfolioMetrics:
         # Calculate MAR (CAGR / Max Drawdown %)
         mar = cagr / abs(max_drawdown_pct) if abs(max_drawdown_pct) > 0 else 0
         
+        # Calculate positive days percentage
+        # Group trades by date and calculate daily P&L
+        daily_pnl = {}
+        for trade in all_trades:
+            date = trade.date_closed
+            if date:
+                if date not in daily_pnl:
+                    daily_pnl[date] = 0
+                daily_pnl[date] += trade.pnl
+        
+        # Calculate positive days percentage
+        total_days = len(daily_pnl)
+        positive_days = len([pnl for pnl in daily_pnl.values() if pnl > 0])
+        positive_days_pct = (positive_days / total_days * 100) if total_days > 0 else 0
+        
         return {
             'total_pnl': round(total_return, 2),
             'total_trades': len(all_trades),
@@ -1161,6 +1176,7 @@ class PortfolioMetrics:
             'cumulative_pnl_series': cumulative_pnl.tolist(),
             'avg_days_to_new_high': avg_days_to_new_high,
             'longest_days_since_to_new_high': longest_days_since_to_new_high,
+            'positive_days_pct': round(positive_days_pct, 1),
             'start_date': start_date.strftime('%Y-%m-%d'),
             'end_date': end_date.strftime('%Y-%m-%d')
         }
