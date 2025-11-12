@@ -29,6 +29,8 @@
   "max_loser": "Max Loser",
   "avg_win_per_lot": "Avg Win/Lot",
   "avg_loss_per_lot": "Avg Loss/Lot",
+  "median_win_per_lot": "Median Win/Lot",
+  "median_loss_per_lot": "Median Loss/Lot",
   "max_win_per_lot": "Max Win/Lot",
   "max_loss_per_lot": "Max Loss/Lot",
   "comm_per_lot": "Comm/Lot",
@@ -61,6 +63,7 @@
   
   "chart_overview": "📊 Overview",
   "chart_cumulative_pnl": "📈 Cumulative P&L",
+  "chart_trades_by_day": "📅 Trades By Day",
   "chart_monthly_pnl": "📅 Monthly P&L",
   "chart_monthly_stacked": "📊 Monthly Stacked",
   "chart_daily_pnl": "📆 Daily P&L",

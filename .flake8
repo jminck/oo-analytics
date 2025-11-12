@@ -1,0 +1,45 @@
+# Flake8 configuration for consistency checking
+[flake8]
+# Maximum line length
+max-line-length = 120
+
+# Ignore specific errors
+ignore = 
+    # E501: line too long (handled by max-line-length)
+    E501,
+    # W503: line break before binary operator (conflicts with W504)
+    W503,
+    # E203: whitespace before ':' (conflicts with black)
+    E203
+
+# Exclude directories
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    .env,
+    migrations,
+    node_modules,
+    instance,
+    data,
+    logs,
+    scripts/logs
+
+# Per-file ignores
+per-file-ignores =
+    # Allow long lines in templates/HTML
+    templates/*:E501
+    # Allow unused imports in __init__.py
+    __init__.py:F401
+
+# Show source
+show-source = True
+
+# Statistics
+statistics = True
+
+# Count errors
+count = True
+

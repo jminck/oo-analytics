@@ -3632,6 +3632,129 @@ def get_pnl_by_day_of_week_cumulative():
             'error': str(e)
         }), 500
 
+@app.route('/api/trades-by-day')
+@guest_mode_required
+def get_trades_by_day():
+    """Get trades by day of week analysis with weekly breakdown."""
+    try:
+        if not portfolio or not portfolio.strategies:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'summary': [],
+                    'weekly_data': []
+                }
+            })
+        
+        from datetime import datetime, timedelta
+        from collections import defaultdict
+        
+        days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+        
+        # Collect all trades with date_opened
+        all_trades = []
+        for strategy_name, strategy in portfolio.strategies.items():
+            for trade in strategy.trades:
+                if trade.date_opened:
+                    # Convert to datetime if it's a string
+                    if isinstance(trade.date_opened, str):
+                        try:
+                            date_opened = pd.to_datetime(trade.date_opened).date()
+                        except:
+                            continue
+                    else:
+                        date_opened = trade.date_opened
+                    
+                    day_of_week = date_opened.strftime('%A')
+                    if day_of_week in days_of_week:
+                        all_trades.append({
+                            'date': date_opened,
+                            'day_of_week': day_of_week,
+                            'strategy': strategy_name
+                        })
+        
+        if not all_trades:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'summary': [],
+                    'weekly_data': []
+                }
+            })
+        
+        # Calculate summary: average counts by day of week
+        day_counts = defaultdict(int)
+        for trade in all_trades:
+            day_counts[trade['day_of_week']] += 1
+        
+        # Calculate average (total trades / number of weeks)
+        if all_trades:
+            min_date = min(trade['date'] for trade in all_trades)
+            max_date = max(trade['date'] for trade in all_trades)
+            weeks_span = max(1, ((max_date - min_date).days + 1) // 7)
+            
+            summary_data = []
+            for day in days_of_week:
+                count = day_counts[day]
+                avg = count / weeks_span if weeks_span > 0 else 0
+                summary_data.append({
+                    'day': day,
+                    'total_trades': count,
+                    'average_trades': round(avg, 2)
+                })
+        else:
+            summary_data = [{'day': day, 'total_trades': 0, 'average_trades': 0.0} for day in days_of_week]
+        
+        # Calculate weekly breakdown
+        # Group trades by week (Monday to Friday)
+        weekly_data = defaultdict(lambda: defaultdict(lambda: {'count': 0, 'strategies': []}))
+        
+        for trade in all_trades:
+            date = trade['date']
+            # Get Monday of the week for this date
+            days_since_monday = date.weekday()  # Monday is 0
+            week_start = date - timedelta(days=days_since_monday)
+            week_key = week_start.strftime('%Y-%m-%d')
+            
+            day = trade['day_of_week']
+            weekly_data[week_key][day]['count'] += 1
+            if trade['strategy'] not in weekly_data[week_key][day]['strategies']:
+                weekly_data[week_key][day]['strategies'].append(trade['strategy'])
+        
+        # Convert to list format sorted by week (descending - most recent first)
+        weekly_list = []
+        for week_key in sorted(weekly_data.keys(), reverse=True):
+            week_data = {
+                'week_start': week_key,
+                'week_label': datetime.strptime(week_key, '%Y-%m-%d').strftime('%b %d, %Y')
+            }
+            for day in days_of_week:
+                day_data = weekly_data[week_key][day]
+                week_data[day] = {
+                    'count': day_data['count'],
+                    'strategies': day_data['strategies']
+                }
+            weekly_list.append(week_data)
+        
+        response = jsonify({
+            'success': True,
+            'data': {
+                'summary': summary_data,
+                'weekly_data': weekly_list,
+                'days_of_week': days_of_week
+            }
+        })
+        return add_cache_busting_headers(response)
+        
+    except Exception as e:
+        print(f"ERROR in get_trades_by_day: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/pnl-by-month')
 def get_pnl_by_month():
     """Get P&L by month for all strategies."""

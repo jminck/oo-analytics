@@ -808,6 +808,11 @@
             overflow-x: auto;
             overflow-y: visible;
         }
+        
+        /* Hide scrollbars when chart container is hidden */
+        .chart-container[style*="display: none"] .table-responsive {
+            overflow: hidden !important;
+        }
 
         /* Responsive chart sizing */
         .chart-container {
@@ -2004,7 +2009,7 @@
             <a class="navbar-brand" href="/">
                 <i class="fas fa-chart-line"></i>
                 Portfolio Strategy Analytics
-                <span class="version-info" onclick="showVersionModal()" style="cursor: pointer;" title="" data-i18n-title="click_for_build_details">
+                <span class="version-info" onclick="showVersionModal(event)" style="cursor: pointer;" title="" data-i18n-title="click_for_build_details">
                     <span class="version-text">{{ version_string }}</span>
                     {{ build_badge|safe }}
                 </span>
@@ -2349,6 +2354,7 @@
                         </div>
                     </div>
                 </div>
+
                 <div class="card">
                     <div class="card-body">
                         <div id="chartContainer" class="chart-container">
@@ -4337,6 +4343,7 @@
                 const fallbackChartsArray = [
                     ['overview', 'Strategy performance overview and portfolio analysis'],
                     ['cumulative_pnl', 'Cumulative profit and loss over time'],
+                    ['trades_by_day', 'Trades by day of week analysis'],
                     ['daily_pnl', 'Daily profit and loss analysis'],
                     ['monthly_pnl_stacked', 'Monthly P&L breakdown by strategy'],
                     ['pnl_by_day_of_week', 'P&L by day of week table'],
@@ -4381,6 +4388,7 @@
             const chartOrder = [
                 'overview',
                 'cumulative_pnl',
+                'trades_by_day',
                 'daily_pnl',
                 'monthly_pnl_stacked',
                 'pnl_by_day_of_week',
@@ -4486,6 +4494,7 @@
             const chartNames = {
                 'overview': window.i18n ? window.i18n.t('chart_overview') : '📊 Overview',
                 'cumulative_pnl': window.i18n ? window.i18n.t('chart_cumulative_pnl') : '📈 Cumulative P&L',
+                'trades_by_day': window.i18n ? window.i18n.t('chart_trades_by_day') : '📅 Trades By Day',
                 'monthly_pnl': window.i18n ? window.i18n.t('chart_monthly_pnl') : '📅 Monthly P&L',
                 'monthly_pnl_stacked': window.i18n ? window.i18n.t('chart_monthly_stacked') : '📊 Monthly Stacked',
                 'daily_pnl': window.i18n ? window.i18n.t('chart_daily_pnl') : '📆 Daily P&L',
@@ -4544,6 +4553,7 @@
                console.log('Handling overview chart type - showing overview content');
                // Hide the chart container and show overview content, but keep chart selector visible
                container.style.display = 'none';
+               container.style.overflow = 'hidden';
                loading.style.display = 'none';
                overviewContent.style.display = 'block';
                return;
@@ -4551,6 +4561,7 @@
                 // For all other chart types, hide overview content and show chart container
                 overviewContent.style.display = 'none';
                 container.style.display = 'block';
+                container.style.overflow = 'visible';
                 document.getElementById('dailyMarginTableContainer').style.display = 'none';
             }
             
@@ -4796,6 +4807,12 @@
             if (chartType === 'live_vs_bt') {
                 console.log('🔧 LIVE VS BT ANALYSIS CONDITION REACHED');
                 loadLiveVsBTAnalysis();
+                return;
+            }
+            
+            if (chartType === 'trades_by_day') {
+                console.log('🔧 TRADES BY DAY CONDITION REACHED');
+                loadTradesByDay();
                 return;
             }
             
@@ -5128,6 +5145,275 @@
             }, 100);
         }
 
+        function loadTradesByDay() {
+            console.log('Loading trades by day...');
+            const container = document.getElementById('chartContainer');
+            if (!container) return;
+            
+            container.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading trades by day...</p></div>';
+            
+            fetch(`/api/trades-by-day?t=${Date.now()}`)
+            .then(response => {
+                console.log('Trades by day response received:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Trades by day data received:', data);
+                if (data.success) {
+                    displayTradesByDay(data.data, container);
+                } else {
+                    container.innerHTML = `<div class="alert alert-danger">Error: ${data.error || 'Failed to load trades by day data'}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading trades by day:', error);
+                container.innerHTML = `<div class="alert alert-danger">Error loading trades by day: ${error.message}</div>`;
+            });
+        }
+
+        function displayTradesByDay(data, container) {
+            if (!container) {
+                container = document.getElementById('tradesByDayContent');
+                if (!container) return;
+            }
+            
+            if (!data || (!data.summary || data.summary.length === 0) && (!data.weekly_data || data.weekly_data.length === 0)) {
+                container.innerHTML = '<p class="text-muted">No trade data available</p>';
+                return;
+            }
+            
+            let html = '';
+            
+            // Summary table: Average counts by day of week
+            if (data.summary && data.summary.length > 0) {
+                // Store data for sorting
+                tradesByDaySummaryTableData = data.summary;
+                
+                html += '<h5 class="mb-3">Average Trades by Day of Week</h5>';
+                html += '<div class="table-responsive mb-4">';
+                html += '<table class="table table-striped table-hover" id="tradesByDaySummaryTable">';
+                html += '<thead class="table-dark">';
+                html += '<tr>';
+                html += '<th style="cursor:pointer;" data-key="day" onclick="sortTradesByDaySummaryTable(\'day\')" class="custom-tooltip sortable" data-tooltip="Day of the week">Day <span id="sort-indicator-day"></span></th>';
+                html += '<th style="cursor:pointer;" data-key="total_trades" onclick="sortTradesByDaySummaryTable(\'total_trades\')" class="custom-tooltip sortable" data-tooltip="Total number of trades entered on this day">Total Trades <span id="sort-indicator-total_trades"></span></th>';
+                html += '<th style="cursor:pointer;" data-key="average_trades" onclick="sortTradesByDaySummaryTable(\'average_trades\')" class="custom-tooltip sortable" data-tooltip="Average number of trades per week for this day">Average per Week <span id="sort-indicator-average_trades"></span></th>';
+                html += '</tr>';
+                html += '</thead>';
+                html += '<tbody>';
+                
+                data.summary.forEach(item => {
+                    html += `<tr>
+                        <td>${item.day}</td>
+                        <td>${item.total_trades}</td>
+                        <td>${item.average_trades.toFixed(2)}</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody>';
+                html += '</table>';
+                html += '</div>';
+            }
+            
+            // Weekly table: Trades per day per week
+            if (data.weekly_data && data.weekly_data.length > 0) {
+                // Store data for sorting (already sorted descending from backend)
+                tradesByDayWeeklyTableData = data.weekly_data;
+                
+                html += '<h5 class="mb-3">Trades by Week</h5>';
+                html += '<div class="table-responsive" style="max-height: 600px; overflow-y: auto; overflow-x: hidden;">';
+                html += '<table class="table table-striped table-hover" id="tradesByDayWeeklyTable">';
+                html += '<thead class="table-dark" style="position: sticky; top: 0; z-index: 10;">';
+                html += '<tr>';
+                html += '<th style="cursor:pointer;" data-key="week_label" onclick="sortTradesByDayWeeklyTable(\'week_label\')" class="custom-tooltip sortable" data-tooltip="Week starting date">Week <span id="sort-indicator-week_label">▼</span></th>';
+                
+                const daysOfWeek = data.days_of_week || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                daysOfWeek.forEach(day => {
+                    html += `<th style="cursor:pointer;" data-key="${day}" onclick="sortTradesByDayWeeklyTable('${day}')" class="custom-tooltip sortable" data-tooltip="Number of trades entered on ${day}">${day.substring(0, 3)} <span id="sort-indicator-${day}"></span></th>`;
+                });
+                
+                html += '</tr>';
+                html += '</thead>';
+                html += '<tbody>';
+                
+                // Data is already sorted descending from backend, so just render it
+                data.weekly_data.forEach(week => {
+                    html += '<tr>';
+                    html += `<td>${week.week_label}</td>`;
+                    daysOfWeek.forEach(day => {
+                        const dayData = week[day] || {count: 0, strategies: []};
+                        const count = dayData.count;
+                        const strategies = dayData.strategies || [];
+                        // Format tooltip with line breaks
+                        let tooltipText = 'No trades';
+                        if (count > 0 && strategies.length > 0) {
+                            tooltipText = 'Strategies:<br>' + strategies.join('<br>');
+                        }
+                        html += `<td class="custom-tooltip" data-tooltip="${tooltipText.replace(/"/g, '&quot;')}" style="cursor: help;">${count}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                
+                html += '</tbody>';
+                html += '</table>';
+                html += '</div>';
+            }
+            
+            container.innerHTML = html;
+            
+            // Set initial sort state for weekly table (descending by week_label)
+            tradesByDayWeeklySortKey = 'week_label';
+            tradesByDayWeeklySortAsc = false;
+            
+            // Initialize tooltips
+            setTimeout(() => {
+                initializeCustomTooltips();
+            }, 100);
+        }
+
+        // Sorting functions for trades by day tables
+        let tradesByDaySummarySortKey = 'day';
+        let tradesByDaySummarySortAsc = true;
+        let tradesByDaySummaryTableData = [];
+        
+        function sortTradesByDaySummaryTable(key) {
+            if (tradesByDaySummarySortKey === key) {
+                tradesByDaySummarySortAsc = !tradesByDaySummarySortAsc;
+            } else {
+                tradesByDaySummarySortKey = key;
+                tradesByDaySummarySortAsc = key === 'day';
+            }
+            renderTradesByDaySummaryTable();
+        }
+        
+        function renderTradesByDaySummaryTable() {
+            const table = document.getElementById('tradesByDaySummaryTable');
+            if (!table || tradesByDaySummaryTableData.length === 0) return;
+            
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            
+            const sorted = [...tradesByDaySummaryTableData].sort((a, b) => {
+                let valA, valB;
+                if (tradesByDaySummarySortKey === 'day') {
+                    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                    valA = dayOrder.indexOf(a.day);
+                    valB = dayOrder.indexOf(b.day);
+                } else {
+                    valA = parseFloat(a[tradesByDaySummarySortKey]) || 0;
+                    valB = parseFloat(b[tradesByDaySummarySortKey]) || 0;
+                }
+                
+                if (tradesByDaySummarySortAsc) {
+                    return valA > valB ? 1 : -1;
+                } else {
+                    return valA < valB ? 1 : -1;
+                }
+            });
+            
+            // Update indicators
+            ['day', 'total_trades', 'average_trades'].forEach(key => {
+                const indicator = document.getElementById(`sort-indicator-${key}`);
+                if (indicator) {
+                    if (key === tradesByDaySummarySortKey) {
+                        indicator.textContent = tradesByDaySummarySortAsc ? '▲' : '▼';
+                    } else {
+                        indicator.textContent = '';
+                    }
+                }
+            });
+            
+            tbody.innerHTML = sorted.map(item => {
+                return `<tr>
+                    <td>${item.day}</td>
+                    <td>${item.total_trades}</td>
+                    <td>${item.average_trades.toFixed(2)}</td>
+                </tr>`;
+            }).join('');
+            
+            setTimeout(() => {
+                initializeCustomTooltips();
+            }, 100);
+        }
+        
+        let tradesByDayWeeklySortKey = 'week_label';
+        let tradesByDayWeeklySortAsc = false; // Default to descending (most recent first)
+        let tradesByDayWeeklyTableData = [];
+        
+        function sortTradesByDayWeeklyTable(key) {
+            if (tradesByDayWeeklySortKey === key) {
+                tradesByDayWeeklySortAsc = !tradesByDayWeeklySortAsc;
+            } else {
+                tradesByDayWeeklySortKey = key;
+                // Default to descending for week_label, ascending for others
+                tradesByDayWeeklySortAsc = key !== 'week_label';
+            }
+            renderTradesByDayWeeklyTable();
+        }
+        
+        function renderTradesByDayWeeklyTable() {
+            const table = document.getElementById('tradesByDayWeeklyTable');
+            if (!table || tradesByDayWeeklyTableData.length === 0) return;
+            
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            
+            const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+            
+            const sorted = [...tradesByDayWeeklyTableData].sort((a, b) => {
+                let valA, valB;
+                if (tradesByDayWeeklySortKey === 'week_label') {
+                    valA = new Date(a.week_start);
+                    valB = new Date(b.week_start);
+                } else {
+                    const dayDataA = a[tradesByDayWeeklySortKey] || {count: 0};
+                    const dayDataB = b[tradesByDayWeeklySortKey] || {count: 0};
+                    valA = dayDataA.count || 0;
+                    valB = dayDataB.count || 0;
+                }
+                
+                if (tradesByDayWeeklySortAsc) {
+                    return valA > valB ? 1 : -1;
+                } else {
+                    return valA < valB ? 1 : -1;
+                }
+            });
+            
+            // Update indicators
+            const keys = ['week_label', ...daysOfWeek];
+            keys.forEach(key => {
+                const indicator = document.getElementById(`sort-indicator-${key}`);
+                if (indicator) {
+                    if (key === tradesByDayWeeklySortKey) {
+                        indicator.textContent = tradesByDayWeeklySortAsc ? '▲' : '▼';
+                    } else {
+                        indicator.textContent = '';
+                    }
+                }
+            });
+            
+            tbody.innerHTML = sorted.map(week => {
+                let row = `<tr><td>${week.week_label}</td>`;
+                const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                daysOfWeek.forEach(day => {
+                    const dayData = week[day] || {count: 0, strategies: []};
+                    const count = dayData.count;
+                    const strategies = dayData.strategies || [];
+                    // Format tooltip with line breaks
+                    let tooltipText = 'No trades';
+                    if (count > 0 && strategies.length > 0) {
+                        tooltipText = 'Strategies:<br>' + strategies.join('<br>');
+                    }
+                    row += `<td class="custom-tooltip" data-tooltip="${tooltipText.replace(/"/g, '&quot;')}" style="cursor: help;">${count}</td>`;
+                });
+                row += '</tr>';
+                return row;
+            }).join('');
+            
+            setTimeout(() => {
+                initializeCustomTooltips();
+            }, 100);
+        }
+
         function loadPortfolioData() {
             console.log('loadPortfolioData() called');
             
@@ -5172,6 +5458,7 @@
                     updateBalanceAnalysis(data.data);
                 }
             });
+
 
             // Auto-load cumulative P&L chart only if no chart is currently loaded and not loading a saved file
             setTimeout(() => {
@@ -8236,10 +8523,10 @@
                 "Maximum consecutive winning trades",
                 "Maximum consecutive losing trades",
                 "Percentage of trades that were profitable",
-                "Average profit amount for winning trades",
-                "Average loss amount for losing trades",
-                "Largest profit from a single winning trade",
-                "Largest loss from a single losing trade",
+                "Average profit per contract for winning trades",
+                "Average loss per contract for losing trades",
+                "Largest profit per contract from a single winning trade",
+                "Largest loss per contract from a single losing trade",
                 "Expected profit/loss per contract per trade",
                 "Kelly Weight: Relative sizing factor (1.0 = baseline, >1.0 = larger allocation, <1.0 = smaller allocation). For strategies with overlapping trades (e.g., multi-day positions), divide by max concurrent trades."
             ];
@@ -8517,7 +8804,7 @@
                             font-size: 14px;
                             font-weight: normal;
                             z-index: 99999;
-                            max-width: 400px;
+                            max-width: 800px;
                             text-align: left;
                             box-shadow: 0 4px 12px rgba(0,0,0,0.8);
                             border: 2px solid #fff;
@@ -8528,8 +8815,30 @@
                             document.body.appendChild(tooltip);
                             
                             const rect = newElement.getBoundingClientRect();
-                            tooltip.style.left = rect.left + 'px';
-                            tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+                            const tooltipWidth = tooltip.offsetWidth;
+                            const tooltipHeight = tooltip.offsetHeight;
+                            
+                            // Calculate available space on left and right
+                            const spaceOnLeft = rect.left;
+                            const spaceOnRight = window.innerWidth - rect.right;
+                            
+                            // Position tooltip based on available space
+                            let leftPosition;
+                            if (spaceOnRight >= tooltipWidth) {
+                                // Enough space on right - align left edge with element
+                                leftPosition = rect.left;
+                            } else if (spaceOnLeft >= tooltipWidth) {
+                                // Not enough space on right, but enough on left - align right edge with element
+                                leftPosition = rect.right - tooltipWidth;
+                            } else {
+                                // Not enough space on either side - center on element
+                                leftPosition = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+                                // Clamp to viewport
+                                leftPosition = Math.max(10, Math.min(leftPosition, window.innerWidth - tooltipWidth - 10));
+                            }
+                            
+                            tooltip.style.left = leftPosition + 'px';
+                            tooltip.style.top = (rect.top - tooltipHeight - 10) + 'px';
                         }
                     });
                     
@@ -8581,7 +8890,7 @@
                             font-size: 14px;
                             font-weight: normal;
                             z-index: 99999;
-                            max-width: 400px;
+                            max-width: 800px;
                             text-align: left;
                             box-shadow: 0 4px 12px rgba(0,0,0,0.8);
                             border: 2px solid #fff;
@@ -8592,8 +8901,30 @@
                         document.body.appendChild(tooltip);
                         
                         const rect = newElement.getBoundingClientRect();
-                        tooltip.style.left = rect.left + 'px';
-                        tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+                        const tooltipWidth = tooltip.offsetWidth;
+                        const tooltipHeight = tooltip.offsetHeight;
+                        
+                        // Calculate available space on left and right
+                        const spaceOnLeft = rect.left;
+                        const spaceOnRight = window.innerWidth - rect.right;
+                        
+                        // Position tooltip based on available space
+                        let leftPosition;
+                        if (spaceOnRight >= tooltipWidth) {
+                            // Enough space on right - align left edge with element
+                            leftPosition = rect.left;
+                        } else if (spaceOnLeft >= tooltipWidth) {
+                            // Not enough space on right, but enough on left - align right edge with element
+                            leftPosition = rect.right - tooltipWidth;
+                        } else {
+                            // Not enough space on either side - center on element
+                            leftPosition = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+                            // Clamp to viewport
+                            leftPosition = Math.max(10, Math.min(leftPosition, window.innerWidth - tooltipWidth - 10));
+                        }
+                        
+                        tooltip.style.left = leftPosition + 'px';
+                        tooltip.style.top = (rect.top - tooltipHeight - 10) + 'px';
                     }
                 });
                 
@@ -15428,7 +15759,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="copyVersionInfo()">
+                    <button type="button" class="btn btn-primary" onclick="copyVersionInfo(event)">
                         <i class="fas fa-copy"></i> Copy Info
                     </button>
                 </div>
@@ -15464,12 +15795,21 @@
     </div>
 
     <script>
-        function showVersionModal() {
+        function showVersionModal(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
             const modal = new bootstrap.Modal(document.getElementById('versionModal'));
             modal.show();
         }
 
-        function copyVersionInfo() {
+        function copyVersionInfo(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
             const versionInfo = {
                 version: '{{ version_info.version }}',
                 build_date: '{{ version_info.build_date }}',
@@ -15496,17 +15836,19 @@ Build User: ${versionInfo.build_user}`;
 
             navigator.clipboard.writeText(text).then(() => {
                 // Show success feedback
-                const btn = event.target;
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                btn.classList.remove('btn-primary');
-                btn.classList.add('btn-success');
-                
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.classList.remove('btn-success');
-                    btn.classList.add('btn-primary');
-                }, 2000);
+                const btn = event ? event.target : document.querySelector('button[onclick*="copyVersionInfo"]');
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-success');
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-primary');
+                    }, 2000);
+                }
             }).catch(err => {
                 console.error('Failed to copy version info:', err);
                 alert('Failed to copy version info to clipboard');

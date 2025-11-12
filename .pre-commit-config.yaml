@@ -1,0 +1,46 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: check-case-conflict
+
+  # Python linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ['--config=.flake8']
+        additional_dependencies: [flake8]
+
+  # Python code formatting (optional - can be strict or lenient)
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        args: ['--line-length=120']
+        # Uncomment to auto-format on commit:
+        # pass_filenames: true
+
+  # Custom consistency checker
+  - repo: local
+    hooks:
+      - id: consistency-check
+        name: Consistency Check
+        entry: python scripts/check_consistency.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+

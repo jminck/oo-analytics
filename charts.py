@@ -98,20 +98,28 @@ class ChartGenerator:
         # Calculate drawdown (difference between current value and high water mark) - vectorized
         df['drawdown'] = df['cumulative'] - df['high_water_mark']
         
-        # Calculate days since last high water mark - optimized
+        # Calculate days since last NEW high water mark
+        # Track when we actually set a new high (not just when we match a previous high)
         df['days_since_high'] = 0
-        high_water_mask = df['cumulative'] == df['high_water_mark']
-        high_water_dates = df.loc[high_water_mask, 'date']
+        max_high_so_far = None
+        last_high_date = None
         
-        if len(high_water_dates) > 0:
-            # Vectorized approach for days calculation
-            for i, row in df.iterrows():
-                if not high_water_mask.iloc[i]:
-                    # Find the most recent high water mark date
-                    recent_highs = high_water_dates[high_water_dates <= row['date']]
-                    if len(recent_highs) > 0:
-                        last_high = recent_highs.iloc[-1]
-                        df.at[i, 'days_since_high'] = (row['date'] - last_high).days
+        for i, row in df.iterrows():
+            current_cumulative = row['cumulative']
+            current_date = row['date']
+            
+            # Check if this is a NEW high water mark (exceeds previous maximum)
+            if max_high_so_far is None or current_cumulative > max_high_so_far:
+                # This is a new high water mark - reset counter and update tracking
+                max_high_so_far = current_cumulative
+                last_high_date = current_date
+                df.at[i, 'days_since_high'] = 0
+            else:
+                # Not a new high - calculate days since the last new high
+                if last_high_date is not None:
+                    df.at[i, 'days_since_high'] = (current_date - last_high_date).days
+                else:
+                    df.at[i, 'days_since_high'] = 0
         
         # Identify drawdown periods (when current value is below high water mark) - vectorized
         df['in_drawdown'] = df['drawdown'] < 0
@@ -979,7 +987,7 @@ class ChartGenerator:
         # Create table
         fig = go.Figure(data=[go.Table(
             header=dict(
-                values=['Strategy', 'Total P&L', 'Trades', 'Wins', 'Losses', 'Max Win Streak', 'Max Lose Streak', 'Win Rate', 'Avg Winner', 'Avg Loser', 'Max Winner', 'Max Loser', 'Expectancy/Lot', 'Kelly Weight'],
+                values=['Strategy', 'Total P&L', 'Trades', 'Wins', 'Losses', 'Max Win Streak', 'Max Lose Streak', 'Win Rate', 'Avg Winner/Lot', 'Avg Loser/Lot', 'Max Winner/Lot', 'Max Loser/Lot', 'Expectancy/Lot', 'Kelly Weight'],
                 fill_color=['#2c3e50', '#2c3e50', '#2c3e50', '#2c3e50', '#2c3e50', '#28a745', '#dc3545', '#2c3e50', '#2c3e50', '#2c3e50', '#2c3e50', '#2c3e50', '#2c3e50', '#ff6b35'],
                 align='center',
                 font=dict(size=14, color='white', family='Arial Black'),
@@ -2476,6 +2484,7 @@ class ChartFactory:
         return {
             'overview': 'Strategy performance overview and portfolio analysis',
             'cumulative_pnl': 'Cumulative profit and loss over time',
+            'trades_by_day': 'Trades by day of week analysis',
             'daily_pnl': 'Daily profit and loss analysis',
             'monthly_pnl_stacked': 'Monthly P&L breakdown by strategy',
             'pnl_by_day_of_week': 'P&L by day of week table',

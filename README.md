@@ -278,3 +278,61 @@ python heatmap.py
 - **File Limits**: 50MB maximum upload size
 - **Security**: CSRF protection and secure session management
 - **Health Monitoring**: Built-in health check endpoint (`/health`)
+
+## Development Guidelines
+
+To maintain consistency and code quality, please follow the established patterns when adding new features or modifying existing code.
+
+### Style Guide
+- **`DEVELOPMENT_STYLE_GUIDE.md`** - Comprehensive guide documenting all patterns:
+  - Backend patterns (API endpoints, data models, error handling)
+  - Frontend patterns (tables, buttons, cards, tooltips, sorting)
+  - Chart patterns (ChartFactory, caching, error handling)
+  - File management patterns
+  - Naming conventions
+
+### Code Templates
+- **`CODE_TEMPLATES.md`** - Copy-paste ready code snippets for:
+  - API endpoints (GET, POST, file upload)
+  - Sortable tables (HTML structure, JavaScript sorting functions)
+  - Chart methods (with caching and error handling)
+  - Data models and database queries
+  - UI elements (buttons, cards, modals)
+
+### Consistency Checklist
+- **`CONSISTENCY_CHECKLIST.md`** - Pre-implementation checklist to verify:
+  - API endpoints follow response format
+  - Tables use standard sortable structure
+  - Charts use ChartFactory pattern
+  - Error handling is consistent
+  - i18n attributes are added
+  - And more...
+
+### Utility Functions
+- **`utils/api_helpers.py`** - Backend helper functions for consistent API responses
+- **`static/js/ui-utils.js`** - Frontend utility functions for creating consistent UI elements
+
+### Quick Start for New Features
+
+1. **Review the Style Guide**: Check `DEVELOPMENT_STYLE_GUIDE.md` for relevant patterns
+2. **Use Templates**: Copy from `CODE_TEMPLATES.md` as starting points
+3. **Follow Checklist**: Use `CONSISTENCY_CHECKLIST.md` before submitting code
+4. **Use Utilities**: Leverage helper functions in `utils/` and `static/js/ui-utils.js`
+
+**Key Principle**: When in doubt, look at existing code that does something similar and follow that pattern. Consistency is more important than perfection.
+
+### Automatic Enforcement
+
+To automatically enforce these guidelines:
+
+1. **Set up enforcement tools** - See `ENFORCEMENT_SETUP.md` for complete instructions
+2. **Install pre-commit hooks** - Run `pre-commit install` after installing dependencies
+3. **Run consistency checks** - Use `python scripts/check_consistency.py` before committing
+4. **Integrate with CI/CD** - Add checks to your deployment pipeline
+
+The enforcement system includes:
+- **Custom consistency checker** (`scripts/check_consistency.py`) - Validates style guide patterns
+- **Python linting** (flake8) - Code style and quality checks
+- **JavaScript linting** (ESLint) - Frontend code quality
+- **Pre-commit hooks** - Automatic checks before commits
+- **Editor configuration** - Consistent formatting across editors

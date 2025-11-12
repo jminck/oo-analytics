@@ -230,13 +230,13 @@ class Strategy:
     
     @property
     def avg_win(self) -> float:
-        """Average winning trade amount."""
+        """Average winning trade amount (per trade, not per contract)."""
         winners = [trade.pnl for trade in self.trades if trade.is_winner]
         return np.mean(winners) if winners else 0.0
     
     @property
     def avg_loss(self) -> float:
-        """Average losing trade amount."""
+        """Average losing trade amount (per trade, not per contract)."""
         losers = [trade.pnl for trade in self.trades if not trade.is_winner]
         return np.mean(losers) if losers else 0.0
     
@@ -276,14 +276,36 @@ class Strategy:
     @property
     def avg_win_per_lot(self) -> float:
         """Average winning trade amount per lot."""
-        winners = [trade.pnl_per_lot for trade in self.trades if trade.is_winner]
-        return np.mean(winners) if winners else 0.0
+        total_win_pnl = 0.0
+        total_winner_contracts = 0
+        for trade in self.trades:
+            if trade.is_winner:
+                total_win_pnl += trade.pnl
+                total_winner_contracts += getattr(trade, 'contracts', 1)
+        return total_win_pnl / total_winner_contracts if total_winner_contracts > 0 else 0.0
     
     @property
     def avg_loss_per_lot(self) -> float:
         """Average losing trade amount per lot."""
+        total_loss_pnl = 0.0
+        total_loser_contracts = 0
+        for trade in self.trades:
+            if not trade.is_winner:
+                total_loss_pnl += abs(trade.pnl)  # Use absolute value for loss
+                total_loser_contracts += getattr(trade, 'contracts', 1)
+        return total_loss_pnl / total_loser_contracts if total_loser_contracts > 0 else 0.0
+    
+    @property
+    def median_win_per_lot(self) -> float:
+        """Median winning trade amount per lot."""
+        winners = [trade.pnl_per_lot for trade in self.trades if trade.is_winner]
+        return np.median(winners) if winners else 0.0
+    
+    @property
+    def median_loss_per_lot(self) -> float:
+        """Median losing trade amount per lot."""
         losers = [trade.pnl_per_lot for trade in self.trades if not trade.is_winner]
-        return np.mean(losers) if losers else 0.0
+        return np.median(losers) if losers else 0.0
     
     @property
     def max_win_per_lot(self) -> float:
@@ -383,6 +405,8 @@ class Strategy:
                 'max_loss': 0,
                 'avg_win_per_lot': 0,
                 'avg_loss_per_lot': 0,
+                'median_win_per_lot': 0,
+                'median_loss_per_lot': 0,
                 'max_win_per_lot': 0,
                 'max_loss_per_lot': 0,
                 'avg_commissions_per_lot': 0,
@@ -404,32 +428,43 @@ class Strategy:
         max_loss = 0
         max_win_per_lot = 0
         max_loss_per_lot = 0
+        winner_contracts = 0
+        loser_contracts = 0
+        total_win_pnl = 0.0
+        total_loss_pnl = 0.0
         
         for trade in self.trades:
             pnl = trade.pnl
+            contracts = getattr(trade, 'contracts', 1)
             total_pnl += pnl
-            total_contracts += getattr(trade, 'contracts', 1)
+            total_contracts += contracts
             total_commissions += getattr(trade, 'opening_commissions', 0) + getattr(trade, 'closing_commissions', 0)
             
             if pnl > 0:
                 wins_count += 1
                 wins.append(pnl)
+                total_win_pnl += pnl
+                winner_contracts += contracts
                 max_win = max(max_win, pnl)
-                max_win_per_lot = max(max_win_per_lot, pnl / getattr(trade, 'contracts', 1))
+                max_win_per_lot = max(max_win_per_lot, pnl / contracts)
             else:
                 losses_count += 1
-                losses.append(abs(pnl))
+                losses.append(pnl)  # Keep negative sign for consistency with property
+                total_loss_pnl += pnl  # Keep negative sign
+                loser_contracts += contracts
                 max_loss = max(max_loss, abs(pnl))
-                max_loss_per_lot = max(max_loss_per_lot, abs(pnl) / getattr(trade, 'contracts', 1))
+                max_loss_per_lot = max(max_loss_per_lot, abs(pnl) / contracts)
         
         # Calculate averages
+        # avg_win and avg_loss are per-trade (simple mean)
         avg_win = sum(wins) / len(wins) if wins else 0
-        avg_loss = sum(losses) / len(losses) if losses else 0
-        avg_win_per_lot = sum(wins) / total_contracts if total_contracts > 0 else 0
-        avg_loss_per_lot = sum(losses) / total_contracts if total_contracts > 0 else 0
+        avg_loss = sum(losses) / len(losses) if losses else 0  # Negative value (losses are negative)
+        # avg_win_per_lot and avg_loss_per_lot are per-contract (total P&L / total contracts)
+        avg_win_per_lot = total_win_pnl / winner_contracts if winner_contracts > 0 else 0
+        avg_loss_per_lot = abs(total_loss_pnl) / loser_contracts if loser_contracts > 0 else 0
         avg_commissions_per_lot = total_commissions / total_contracts if total_contracts > 0 else 0
         win_rate = (wins_count / len(self.trades)) * 100 if self.trades else 0
-        profit_factor = avg_win / avg_loss if avg_loss > 0 else 0
+        profit_factor = avg_win / abs(avg_loss) if avg_loss != 0 else 0
         
         # Calculate expectancy per lot - use the same calculation as the Strategy property
         # Use the Strategy's expectancy_per_lot property to ensure consistency
@@ -518,6 +553,8 @@ class Strategy:
             'max_loss': round(max_loss, 2),
             'avg_win_per_lot': round(avg_win_per_lot, 2),
             'avg_loss_per_lot': round(avg_loss_per_lot, 2),
+            'median_win_per_lot': round(self.median_win_per_lot, 2),
+            'median_loss_per_lot': round(self.median_loss_per_lot, 2),
             'max_win_per_lot': round(max_win_per_lot, 2),
             'max_loss_per_lot': round(max_loss_per_lot, 2),
             'avg_commissions_per_lot': round(avg_commissions_per_lot, 2),
