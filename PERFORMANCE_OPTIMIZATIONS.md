@@ -107,8 +107,8 @@ export REDIS_URL=redis://localhost:6379/0
 
 ### Azure Redis Cache
 ```bash
-# Set Azure Redis connection string
-export REDIS_URL=redis://your-cache.redis.cache.windows.net:6380,password=your-password,ssl=True
+# Set Azure Redis connection string (use rediss:// scheme for SSL on port 6380)
+export REDIS_URL=rediss://:your-access-key@your-cache-name.redis.cache.windows.net:6380/0
 ```
 
 ## Monitoring

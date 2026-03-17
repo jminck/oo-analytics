@@ -168,10 +168,89 @@ az webapp log download --name portfolio-analysis-app --resource-group portfolio-
 
 1. **Database**: Consider migrating from SQLite to Azure SQL Database or PostgreSQL
 2. **File Storage**: Use Azure Blob Storage for file uploads
-3. **Authentication**: Configure proper OAuth providers for production
-4. **SSL**: Enable HTTPS (automatic with Azure App Service)
-5. **Scaling**: Configure auto-scaling rules as needed
-6. **Monitoring**: Set up Application Insights for monitoring
+3. **Redis Cache**: Set up Azure Cache for Redis for improved performance (see below)
+4. **Authentication**: Configure proper OAuth providers for production
+5. **SSL**: Enable HTTPS (automatic with Azure App Service)
+6. **Scaling**: Configure auto-scaling rules as needed
+7. **Monitoring**: Set up Application Insights for monitoring
+
+## Redis Cache Setup (Recommended)
+
+The application uses Redis for caching chart results and expensive calculations. Without Redis it
+falls back to an in-memory cache, but Azure Cache for Redis is recommended for production to
+improve performance and share cache across multiple instances.
+
+### Step 1: Create Azure Cache for Redis
+
+#### Option A: Using Azure Portal
+
+1. In the Azure Portal, click **Create a resource**
+2. Search for **Azure Cache for Redis** and select it
+3. Click **Create** and fill in the details:
+   - **Resource Group**: Use the same group as your App Service
+   - **DNS name**: Choose a unique name (e.g., `oo-analytics-cache`)
+   - **Cache SKU**: Choose **Basic C0** for development or **Standard C1** for production
+   - **Location**: Use the same region as your App Service
+4. Click **Review + create** then **Create**
+5. Once deployed, go to the resource and navigate to **Access keys**
+6. Copy the **Primary connection string** or note the **Host name** and **Primary access key**
+
+#### Option B: Using Azure CLI
+
+```bash
+# Create Redis cache (Basic C0 SKU - cheapest option for testing)
+az redis create \
+  --name oo-analytics-cache \
+  --resource-group portfolio-analysis-rg \
+  --location eastus \
+  --sku Basic \
+  --vm-size C0
+
+# Get the primary access key
+az redis list-keys \
+  --name oo-analytics-cache \
+  --resource-group portfolio-analysis-rg \
+  --query primaryKey \
+  --output tsv
+```
+
+### Step 2: Configure REDIS_URL in Azure App Service
+
+Use the `rediss://` scheme (with double **s**) to enable SSL. Azure Cache for Redis requires SSL
+on port **6380**.
+
+#### Option A: Using Azure Portal
+
+1. Go to your App Service in the Azure Portal
+2. Navigate to **Configuration** → **Application settings**
+3. Click **+ New application setting** and add:
+   - **Name**: `REDIS_URL`
+   - **Value**: `rediss://:YOUR_ACCESS_KEY@YOUR_CACHE_NAME.redis.cache.windows.net:6380/0`
+4. Replace `YOUR_ACCESS_KEY` and `YOUR_CACHE_NAME` with your actual values
+5. Click **Save** and confirm the restart
+
+#### Option B: Using Azure CLI
+
+```bash
+# Replace <access-key> and <cache-name> with your actual values
+az webapp config appsettings set \
+  --resource-group portfolio-analysis-rg \
+  --name portfolio-analysis-app \
+  --settings REDIS_URL="rediss://:<access-key>@<cache-name>.redis.cache.windows.net:6380/0"
+```
+
+### Verify Redis Connection
+
+After deploying, check the application logs to confirm Redis connected successfully:
+
+```bash
+az webapp log tail --name portfolio-analysis-app --resource-group portfolio-analysis-rg
+```
+
+Look for one of these log messages:
+- ✅ `Redis cache initialized successfully` — Redis is connected and caching is active
+- ⚠️ `Redis connection failed: ... Using in-memory cache.` — Redis URL may be wrong; the app
+  still works but uses in-memory cache
 
 ## Cost Optimization
 

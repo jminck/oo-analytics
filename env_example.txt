@@ -19,6 +19,12 @@ DISCORD_CLIENT_SECRET=your_discord_client_secret_here
 # Database (optional - will use SQLite by default)
 # DATABASE_URL=sqlite:///instance/portfolio_auth.db
 
+# Redis Cache (optional - falls back to in-memory cache if not set)
+# Local development (requires Redis running on localhost):
+# REDIS_URL=redis://localhost:6379/0
+# Azure Cache for Redis (use SSL port 6380 with rediss:// scheme):
+# REDIS_URL=rediss://:your-access-key@your-cache-name.redis.cache.windows.net:6380/0
+
 # Production OAuth Redirect URIs (only needed for production)
 # GOOGLE_REDIRECT_URI=https://oo-analytics.azurewebsites.net/auth/callback/google
 # DISCORD_REDIRECT_URI=https://oo-analytics.azurewebsites.net/auth/callback/discord
