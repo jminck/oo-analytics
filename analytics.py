@@ -1728,8 +1728,7 @@ class MonteCarloSimulator:
         account_balances = [trade.funds_at_close for trade in strategy.trades]
         
         # Calculate actual contract count from legs, fallback to CSV field
-        from commission_config import CommissionCalculator
-        calc = CommissionCalculator()
+        calc = _get_commission_calculator()
         contract_counts = []
         for trade in strategy.trades:
             legs = getattr(trade, 'legs', '')
@@ -3498,9 +3497,7 @@ class PriceMovementAnalyzer:
                 # Calculate actual contract count from legs, fallback to CSV field
                 legs = getattr(trade, 'legs', '')
                 if legs and legs.strip():
-                    from commission_config import CommissionCalculator
-                    calc = CommissionCalculator()
-                    contracts = calc.calculate_actual_contracts_from_legs(legs)
+                    contracts = _get_commission_calculator().calculate_actual_contracts_from_legs(legs)
                 else:
                     contracts = getattr(trade, 'contracts', 1)
                 strategy_data[strategy_name]['total_contracts'] += contracts
@@ -3609,9 +3606,7 @@ class VIXAnalyzer:
                 # contracts via legs when available
                 legs = getattr(trade, 'legs', '')
                 if legs and legs.strip():
-                    from commission_config import CommissionCalculator
-                    calc = CommissionCalculator()
-                    contracts = calc.calculate_actual_contracts_from_legs(legs)
+                    contracts = _get_commission_calculator().calculate_actual_contracts_from_legs(legs)
                 else:
                     contracts = getattr(trade, 'contracts', 1)
                 strat[name]['total_contracts'] += contracts
@@ -3653,8 +3648,7 @@ class VIXAnalyzer:
             trades_out = []
             # Lazy import to avoid circulars
             try:
-                from commission_config import CommissionCalculator
-                calc = CommissionCalculator()
+                calc = _get_commission_calculator()
             except Exception:
                 calc = None
 
@@ -3812,8 +3806,7 @@ class MEICAnalyzer:
                 both_stopped += 1
         
         # Calculate additional statistics
-        from commission_config import CommissionCalculator
-        calc = CommissionCalculator()
+        calc = _get_commission_calculator()
         
         total_contracts = 0
         for trade in self.meic_trades:
