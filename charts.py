@@ -427,7 +427,7 @@ class ChartGenerator:
             title='Strategy Correlation Matrix',
             template='plotly_white',
             height=min_size,
-            autosize=True,
+            width=min_size,
             hovermode='closest',
             hoverlabel=dict(
                 align='left',

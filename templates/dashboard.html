@@ -4763,6 +4763,20 @@
                     } else if (data.type === 'portfolio_balance') {
                         // Special rendering for portfolio balance with explanation pane
                         renderPortfolioBalanceChart(chartData);
+                    } else if (data.type === 'correlation_heatmap') {
+                        // Correlation matrix: use container width for both dimensions to keep it square
+                        const chartContainer = document.getElementById('chartContainer');
+                        if (chartContainer) {
+                            const squareSize = chartContainer.clientWidth - 60;
+                            chartData.layout.width = squareSize;
+                            chartData.layout.height = squareSize;
+                        }
+                        Plotly.newPlot('chartContainer', chartData.data, chartData.layout, {
+                            responsive: true,
+                            displayModeBar: true,
+                            displaylogo: false,
+                            useResizeHandler: true
+                        });
                     } else {
                         // Regular chart rendering
                     const chartContainer = document.getElementById('chartContainer');
