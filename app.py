@@ -14,9 +14,8 @@ import sqlite3
 from datetime import datetime
 import json
 import re
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import logging
-import csv
 from scipy import stats
 import zipfile
 import shutil
@@ -259,8 +258,9 @@ def append_initial_capital_to_filename(filename, initial_capital):
     base = re.sub(r'__capital=\d+', '', base)
     return f"{base}__capital={int(initial_capital)}{ext}"
 
-# Cache for parsed legs to avoid repeated parsing
-_legs_cache = {}
+# Cache for parsed legs to avoid repeated parsing (bounded to prevent unbounded memory growth)
+_LEGS_CACHE_MAX_SIZE = 1000
+_legs_cache = OrderedDict()
 
 def parse_legs_string(legs_str):
     """
@@ -278,6 +278,7 @@ def parse_legs_string(legs_str):
     # Check cache first
     legs_key = legs_str.strip()
     if legs_key in _legs_cache:
+        _legs_cache.move_to_end(legs_key)
         return _legs_cache[legs_key]
     
     legs = []
@@ -304,8 +305,10 @@ def parse_legs_string(legs_str):
                 'premium': float(premium)
             })
     
-    # Cache the result
+    # Cache the result with LRU eviction
     _legs_cache[legs_key] = legs
+    if len(_legs_cache) > _LEGS_CACHE_MAX_SIZE:
+        _legs_cache.popitem(last=False)
     return legs
 
 # Global variable to store the current debug log path for this session
