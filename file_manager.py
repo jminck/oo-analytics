@@ -21,17 +21,33 @@ class FileManager:
     
     def __init__(self, data_dir: str = DEFAULT_DATA_DIR):
         self.base_data_dir = data_dir
-        self.data_dir = data_dir  # This will be updated based on current user
+        self.data_dir = data_dir
         self.metadata_file = os.path.join(data_dir, 'file_metadata.json')
         os.makedirs(data_dir, exist_ok=True)
         self.metadata = self._load_metadata()
+        self._last_loaded_dir = data_dir
     
     def set_user_data_dir(self, user_data_dir: str):
-        """Set the current user's data directory."""
+        """Set the current user's data directory, only reloading metadata if dir changed."""
+        if self.data_dir == user_data_dir and self._last_loaded_dir == user_data_dir:
+            return
         self.data_dir = user_data_dir
         self.metadata_file = os.path.join(user_data_dir, 'file_metadata.json')
         os.makedirs(user_data_dir, exist_ok=True)
         self.metadata = self._load_metadata()
+        self._last_loaded_dir = user_data_dir
+    
+    def get_file_type(self, filename: str) -> Optional[str]:
+        """Get cached file type (real_trade or backtest) from metadata."""
+        meta = self.metadata.get(filename, {})
+        return meta.get('file_type')
+    
+    def set_file_type(self, filename: str, file_type: str):
+        """Cache file type in metadata."""
+        if filename not in self.metadata:
+            self.metadata[filename] = {}
+        self.metadata[filename]['file_type'] = file_type
+        self._save_metadata()
     
     def _load_metadata(self) -> Dict:
         """Load file metadata from JSON file."""

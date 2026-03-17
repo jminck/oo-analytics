@@ -34,54 +34,56 @@
     
     <style>
         :root {
-            --primary-color: #6366f1;
-            --primary-hover: #5b59f0;
-            --primary-dark: #4f46e5;
-            --secondary-color: #8b5cf6;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-            --info-color: #06b6d4;
+            --primary-color: #3B82F6;
+            --primary-hover: #2563EB;
+            --primary-dark: #1D4ED8;
+            --secondary-color: #6366F1;
+            --success-color: #10B981;
+            --danger-color: #EF4444;
+            --warning-color: #F59E0B;
+            --info-color: #06B6D4;
             
             /* Dark theme colors (default) */
-            --bg-primary: #0f0f0f;
-            --bg-secondary: #1a1a1a;
-            --bg-tertiary: #262626;
-            --bg-card: #1e1e1e;
-            --bg-elevated: #2a2a2a;
+            --bg-primary: #0F1629;
+            --bg-secondary: #162033;
+            --bg-tertiary: #1E2A3F;
+            --bg-card: #1A2035;
+            --bg-elevated: #243049;
             
-            --text-primary: #ffffff;
-            --text-secondary: #a3a3a3;
-            --text-muted: #737373;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
             
-            --border-color: #404040;
-            --border-subtle: #2a2a2a;
+            --border-color: #2D3748;
+            --border-subtle: #1E2A3F;
             
             /* Glassmorphism */
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(255, 255, 255, 0.04);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+            
+            --sidebar-width: 210px;
         }
         
         /* Light theme colors */
         [data-theme="light"] {
-            --bg-primary: #f8fafc;
-            --bg-secondary: #f1f5f9;
-            --bg-tertiary: #e2e8f0;
-            --bg-card: #ffffff;
-            --bg-elevated: #f8fafc;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F8FAFC;
+            --bg-tertiary: #F1F5F9;
+            --bg-card: #FFFFFF;
+            --bg-elevated: #F1F5F9;
             
-            --text-primary: #1e293b;
+            --text-primary: #1E293B;
             --text-secondary: #475569;
-            --text-muted: #64748b;
+            --text-muted: #64748B;
             
-            --border-color: #cbd5e1;
-            --border-subtle: #e2e8f0;
+            --border-color: #E2E8F0;
+            --border-subtle: #F1F5F9;
             
             /* Light theme glassmorphism */
-            --glass-bg: rgba(0, 0, 0, 0.05);
-            --glass-border: rgba(0, 0, 0, 0.1);
-            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
         }
 
         * {
@@ -90,23 +92,10 @@
 
         body {
             background: var(--bg-primary);
-            background-image: 
-                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(120, 199, 198, 0.3) 0%, transparent 50%);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             color: var(--text-primary);
             min-height: 100vh;
-            line-height: 1.6;
-        }
-
-        /* Light theme background */
-        [data-theme="light"] body {
-            background: var(--bg-primary);
-            background-image: 
-                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+            line-height: 1.5;
         }
 
         /* Custom container width - use 95% of screen width to reduce left margin */
@@ -135,40 +124,17 @@
             }
         }
 
-        /* Light theme (for theme toggle) */
-        [data-theme="light"] {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8fafc;
-            --bg-tertiary: #e2e8f0;
-            --bg-card: #ffffff;
-            --bg-elevated: #f1f5f9;
-            
-            --text-primary: #1e293b;
-            --text-secondary: #475569;
-            --text-muted: #64748b;
-            
-            --border-color: #e2e8f0;
-            --border-subtle: #f1f5f9;
-            
-            --glass-bg: rgba(255, 255, 255, 0.8);
-            --glass-border: rgba(0, 0, 0, 0.1);
-            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
+        /* Light theme body */
         [data-theme="light"] body {
             background: var(--bg-primary);
-            background-image: 
-                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
             color: var(--text-primary);
         }
         
         /* Navigation */
         .navbar {
-            background: var(--glass-bg) !important;
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--glass-border);
-            padding: 1rem 0;
+            background: var(--bg-card) !important;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.5rem 0;
             z-index: 1030;
             position: relative;
             overflow: visible;
@@ -187,7 +153,7 @@
         .navbar-nav {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.5rem;
             margin-left: auto;
             justify-content: flex-end;
             overflow: visible;
@@ -196,7 +162,7 @@
 
         .navbar-brand {
             font-weight: 700;
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             color: var(--text-primary) !important;
             display: flex;
             align-items: center;
@@ -207,7 +173,7 @@
 
         .navbar-brand i {
             color: var(--primary-color);
-            font-size: 1.5rem;
+            font-size: 1.25rem;
         }
 
         .version-info {
@@ -324,8 +290,8 @@
         }
 
         .theme-toggle {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
             color: var(--text-primary);
             border-radius: 50px;
             padding: 0.5rem 1rem;
@@ -362,13 +328,12 @@
         .dropdown-menu {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 0.5rem;
-            box-shadow: var(--glass-shadow);
-            backdrop-filter: blur(20px);
+            border-radius: 8px;
+            padding: 0.25rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
             z-index: 1050 !important;
             position: absolute !important;
-            min-width: 200px;
+            min-width: 180px;
             max-width: 300px;
             overflow: visible;
             right: 0;
@@ -377,16 +342,17 @@
 
         .dropdown-item {
             color: var(--text-primary);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            transition: background-color 0.15s ease;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            font-size: 0.85rem;
         }
 
         .dropdown-item:hover {
-            background: var(--glass-bg);
+            background: var(--bg-elevated);
             color: var(--text-primary);
         }
 
@@ -533,47 +499,42 @@
         
         /* Cards */
         .card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
             box-shadow: var(--glass-shadow);
-            margin-bottom: 1.5rem;
-            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+            transition: box-shadow 0.2s ease;
         }
 
         .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
         }
 
         .card-body {
-            padding: 1.5rem;
+            padding: 1.25rem;
         }
         
         .metric-card {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            border: none;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
             position: relative;
             overflow: hidden;
-            height: 70px; /* Fixed height for compactness */
+            height: auto;
+            border-radius: 10px;
         }
 
-        .metric-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+        .metric-card:hover {
+            border-top-color: var(--primary-hover);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.1);
         }
 
         .metric-card .card-body {
             position: relative;
             z-index: 1;
-            padding: 0.4rem 0.6rem; /* Reduced padding */
+            padding: 0.6rem 0.75rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -583,34 +544,34 @@
         }
         
         .metric-value {
-            font-size: clamp(0.8rem, 1.8vw, 1rem); /* Smaller font */
+            font-size: clamp(0.85rem, 1.8vw, 1.1rem);
             font-weight: 700;
             font-family: 'JetBrains Mono', monospace;
-            margin-bottom: 0.1rem; /* Reduced margin */
-            line-height: 1;
+            margin-bottom: 0.1rem;
+            line-height: 1.2;
             word-break: break-word;
             hyphens: auto;
+            color: var(--text-primary);
         }
 
         .metric-title {
-            font-size: clamp(0.6rem, 1.2vw, 0.7rem); /* Smaller font */
-            font-weight: 500;
-            opacity: 0.9;
+            font-size: clamp(0.6rem, 1.1vw, 0.7rem);
+            font-weight: 600;
+            color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.03em; /* Reduced letter spacing */
-            line-height: 1.1; /* Tighter line height */
-            margin-bottom: 0.1rem; /* Reduced margin */
+            letter-spacing: 0.04em;
+            line-height: 1.1;
+            margin-bottom: 0.25rem;
         }
         
         /* Upload Area */
         .upload-area {
             border: 2px dashed var(--border-color);
-            border-radius: 16px;
+            border-radius: 10px;
             padding: 2rem;
             text-align: center;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            transition: all 0.3s ease;
+            background: var(--bg-secondary);
+            transition: border-color 0.2s ease, background-color 0.2s ease;
             cursor: pointer;
             min-height: 140px;
             display: flex;
@@ -619,27 +580,10 @@
             position: relative;
             overflow: hidden;
         }
-
-        .upload-area::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, transparent 49%, rgba(99, 102, 241, 0.1) 50%, transparent 51%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
         
         .upload-area:hover {
             border-color: var(--primary-color);
-            background: var(--glass-bg);
-            transform: translateY(-2px);
-        }
-
-        .upload-area:hover::before {
-            opacity: 1;
+            background: var(--bg-elevated);
         }
         
         .upload-area.dragover {
@@ -660,53 +604,34 @@
         }
         
         .saved-files-section {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.25rem;
             min-height: 140px;
         }
         
         /* Buttons */
         .btn {
-            border-radius: 12px;
+            border-radius: 8px;
             font-weight: 500;
-            padding: 0.75rem 1.5rem;
+            padding: 0.5rem 1rem;
             border: none;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn:hover::before {
-            left: 100%;
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            background: var(--primary-color);
             color: white;
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary-color) 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+            background: var(--primary-hover);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
 
         .btn-outline-primary {
-            border: 2px solid var(--primary-color);
+            border: 1px solid var(--primary-color);
             color: var(--primary-color);
             background: transparent;
         }
@@ -714,35 +639,37 @@
         .btn-outline-primary:hover {
             background: var(--primary-color);
             color: white;
-            transform: translateY(-1px);
         }
 
         .btn-chart {
-            margin: 0.375rem;
-            min-width: 200px;
-            width: calc(16.66% - 0.75rem);
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            color: var(--text-primary);
-            border-radius: 12px;
-            padding: 0.875rem 1.25rem;
-            font-size: 0.9rem;
+            margin: 0;
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-left: 3px solid transparent;
+            color: var(--text-secondary);
+            border-radius: 0 6px 6px 0;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
             font-weight: 500;
-            display: inline-block;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-align: left;
+            white-space: nowrap;
         }
         
         .btn-chart:hover {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border-left-color: var(--border-color);
         }
 
         .btn-chart.active {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
+            background: var(--bg-elevated);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+            font-weight: 600;
         }
         
         /* Ensure body and html can expand vertically */
@@ -760,14 +687,13 @@
         
         /* Chart Container */
         .chart-container {
-            min-height: 800px; /* Increased from 600px to give more vertical space */
+            min-height: 800px;
             height: auto;
             max-height: none;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border-radius: 16px;
+            background: var(--bg-card);
+            border-radius: 10px;
             padding: 1rem;
-            border: 1px solid var(--glass-border);
+            border: 1px solid var(--border-color);
             position: relative;
             overflow: visible;
         }
@@ -840,12 +766,11 @@
         }
 
         .chart-selector {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
 
         #chartButtons {
@@ -853,41 +778,50 @@
         }
         
         /* Sidebar chart selector styling */
-        .sidebar-chart-selector .card-body {
-            padding: 0.5rem;
+        .sidebar-chart-selector {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            border: none;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            border-radius: 10px;
+            position: sticky;
+            top: 1rem;
+            max-height: calc(100vh - 2rem);
+            overflow-y: auto;
+            overflow-x: hidden;
         }
-        
+
         .sidebar-chart-selector .card-header {
-            padding: 0.5rem 0.75rem;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            background: transparent;
         }
-        
+
+        .sidebar-chart-selector .card-body {
+            padding: 0.25rem 0 !important;
+        }
+
+        .sidebar-chart-selector .d-grid {
+            gap: 1px !important;
+        }
+
         .sidebar-chart-selector .btn {
-            font-size: 0.8rem;
-            padding: 0.4rem 0.6rem;
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.82rem !important;
             text-align: left;
-            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            border-radius: 6px;
         }
         
-        .sidebar-chart-selector {
-            width: auto; /* Auto-size to content */
-            min-width: fit-content; /* Ensure it fits the content */
-        }
-        
-        .sidebar-chart-selector .card-body {
-            padding: 0.25rem !important; /* Reduce padding */
-        }
-        
-        .sidebar-chart-selector .d-grid {
-            gap: 0.25rem !important; /* Reduce gap between buttons */
-        }
-        
-        .sidebar-chart-selector .btn {
-            padding: 0.375rem 0.5rem !important; /* Reduce button padding */
-            font-size: 0.875rem !important; /* Slightly smaller font */
-            text-align: left;
+        .sidebar-section-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            padding: 0.75rem 0.75rem 0.25rem;
+            margin: 0;
         }
         
         /* Strategy Performance table styling */
@@ -949,22 +883,26 @@
         
         .table-dark {
             color: var(--text-primary) !important;
-            background-color: var(--bg-tertiary) !important;
+            background-color: var(--bg-secondary) !important;
         }
-        
+
         .table-dark th {
-            color: var(--text-primary) !important;
-            background-color: var(--bg-tertiary) !important;
+            color: var(--text-muted) !important;
+            background-color: var(--bg-secondary) !important;
             border-color: var(--border-color) !important;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
-        
+
         .table-dark td {
             color: var(--text-primary) !important;
             background-color: var(--bg-card) !important;
-            border-color: var(--border-color) !important;
+            border-color: var(--border-subtle) !important;
         }
         
-        /* Additional table elements */
+        /* Table row striping */
         .table-striped tbody tr:nth-of-type(odd) {
             background-color: var(--bg-secondary) !important;
             color: var(--text-primary) !important;
@@ -975,26 +913,14 @@
             color: var(--text-primary) !important;
         }
         
-        /* Card backgrounds for tables */
-        .card {
-            background-color: var(--bg-card) !important;
-            border-color: var(--border-color) !important;
-        }
-        
-        .card-body {
-            background-color: var(--bg-card) !important;
-            color: var(--text-primary) !important;
+        .table-hover tbody tr:hover {
+            background-color: var(--bg-elevated) !important;
         }
         
         .card-header {
-            background-color: var(--bg-tertiary) !important;
+            background-color: var(--bg-secondary) !important;
             color: var(--text-primary) !important;
             border-color: var(--border-color) !important;
-        }
-        
-        /* Ensure all text elements are visible */
-        p, span, div, label, small, strong, em {
-            color: var(--text-primary) !important;
         }
         
         /* Form elements */
@@ -1005,7 +931,7 @@
         }
         
         .form-label {
-            color: var(--text-primary) !important;
+            color: var(--text-secondary) !important;
         }
         
         /* Portfolio Overview Dynamic Layout */
@@ -1169,7 +1095,7 @@
             background-color: var(--bg-card) !important;
             color: var(--text-primary) !important;
             border-color: var(--primary-color) !important;
-            box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25) !important;
+            box-shadow: 0 0 0 0.15rem rgba(59, 130, 246, 0.2) !important;
         }
         
         /* Prevent horizontal overflow on zoom */
@@ -1195,16 +1121,6 @@
                 max-width: 85% !important;
                 width: 85%;
             }
-        }
-            border: 2px dashed var(--border-color);
-            border-radius: 12px;
-            padding: 1rem;
-            min-height: 60px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            align-items: center;
-            justify-content: center;
         }
         
         /* Tables */
@@ -1236,7 +1152,7 @@
         }
 
         .table-hover tbody tr:hover {
-            background: var(--glass-bg);
+            background: var(--bg-elevated);
             color: var(--text-primary) !important;
         }
 
@@ -1286,27 +1202,23 @@
         }
 
         .strategy-table {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
         }
         
         /* Typography */
         .section-title {
             color: var(--text-primary);
-            font-weight: 700;
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.5rem;
         }
 
         .section-title::after {
-            content: '';
-            flex: 1;
-            height: 2px;
-            background: linear-gradient(90deg, var(--primary-color), transparent);
+            display: none;
         }
 
         /* Override for section titles with buttons */
@@ -1335,7 +1247,7 @@
 
         .section-title i {
             color: var(--primary-color);
-            font-size: 1.25rem;
+            font-size: 1rem;
         }
 
         /* Form Controls */
@@ -1343,14 +1255,14 @@
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             color: var(--text-primary) !important;
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
         }
 
         .form-control:focus, .form-select:focus {
             background: var(--bg-card);
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+            box-shadow: 0 0 0 0.15rem rgba(59, 130, 246, 0.2);
             color: var(--text-primary) !important;
         }
 
@@ -1383,11 +1295,10 @@
         /* Alerts */
         .alert {
             border: none;
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
         }
 
         .alert-info {
@@ -1758,8 +1669,7 @@
         .modal-content {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            backdrop-filter: blur(20px);
+            border-radius: 10px;
         }
 
         .modal-header {
@@ -1786,7 +1696,7 @@
         }
 
         .progress-bar {
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            background: var(--primary-color);
             border-radius: 8px;
         }
 
@@ -1828,8 +1738,8 @@
 
         @media (max-width: 992px) {
             .btn-chart {
-                width: calc(33.33% - 0.75rem);
-                min-width: 160px;
+                width: 100%;
+                min-width: auto;
             }
         }
 
@@ -1851,10 +1761,10 @@
             }
 
             .btn-chart {
-                min-width: 140px;
-                width: calc(50% - 0.75rem);
+                min-width: auto;
+                width: 100%;
                 font-size: 0.8rem;
-                padding: 0.75rem 1rem;
+                padding: 0.4rem 0.6rem;
             }
         }
 
@@ -1904,14 +1814,11 @@
             background: var(--danger-color) !important;
         }
 
-        /* Glassmorphism hover effects */
-        .card:hover .metric-card {
-            transform: scale(1.02);
-        }
+        /* Metric card hover */
 
         /* Enhanced table responsiveness */
         .table-responsive {
-            border-radius: 12px;
+            border-radius: 8px;
             border: 1px solid var(--border-color);
         }
 
@@ -1926,7 +1833,7 @@
         /* Files Overview Table */
         #filesOverviewTable {
             background: var(--bg-card);
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
             box-shadow: var(--glass-shadow);
         }
@@ -2008,43 +1915,41 @@
         <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-chart-line"></i>
-                Portfolio Strategy Analytics
-                <span class="version-info" onclick="showVersionModal(event)" style="cursor: pointer;" title="" data-i18n-title="click_for_build_details">
-                    <span class="version-text">{{ version_string }}</span>
-                    {{ build_badge|safe }}
-                </span>
+                Portfolio Analytics
+                <span class="version-text" onclick="showVersionModal(event)" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem;" title="" data-i18n-title="click_for_build_details">{{ version_string }}</span>
+                {{ build_badge|safe }}
             </a>
+            
+            <!-- Center: File indicator pill -->
+            <div class="nav-filename" id="csvFilename" style="display:none; justify-content: center; flex: 0 1 auto; background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                <i class="fas fa-file-csv"></i>
+                <span id="currentFilename" data-i18n="no_file_loaded">No file loaded</span>
+            </div>
+            <span class="nav-stats" id="dataStats" style="font-size: 0.8rem;">Loading...</span>
+            
             <div class="navbar-nav">
-                <span class="nav-stats" id="dataStats">Loading...</span>
-                <span class="nav-filename" id="csvFilename" style="display:none;">
-                    <i class="fas fa-file-csv"></i>
-                    <span id="currentFilename" data-i18n="no_file_loaded">No file loaded</span>
-                </span>
                 <div class="user-info" id="userInfo">
                     <span id="userDisplay">Loading...</span>
                 </div>
-                <button class="btn theme-toggle" onclick="toggleTheme()">
+                <button class="btn btn-sm" onclick="toggleTheme()" style="background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 8px; padding: 0.35rem 0.6rem;">
                     <i class="fas fa-moon" id="themeIcon"></i>
-                    <span id="themeText">Dark</span>
                 </button>
-                <a href="https://github.com/jminck/oo-analytics/issues" target="_blank" class="btn btn-outline-secondary" title="" data-i18n-title="report_bug">
-                    <i class="fab fa-github"></i>
-                    <span data-i18n="bug_suggestion">Bug/Suggestion?</span>
-                </a>
                 
                 <!-- Language Switcher -->
                 <div class="dropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 8px; padding: 0.35rem 0.6rem;">
                         <i class="fas fa-globe"></i>
-                        <span id="currentLanguage" data-i18n="language_en">English</span>
                     </button>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="#" data-lang-switch="en">🇺🇸 <span data-i18n="language_en">English</span></a></li>
                         <li><a class="dropdown-item" href="#" data-lang-switch="es">🇪🇸 <span data-i18n="language_es">Español</span></a></li>
                     </ul>
                 </div>
+                <a href="https://github.com/jminck/oo-analytics/issues" target="_blank" class="btn btn-sm" title="" data-i18n-title="report_bug" style="background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 8px; padding: 0.35rem 0.6rem;">
+                    <i class="fab fa-github"></i>
+                </a>
                 <div class="dropdown">
-                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="authDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="authDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 8px; padding: 0.35rem 0.6rem;">
                         <span id="authButtonText">Account</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="authDropdown" id="authDropdownMenu">
@@ -2068,14 +1973,18 @@
         <!-- Alerts -->
         <div id="alertContainer"></div>
 
-        <!-- File Upload Section -->
-        <div class="row mb-4">
+        <!-- File Upload Section (Collapsible) -->
+        <div class="row mb-3">
             <div class="col-12">
-                <h2 class="section-title">
+                <h2 class="section-title" style="cursor: pointer; user-select: none; margin-bottom: 0;" data-bs-toggle="collapse" data-bs-target="#dataManagementContent" aria-expanded="true">
                     <i class="fas fa-database"></i>
                     <span data-i18n="data_management">Data Management</span>
+                    <i class="fas fa-chevron-down ms-auto" id="dataManagementChevron" style="font-size: 0.75rem; transition: transform 0.2s;"></i>
                 </h2>
             </div>
+        </div>
+        <div class="collapse show" id="dataManagementContent">
+        <div class="row mb-3">
             <div class="col-md-6 mb-3">
                 <h5 data-i18n="upload_new_file">Upload New File</h5>
                            <div class="d-flex align-items-start gap-3 mb-2">
@@ -2126,141 +2035,122 @@
                 </div>
             </div>
         </div>
+        </div><!-- end collapse -->
 
 
         <!-- Portfolio Overview Metrics -->
-        <div class="mb-4">
-                <h2 class="section-title" data-i18n="portfolio_overview">
-                    <i class="fas fa-chart-area"></i>
-                    Portfolio Overview
-                </h2>
+        <div class="mb-3">
             <div class="portfolio-overview-container">
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
-                        <div class="metric-spacer" style="font-size: 0.8em; color: #666; margin-bottom: 4px;">&nbsp;</div>
-                        <div class="metric-title" data-i18n="starting_capital">Starting Capital</div>
-                        <div class="metric-value" id="startingCapital">$0</div>
-                        <div class="metric-subtitle" id="startDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
+                            <div class="metric-title" data-i18n="starting_capital">Starting Capital</div>
+                            <div class="metric-value" id="startingCapital">$0</div>
+                            <div class="metric-subtitle" id="startDate" style="font-size: 0.7em; color: var(--text-muted); margin-top: 2px;"></div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
-                        <div class="metric-spacer" style="font-size: 0.8em; color: #666; margin-bottom: 4px;">&nbsp;</div>
-                        <div class="metric-title" data-i18n="ending_capital">Ending Capital</div>
-                        <div class="metric-value" id="endingCapital">$0</div>
-                        <div class="metric-subtitle" id="endDate" style="font-size: 0.8em; color: #666; margin-top: 4px;"></div>
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
+                            <div class="metric-title" data-i18n="ending_capital">Ending Capital</div>
+                            <div class="metric-value" id="endingCapital">$0</div>
+                            <div class="metric-subtitle" id="endDate" style="font-size: 0.7em; color: var(--text-muted); margin-top: 2px;"></div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
-                        <div class="metric-title" data-i18n="total_pnl">Total P&L</div>
-                        <div class="metric-value" id="totalPnL">$0</div>
+                    <div class="card metric-card" style="border-top-color: var(--success-color);">
+                        <div class="card-body text-center">
+                            <div class="metric-title" data-i18n="total_pnl">Total P&L</div>
+                            <div class="metric-value" id="totalPnL">$0</div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
+                    <div class="card metric-card" style="border-top-color: var(--danger-color);">
+                        <div class="card-body text-center">
                             <div class="metric-title">Max Drawdown</div>
                             <div class="metric-value" id="maxDrawdown">$0</div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
-                            <div class="metric-title">Max Drawdown %</div>
+                    <div class="card metric-card" style="border-top-color: var(--danger-color);">
+                        <div class="card-body text-center">
+                            <div class="metric-title">Max DD %</div>
                             <div class="metric-value" id="maxDrawdownPct">0%</div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
+                    <div class="card metric-card" style="border-top-color: var(--success-color);">
+                        <div class="card-body text-center">
                             <div class="metric-title">CAGR</div>
                             <div class="metric-value" id="cagr">0%</div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
                             <div class="metric-title">MAR</div>
                             <div class="metric-value" id="mar">0</div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
-                            <div class="metric-title">Total Trades</div>
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
+                            <div class="metric-title">Trades</div>
                             <div class="metric-value" id="totalTrades">0</div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
                             <div class="metric-title">Strategies</div>
                             <div class="metric-value" id="strategyCount">0</div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
-                        <div class="metric-title">Positive Days %</div>
-                        <div class="metric-value" id="positiveDaysPct">0%</div>
+                    <div class="card metric-card" style="border-top-color: var(--success-color);">
+                        <div class="card-body text-center">
+                            <div class="metric-title">Pos Days %</div>
+                            <div class="metric-value" id="positiveDaysPct">0%</div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
-                        <div class="metric-title">Avg Days to New High</div>
-                        <div class="metric-value" id="avgDaysToNewHigh">N/A</div>
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
+                            <div class="metric-title">Avg Days to High</div>
+                            <div class="metric-value" id="avgDaysToNewHigh">N/A</div>
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div class="metric-card-wrapper">
-                <div class="card metric-card">
-                    <div class="card-body text-center">
-                        <div class="metric-title">Longest Days to New High</div>
-                        <div class="metric-value" id="longestDaysSinceToNewHigh">N/A</div>
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
+                            <div class="metric-title">Max Days to High</div>
+                            <div class="metric-value" id="longestDaysSinceToNewHigh">N/A</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tabbed Analytics Interface -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <h2 class="section-title" data-i18n="analytics_dashboard">
-                    <i class="fas fa-chart-pie"></i>
-                    Analytics Dashboard
-                </h2>
-            </div>
-        </div>
+        <!-- Analytics Dashboard -->
         
         <!-- Chart Selector and Container Layout -->
         <div class="d-flex gap-3 mb-4" style="overflow-x: hidden; min-width: 0;">
-            <!-- Left Sidebar - Chart Selector (Auto-sized) -->
+            <!-- Left Sidebar - Chart Selector -->
             <div class="flex-shrink-0">
                 <div class="card sidebar-chart-selector">
-                    <div class="card-header py-2">
-                        <h6 class="mb-0" data-i18n="charts">
-                            <i class="fas fa-chart-bar"></i>
-                            Charts
-                        </h6>
-                    </div>
-                    <div class="card-body p-1">
-                        <div id="chartButtons" class="d-grid gap-1">
+                    <div class="card-body p-0">
+                        <div id="chartButtons" class="d-grid gap-0">
                         <!-- Chart buttons will be populated by JavaScript -->
                     </div>
                     </div>
@@ -2613,8 +2503,8 @@
 
 
         <!-- Footer -->
-        <footer class="text-center text-muted py-4">
-            <p>Simple Portfolio Analytics - Strategy-focused trading analysis made easy</p>
+        <footer class="text-center py-3" style="color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border-color); margin-top: 2rem;">
+            <p style="margin: 0;">Portfolio Analytics - Strategy-focused trading analysis</p>
         </footer>
     </div>
 
@@ -2652,50 +2542,34 @@
         let currentChart = null;
         let availableCharts = {};
         let chartsLoadedSuccessfully = false;
+        
+        const _chartCache = new Map();
+        function getCachedChart(key) { return _chartCache.get(key) || null; }
+        function setCachedChart(key, data) { _chartCache.set(key, data); if (_chartCache.size > 30) { const firstKey = _chartCache.keys().next().value; _chartCache.delete(firstKey); } }
+        function clearChartCache() { _chartCache.clear(); }
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('=== PAGE INITIALIZATION START ===');
-            console.log('DOM loaded, initializing...');
+            // Data Management collapse chevron rotation
+            const dmContent = document.getElementById('dataManagementContent');
+            const dmChevron = document.getElementById('dataManagementChevron');
+            if (dmContent && dmChevron) {
+                dmContent.addEventListener('hide.bs.collapse', () => { dmChevron.style.transform = 'rotate(-90deg)'; });
+                dmContent.addEventListener('show.bs.collapse', () => { dmChevron.style.transform = 'rotate(0deg)'; });
+            }
             
-            console.log('1. Loading user info...');
             loadUserInfo();
-            
-            console.log('2. Setting up file upload...');
             setupFileUpload();
-            
-            console.log('3. Setting up saved files...');
             setupSavedFiles();
-            
-            console.log('4. Loading data stats...');
             loadDataStats();
-            
-            console.log('5. Loading files overview...');
             loadFilesOverview();
-            
-            console.log('6. Loading available charts...');
             loadAvailableCharts();
-            
-            console.log('7. Loading portfolio data...');
             loadPortfolioData();
             
-            console.log('8. Loading current filename...');
-            loadCurrentFilename();
-            
-            console.log('=== PAGE INITIALIZATION COMPLETED ===');
-            
-            
-            // Ensure chart buttons are loaded
             setTimeout(() => {
-                console.log('🔧 TIMEOUT CHECK v2 - availableCharts:', availableCharts ? Object.keys(availableCharts).length : 'null/undefined');
-                console.log('🔧 TIMEOUT CHECK v2 - chartsLoadedSuccessfully:', chartsLoadedSuccessfully);
                 if ((!availableCharts || Object.keys(availableCharts).length === 0) && !chartsLoadedSuccessfully) {
-                    console.log('No charts available, using fallback...');
                     forceRenderChartButtons();
-                } else {
-                    console.log('✅ Charts already loaded, skipping fallback');
                 }
-                // Load overview by default
                 loadChart('overview');
             }, 1000);
             
@@ -3300,42 +3174,39 @@
         
         function loadSavedFile(filename) {
             const statusDiv = document.getElementById('savedFileStatus');
-            statusDiv.innerHTML = '<small class="text-info">Loading file...</small>';
-            
+            if (statusDiv) statusDiv.innerHTML = '<small class="text-info">Loading file...</small>';
+
             fetch(`/api/load-file/${encodeURIComponent(filename)}`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error(`Server returned ${response.status}`);
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
-                    statusDiv.innerHTML = `<small class="text-success">✅ ${data.message}</small>`;
-                    
-                    // Show warning if file exceeds recommended trade limit
+                    if (statusDiv) statusDiv.innerHTML = `<small class="text-success">✅ ${data.message || 'File loaded'}</small>`;
+
                     if (data.warning) {
-                        console.log('DEBUG: Showing warning alert for saved file:', data.warning);
                         showAlert(data.warning, 'warning');
-                    } else {
-                        console.log('DEBUG: No warning in saved file response data');
                     }
-                    
-                    // Update filename display
-                    updateFilenameDisplay(filename);
-                    
-                    // Clear chart first to prevent race conditions
-                    document.getElementById('chartContainer').innerHTML = 
-                        '<div class="text-center text-muted"><h4>📊 Data loaded! Select a chart to view analytics</h4></div>';
-                    
-                    // Set flag to prevent auto-loading cumulative P&L
+
+                    try { updateFilenameDisplay(filename); } catch (e) { console.error('updateFilenameDisplay error:', e); }
+
+                    const chartContainer = document.getElementById('chartContainer');
+                    if (chartContainer) {
+                        chartContainer.innerHTML =
+                            '<div class="text-center text-muted"><h4>📊 Data loaded! Select a chart to view analytics</h4></div>';
+                    }
+
+                    // Set flag BEFORE clearAllAppState and restore it after
                     window.skipAutoLoadCumulativePnl = true;
-                    
-                    // Clear all application state before loading new data
-                    clearAllAppState();
-                    
-                    // Refresh all data displays
+                    try { clearAllAppState(); } catch (e) { console.error('clearAllAppState error:', e); }
+                    window.skipAutoLoadCumulativePnl = true;
+
                     loadDataStats();
                     loadPortfolioData();
                     loadFilesOverview();
-                    
-                    // When loading a saved file, prefill initial capital if present
-                    if (data.data && data.data.initial_capital && data.data.initial_capital !== null) {
+
+                    if (data.data && data.data.initial_capital != null) {
                         window.lastInitialCapital = data.data.initial_capital;
                         const initialCapitalInput = document.getElementById('modalInitialCapitalInput') || document.getElementById('initialCapitalInput');
                         if (initialCapitalInput) {
@@ -3343,18 +3214,17 @@
                         }
                     }
 
-                    // Reset the flag after a delay
                     setTimeout(() => {
                         window.skipAutoLoadCumulativePnl = false;
-                        statusDiv.innerHTML = '';
+                        if (statusDiv) statusDiv.innerHTML = '';
                     }, 3000);
                 } else {
-                    statusDiv.innerHTML = `<small class="text-danger">❌ ${data.error}</small>`;
+                    if (statusDiv) statusDiv.innerHTML = `<small class="text-danger">❌ ${data.error || 'Unknown error'}</small>`;
                 }
             })
             .catch(error => {
-                console.error('Error loading file:', error);
-                statusDiv.innerHTML = '<small class="text-danger">❌ Error loading file</small>';
+                console.error('Error loading file:', error, error.stack);
+                if (statusDiv) statusDiv.innerHTML = `<small class="text-danger">❌ Error loading file: ${error.message}</small>`;
             });
         }
         
@@ -3477,6 +3347,9 @@
                     const stats = data.data;
                     document.getElementById('dataStats').textContent = 
                         `${stats.trade_count} trades | ${stats.strategy_count} strategies`;
+                    if (stats.filename) {
+                        updateFilenameDisplay(stats.filename);
+                    }
                 }
             });
         }
@@ -3864,166 +3737,80 @@
                 const statusDiv = document.getElementById('savedFileStatus');
                 statusDiv.innerHTML = '<small class="text-info">Deleting files...</small>';
                 
-                // Delete files one by one
-                let completed = 0;
-                let errors = [];
-                
-                selectedFiles.forEach((file, index) => {
-                    fetch('/api/delete-file', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            filename: file.filename
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        completed++;
-                        if (!data.success) {
-                            errors.push(`${file.friendlyName}: ${data.error}`);
-                        }
-                        
-                        if (completed === selectedFiles.length) {
-                            if (errors.length === 0) {
-                                statusDiv.innerHTML = `<small class="text-success">✅ Successfully moved ${selectedFiles.length} file(s) to recycle</small>`;
-                                
-                                // Refresh the files overview
-                                loadFilesOverview();
-                                
-                                // Refresh other displays
-                                loadSavedFilesList();
-                                loadFilesOverview();
-                            } else {
-                                statusDiv.innerHTML = `<small class="text-warning">⚠️ Moved ${completed - errors.length} file(s) to recycle, ${errors.length} failed: ${errors.join(', ')}</small>`;
-                            }
-                            
-                            setTimeout(() => {
-                                statusDiv.innerHTML = '';
-                            }, 5000);
-                        }
-                    })
-                    .catch(error => {
-                        completed++;
-                        errors.push(`${file.friendlyName}: Network error`);
-                        
-                        if (completed === selectedFiles.length) {
-                            statusDiv.innerHTML = `<small class="text-danger">❌ Error moving files to recycle: ${errors.join(', ')}</small>`;
-                            setTimeout(() => {
-                                statusDiv.innerHTML = '';
-                            }, 5000);
-                        }
-                    });
+                fetch('/api/delete-files-batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filenames: selectedFiles.map(f => f.filename) })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        statusDiv.innerHTML = `<small class="text-success">${data.message}</small>`;
+                        loadFilesOverview();
+                        loadSavedFilesList();
+                    } else {
+                        statusDiv.innerHTML = `<small class="text-danger">${data.error}</small>`;
+                    }
+                    setTimeout(() => { statusDiv.innerHTML = ''; }, 5000);
+                })
+                .catch(error => {
+                    statusDiv.innerHTML = '<small class="text-danger">Error moving files to recycle</small>';
+                    setTimeout(() => { statusDiv.innerHTML = ''; }, 5000);
                 });
             }
         }
 
         function loadFileFromTable(filename) {
             const statusDiv = document.getElementById('savedFileStatus');
-            statusDiv.innerHTML = '<small class="text-info">Loading file...</small>';
-            
-            // Clear all application state before loading new data
-            clearAllAppState();
-            
+            if (statusDiv) statusDiv.innerHTML = '<small class="text-info">Loading file...</small>';
+
+            window.skipAutoLoadCumulativePnl = true;
+            try { clearAllAppState(); } catch (e) { console.error('clearAllAppState error:', e); }
+            window.skipAutoLoadCumulativePnl = true;
+
             fetch(`/api/load-file/${encodeURIComponent(filename)}`)
             .then(response => {
-                console.log('🔄 Load file response received:', response.status, response.statusText);
+                if (!response.ok) throw new Error(`Server returned ${response.status}`);
                 return response.json();
             })
             .then(data => {
-                console.log('🔄 Load file response data:', data);
-                console.log('🔄 data.success:', data.success);
-                console.log('🔄 typeof data.success:', typeof data.success);
-                
                 if (data.success) {
-                    console.log('🔄 Load file success condition met, executing success handler');
-                    
-                    try {
-                        console.log('🔄 Setting success message');
-                        statusDiv.innerHTML = `<small class="text-success">✅ ${data.message}</small>`;
-                        
-                        // Update filename display
-                        console.log('🔄 Updating filename display');
-                        try {
-                            updateFilenameDisplay(filename);
-                            console.log('🔄 Filename display updated successfully');
-                        } catch (error) {
-                            console.error('🚨 Error updating filename display:', error);
-                        }
-                        
-                        // Force complete UI refresh with cache busting
-                        console.log('🔄 Setting up UI refresh timeout');
-                        setTimeout(() => {
-                            try {
-                                console.log('🔄 Loading data stats');
-                                loadDataStats();
-                                console.log('🔄 Loading portfolio data');
-                                loadPortfolioData();
-                                
-                                console.log('🔄 Refreshing all UI components');
-                                // Force refresh of all cached components
-                                try {
-                                    // Temporarily disable refreshAllUIComponents to isolate the issue
-                                    // refreshAllUIComponents();
-                                    console.log('🔄 UI refresh skipped for debugging');
-                                } catch (error) {
-                                    console.error('🚨 Error in refreshAllUIComponents:', error);
-                                    console.error('🚨 refreshAllUIComponents error stack:', error.stack);
-                                }
-                            } catch (error) {
-                                console.error('🚨 Error in UI refresh:', error);
-                                console.error('🚨 UI refresh error stack:', error.stack);
-                            }
-                        }, 100);
-                        
-                        // Clear chart immediately
-                        console.log('🔄 Clearing chart container');
-                        document.getElementById('chartContainer').innerHTML = 
-                            '<div class="text-center text-muted"><h4>📊 Data loaded! Select a chart to view analytics</h4></div>';
-                        
-                        // When loading a saved file, prefill initial capital if present
-                        console.log('🔄 Checking initial capital');
-                        if (data.data && data.data.initial_capital && data.data.initial_capital !== null) {
-                            console.log('🔄 Setting initial capital:', data.data.initial_capital);
-                            window.lastInitialCapital = data.data.initial_capital;
-                            // Try to find the initial capital input field (could be in modal or elsewhere)
-                            const initialCapitalInput = document.getElementById('modalInitialCapitalInput') || document.getElementById('initialCapitalInput');
-                            if (initialCapitalInput) {
-                                console.log('🔄 Found initial capital input, setting value');
-                                initialCapitalInput.value = data.data.initial_capital;
-                            } else {
-                                console.log('🔄 Initial capital input not found in DOM');
-                            }
-                        } else {
-                            console.log('🔄 No initial capital to set');
-                        }
+                    if (statusDiv) statusDiv.innerHTML = `<small class="text-success">✅ ${data.message || 'File loaded'}</small>`;
 
-                        console.log('🔄 Setting status clear timeout');
-                        setTimeout(() => {
-                            statusDiv.innerHTML = '';
-                        }, 3000);
-                        
-                        console.log('🔄 Load file success handler completed');
-                    } catch (error) {
-                        console.error('🚨 Error in load file success handler:', error);
-                        console.error('🚨 Error stack:', error.stack);
-                        
-                        // Still show success message since the file loaded
-                        statusDiv.innerHTML = `<small class="text-success">✅ File loaded successfully</small>`;
-                        setTimeout(() => {
-                            statusDiv.innerHTML = '';
-                        }, 3000);
+                    try { updateFilenameDisplay(filename); } catch (e) { console.error('updateFilenameDisplay error:', e); }
+
+                    setTimeout(() => {
+                        try {
+                            loadDataStats();
+                            loadPortfolioData();
+                        } catch (e) { console.error('Error refreshing data:', e); }
+                    }, 100);
+
+                    const chartContainer = document.getElementById('chartContainer');
+                    if (chartContainer) {
+                        chartContainer.innerHTML =
+                            '<div class="text-center text-muted"><h4>📊 Data loaded! Select a chart to view analytics</h4></div>';
                     }
+
+                    if (data.data && data.data.initial_capital != null) {
+                        window.lastInitialCapital = data.data.initial_capital;
+                        const initialCapitalInput = document.getElementById('modalInitialCapitalInput') || document.getElementById('initialCapitalInput');
+                        if (initialCapitalInput) {
+                            initialCapitalInput.value = data.data.initial_capital;
+                        }
+                    }
+
+                    setTimeout(() => {
+                        window.skipAutoLoadCumulativePnl = false;
+                        if (statusDiv) statusDiv.innerHTML = '';
+                    }, 3000);
                 } else {
-                    console.log('🔄 Load file failed:', data.error);
-                    statusDiv.innerHTML = `<small class="text-danger">❌ ${data.error}</small>`;
+                    if (statusDiv) statusDiv.innerHTML = `<small class="text-danger">❌ ${data.error || 'Unknown error'}</small>`;
                 }
             })
             .catch(error => {
-                console.error('🚨 Error loading file:', error);
-                console.error('🚨 Error stack:', error.stack);
-                statusDiv.innerHTML = '<small class="text-danger">❌ Error loading file</small>';
+                console.error('Error loading file:', error, error.stack);
+                if (statusDiv) statusDiv.innerHTML = `<small class="text-danger">❌ Error loading file: ${error.message}</small>`;
             });
         }
 
@@ -4417,59 +4204,41 @@
                 'log_parser'
             ];
 
-                // Render buttons in the specified order
-                console.log('🔧 availableCharts keys:', Object.keys(availableCharts));
+                // Add "Views" section label
+                const viewsLabel = document.createElement('div');
+                viewsLabel.className = 'sidebar-section-label';
+                viewsLabel.textContent = window.i18n ? window.i18n.t('views') : 'Views';
+                container.appendChild(viewsLabel);
+
                 for (const chartType of chartOrder) {
-                    console.log('🔧 Processing chart type:', chartType, 'available:', !!availableCharts[chartType]);
                     if (availableCharts[chartType]) {
                         if (chartType === 'separator') {
-                            // Create a visual separator that breaks out of the grid
-                            const separator = document.createElement('div');
-                            separator.className = 'w-100';
-                            separator.innerHTML = `
-                                <div class="border-top pt-4 mt-4 mb-3">
-                                    <div class="text-center">
-                                        <span class="badge bg-secondary fs-6 px-3 py-2">${window.i18n ? window.i18n.t('cross_file_analysis') : 'Cross-File Analysis'}</span>
-                                    </div>
-                                </div>
-                            `;
-                            container.appendChild(separator);
+                            const label = document.createElement('div');
+                            label.className = 'sidebar-section-label';
+                            label.style.borderTop = '1px solid var(--border-color)';
+                            label.style.marginTop = '0.25rem';
+                            label.style.paddingTop = '0.75rem';
+                            label.textContent = window.i18n ? window.i18n.t('cross_file_analysis') : 'Cross-File';
+                            container.appendChild(label);
                         } else if (chartType === 'separator2') {
-                            // Create a visual separator for Tools section
-                            const separator = document.createElement('div');
-                            separator.className = 'w-100';
-                            separator.innerHTML = `
-                                <div class="border-top pt-4 mt-4 mb-3">
-                                    <div class="text-center">
-                                        <span class="badge bg-secondary fs-6 px-3 py-2">${window.i18n ? window.i18n.t('tools') : 'Tools'}</span>
-                                    </div>
-                                </div>
-                            `;
-                            container.appendChild(separator);
+                            const label = document.createElement('div');
+                            label.className = 'sidebar-section-label';
+                            label.style.borderTop = '1px solid var(--border-color)';
+                            label.style.marginTop = '0.25rem';
+                            label.style.paddingTop = '0.75rem';
+                            label.textContent = window.i18n ? window.i18n.t('tools') : 'Tools';
+                            container.appendChild(label);
                         } else {
-                        const button = document.createElement('button');
-                        button.className = 'btn btn-outline-primary btn-chart';
+                            const button = document.createElement('button');
+                            button.className = 'btn btn-chart';
+                            button.dataset.chartType = chartType;
+                            const iconClass = chartIcons[chartType] || 'fas fa-chart-bar';
                             const translatedName = formatChartName(chartType);
-                            console.log(`🔧 Button for ${chartType}: "${translatedName}"`);
-                            
-                            // Special debug for log_parser
-                            if (chartType === 'log_parser') {
-                                console.log('🔧 DEBUG: Creating log_parser button');
-                                console.log('🔧 DEBUG: availableCharts[log_parser]:', availableCharts[chartType]);
-                            }
-                            
-                            button.textContent = translatedName;
-                        button.title = availableCharts[chartType];
-                            // Fix closure issue by capturing chartType in a local variable
+                            button.innerHTML = `<i class="${iconClass}" style="width: 16px; text-align: center; font-size: 0.8rem; color: var(--text-muted);"></i> ${translatedName}`;
+                            button.title = availableCharts[chartType];
                             const currentChartType = chartType;
-                            button.onclick = () => {
-                                console.log('Button clicked for chart type:', currentChartType);
-                                if (currentChartType === 'log_parser') {
-                                    console.log('🔧 DEBUG: log_parser button clicked!');
-                                }
-                                loadChart(currentChartType);
-                            };
-                        container.appendChild(button);
+                            button.onclick = () => loadChart(currentChartType);
+                            container.appendChild(button);
                         }
                     }
                 }
@@ -4483,66 +4252,90 @@
             }
         }
 
+        const chartIcons = {
+            'overview': 'fas fa-th-large',
+            'cumulative_pnl': 'fas fa-chart-line',
+            'trades_by_day': 'fas fa-calendar-day',
+            'monthly_pnl': 'fas fa-calendar-alt',
+            'monthly_pnl_stacked': 'fas fa-layer-group',
+            'daily_pnl': 'fas fa-chart-bar',
+            'strategy_performance': 'fas fa-chart-area',
+            'strategy_correlation': 'fas fa-project-diagram',
+            'risk_return': 'fas fa-balance-scale-right',
+            'drawdown': 'fas fa-arrow-trend-down',
+            'portfolio_balance': 'fas fa-chart-pie',
+            'win_rate': 'fas fa-bullseye',
+            'win_rates_table': 'fas fa-table',
+            'monte_carlo': 'fas fa-dice',
+            'mfe_mae': 'fas fa-arrows-alt-v',
+            'strategy_detail': 'fas fa-list-alt',
+            'margin_analysis': 'fas fa-coins',
+            'daily_margin_analysis': 'fas fa-chart-area',
+            'pnl_by_day_of_week': 'fas fa-calendar-week',
+            'pnl_by_month': 'fas fa-calendar',
+            'commission_analysis': 'fas fa-receipt',
+            'conflicting_legs': 'fas fa-exclamation-triangle',
+            'blackout_dates': 'fas fa-ban',
+            'price_movement': 'fas fa-exchange-alt',
+            'vix_analysis': 'fas fa-wave-square',
+            'meic_analysis': 'fas fa-crosshairs',
+            'live_vs_bt': 'fas fa-balance-scale',
+            'cross_file_correlation': 'fas fa-link',
+            'files_overview': 'fas fa-folder-open',
+            'log_parser': 'fas fa-wrench'
+        };
+
         function formatChartName(chartType) {
-            console.log(`🔧 formatChartName called for: ${chartType}, i18n available: ${!!window.i18n}`);
-            if (window.i18n) {
-                console.log(`🔧 i18n current language: ${window.i18n.currentLanguage}`);
-                const translationKey = `chart_${chartType}`;
-                const translation = window.i18n.t(translationKey);
-                console.log(`🔧 Translation key: ${translationKey}, Result: ${translation}`);
-            }
             const chartNames = {
-                'overview': window.i18n ? window.i18n.t('chart_overview') : '📊 Overview',
-                'cumulative_pnl': window.i18n ? window.i18n.t('chart_cumulative_pnl') : '📈 Cumulative P&L',
-                'trades_by_day': window.i18n ? window.i18n.t('chart_trades_by_day') : '📅 Trades By Day',
-                'monthly_pnl': window.i18n ? window.i18n.t('chart_monthly_pnl') : '📅 Monthly P&L',
-                'monthly_pnl_stacked': window.i18n ? window.i18n.t('chart_monthly_stacked') : '📊 Monthly Stacked',
-                'daily_pnl': window.i18n ? window.i18n.t('chart_daily_pnl') : '📆 Daily P&L',
-                'strategy_performance': window.i18n ? window.i18n.t('chart_strategy_performance') : '📈 Strategy Performance',
-                'strategy_correlation': window.i18n ? window.i18n.t('chart_strategy_correlation') : '🔗 Strategy Correlation',
-                'risk_return': window.i18n ? window.i18n.t('chart_risk_return') : '📊 Risk vs Return',
-                'drawdown': window.i18n ? window.i18n.t('chart_drawdown') : '📉 Drawdown',
-                'portfolio_balance': window.i18n ? window.i18n.t('chart_portfolio_balance') : '🥧 Portfolio Balance',
-                'win_rate': window.i18n ? window.i18n.t('chart_win_rate') : '🎯 Win Rate',
-                'win_rates_table': window.i18n ? window.i18n.t('chart_win_rates_table') : '📊 Win Rates Table',
-                'monte_carlo': window.i18n ? window.i18n.t('chart_monte_carlo') : '🎲 Monte Carlo',
-                'mfe_mae': window.i18n ? window.i18n.t('chart_mfe_mae') : '📈 MFE/MAE',
-                'strategy_detail': window.i18n ? window.i18n.t('chart_strategy_detail') : '📋 Strategy Detail',
-                'margin_analysis': window.i18n ? window.i18n.t('chart_margin_analysis') : '💰 Margin Analysis',
-                'daily_margin_analysis': window.i18n ? window.i18n.t('chart_daily_margin_analysis') : '📊 Daily Margin Analysis',
-                'pnl_by_day_of_week': window.i18n ? window.i18n.t('chart_pnl_by_day_of_week') : '📅 P&L by Day of Week',
-                'pnl_by_month': window.i18n ? window.i18n.t('chart_pnl_by_month') : '📅 P&L by Month',
-                'commission_analysis': window.i18n ? window.i18n.t('chart_commission_analysis') : '💳 Commission Analysis',
-                'conflicting_legs': window.i18n ? window.i18n.t('chart_conflicting_legs') : '⚠️ Conflicting Legs',
-                'blackout_dates': window.i18n ? window.i18n.t('chart_blackout_dates') : '🚫 Blackout Dates',
-                'price_movement': window.i18n ? window.i18n.t('chart_price_movement') : '📈 Price Movement',
-                'vix_analysis': window.i18n ? window.i18n.t('chart_vix_analysis') : '📊 VIX Analysis',
-                'meic_analysis': window.i18n ? window.i18n.t('chart_meic_analysis') : '🎯 MEIC Analysis',
+                'overview': window.i18n ? window.i18n.t('chart_overview') : 'Overview',
+                'cumulative_pnl': window.i18n ? window.i18n.t('chart_cumulative_pnl') : 'Cumulative P&L',
+                'trades_by_day': window.i18n ? window.i18n.t('chart_trades_by_day') : 'Trades By Day',
+                'monthly_pnl': window.i18n ? window.i18n.t('chart_monthly_pnl') : 'Monthly P&L',
+                'monthly_pnl_stacked': window.i18n ? window.i18n.t('chart_monthly_stacked') : 'Monthly Stacked',
+                'daily_pnl': window.i18n ? window.i18n.t('chart_daily_pnl') : 'Daily P&L',
+                'strategy_performance': window.i18n ? window.i18n.t('chart_strategy_performance') : 'Strategy Perf',
+                'strategy_correlation': window.i18n ? window.i18n.t('chart_strategy_correlation') : 'Correlation',
+                'risk_return': window.i18n ? window.i18n.t('chart_risk_return') : 'Risk vs Return',
+                'drawdown': window.i18n ? window.i18n.t('chart_drawdown') : 'Drawdown',
+                'portfolio_balance': window.i18n ? window.i18n.t('chart_portfolio_balance') : 'Balance',
+                'win_rate': window.i18n ? window.i18n.t('chart_win_rate') : 'Win Rate',
+                'win_rates_table': window.i18n ? window.i18n.t('chart_win_rates_table') : 'Win Rates Table',
+                'monte_carlo': window.i18n ? window.i18n.t('chart_monte_carlo') : 'Monte Carlo',
+                'mfe_mae': window.i18n ? window.i18n.t('chart_mfe_mae') : 'MFE/MAE',
+                'strategy_detail': window.i18n ? window.i18n.t('chart_strategy_detail') : 'Strategy Detail',
+                'margin_analysis': window.i18n ? window.i18n.t('chart_margin_analysis') : 'Margin Analysis',
+                'daily_margin_analysis': window.i18n ? window.i18n.t('chart_daily_margin_analysis') : 'Daily Margin',
+                'pnl_by_day_of_week': window.i18n ? window.i18n.t('chart_pnl_by_day_of_week') : 'P&L by Day',
+                'pnl_by_month': window.i18n ? window.i18n.t('chart_pnl_by_month') : 'P&L by Month',
+                'commission_analysis': window.i18n ? window.i18n.t('chart_commission_analysis') : 'Commissions',
+                'conflicting_legs': window.i18n ? window.i18n.t('chart_conflicting_legs') : 'Conflicting Legs',
+                'blackout_dates': window.i18n ? window.i18n.t('chart_blackout_dates') : 'Blackout Dates',
+                'price_movement': window.i18n ? window.i18n.t('chart_price_movement') : 'Price Movement',
+                'vix_analysis': window.i18n ? window.i18n.t('chart_vix_analysis') : 'VIX Analysis',
+                'meic_analysis': window.i18n ? window.i18n.t('chart_meic_analysis') : 'MEIC Analysis',
                 'separator': window.i18n ? '--- ' + window.i18n.t('cross_file_analysis') + ' ---' : '--- Cross-File Analysis ---',
-                'live_vs_bt': window.i18n ? window.i18n.t('chart_live_vs_bt') : '⚖️ Live vs Backtest',
-                'cross_file_correlation': window.i18n ? window.i18n.t('chart_cross_file_correlation') : '🔗 Cross-File Correlation',
-                'files_overview': window.i18n ? window.i18n.t('chart_files_overview') : '📁 Uploaded Files Overview',
+                'live_vs_bt': window.i18n ? window.i18n.t('chart_live_vs_bt') : 'Live vs Backtest',
+                'cross_file_correlation': window.i18n ? window.i18n.t('chart_cross_file_correlation') : 'Cross-File Corr',
+                'files_overview': window.i18n ? window.i18n.t('chart_files_overview') : 'Files Overview',
                 'separator2': window.i18n ? '--- ' + window.i18n.t('tools') + ' ---' : '--- Tools ---',
-                'log_parser': window.i18n ? window.i18n.t('chart_log_parser') : '🔧 Slippage Analyzer'
+                'log_parser': window.i18n ? window.i18n.t('chart_log_parser') : 'Slippage Analyzer'
             };
             return chartNames[chartType] || chartType;
         }
 
                function loadChart(chartType) {
-           // Track chart loading
            if (window.appInsights) {
-               window.appInsights.trackEvent('chart_loaded', {
-                   chartType: chartType
-               });
+               window.appInsights.trackEvent('chart_loaded', { chartType: chartType });
            }
            
-           console.log('=== LOADCHART FUNCTION START ===');
+           // Update sidebar active state
+           const sidebarBtns = document.querySelectorAll('#chartButtons .btn-chart');
+           sidebarBtns.forEach(btn => {
+               btn.classList.remove('active');
+               if (btn.dataset.chartType === chartType) btn.classList.add('active');
+           });
+           
            console.log('loadChart called with chartType:', chartType);
-           console.log('chartType type:', typeof chartType);
-           console.log('chartType length:', chartType.length);
-           console.log('chartType === "strategy_detail":', chartType === 'strategy_detail');
-           console.log('chartType.trim() === "strategy_detail":', chartType.trim() === 'strategy_detail');
-           console.log('🔧 DEBUG: chartType === "blackout_dates":', chartType === 'blackout_dates');
            const container = document.getElementById('chartContainer');
            const loading = document.getElementById('chartLoading');
            const overviewContent = document.getElementById('overviewContent');
@@ -4872,15 +4665,21 @@
                 return;
             }
 
-            console.log('Making API call for chartType:', chartType);
             loading.style.display = 'block';
             container.innerHTML = '';
 
-            fetch(`/api/charts/${chartType}?t=${Date.now()}`)
-            .then(response => response.json())
+            const cachedData = getCachedChart(chartType);
+            const chartPromise = cachedData
+                ? Promise.resolve(cachedData)
+                : fetch(`/api/charts/${chartType}?t=${Date.now()}`).then(r => r.json());
+
+            chartPromise
             .then(data => {
                 loading.style.display = 'none';
-                console.log('Chart API response:', data);
+                
+                if (!cachedData && !data.error && data.chart) {
+                    setCachedChart(chartType, data);
+                }
                 
                 if (data.error) {
                     container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
@@ -4889,9 +4688,7 @@
                     if (chartType === 'daily_pnl' && data.volatility_metrics) {
                         createDailyPnlView(data);
                     } else {
-                        console.log('Chart data to parse:', data.chart);
-                    const chartData = JSON.parse(data.chart);
-                    console.log('Parsed chart data:', chartData);
+                    const chartData = typeof data.chart === 'string' ? JSON.parse(data.chart) : data.chart;
                     
                     // Check if this is a drawdown chart with strategy stats
                     if (data.type === 'drawdown' && data.strategy_stats) {
@@ -4901,20 +4698,16 @@
                         renderPortfolioBalanceChart(chartData);
                     } else {
                         // Regular chart rendering
+                    const chartContainer = document.getElementById('chartContainer');
+                    if (chartContainer) {
+                        chartData.layout.width = chartContainer.clientWidth - 60;
+                        chartData.layout.height = chartContainer.clientHeight - 60;
+                    }
                     Plotly.newPlot('chartContainer', chartData.data, chartData.layout, {
                         responsive: true,
                         displayModeBar: true,
                         displaylogo: false,
                         useResizeHandler: true
-                    }).then(() => {
-                        // Ensure chart is properly sized after rendering
-                        const container = document.getElementById('chartContainer');
-                        if (container) {
-                            Plotly.relayout('chartContainer', {
-                                width: container.clientWidth - 60,
-                                height: container.clientHeight - 60
-                            });
-                        }
                     });
                     }
                 }
@@ -5032,21 +4825,17 @@
             
             // Render the chart
             setTimeout(() => {
-                const chartData = JSON.parse(data.chart);
+                const chartData = typeof data.chart === 'string' ? JSON.parse(data.chart) : data.chart;
+                const pnlChartEl = document.getElementById('dailyPnlChart');
+                if (pnlChartEl) {
+                    chartData.layout.width = pnlChartEl.clientWidth - 60;
+                    chartData.layout.height = pnlChartEl.clientHeight - 60;
+                }
                 Plotly.newPlot('dailyPnlChart', chartData.data, chartData.layout, {
                     responsive: true,
                     displayModeBar: true,
                     displaylogo: false,
                     useResizeHandler: true
-                }).then(() => {
-                    // Ensure chart is properly sized after rendering
-                    const chartContainer = document.getElementById('dailyPnlChart');
-                    if (chartContainer) {
-                        Plotly.relayout('dailyPnlChart', {
-                            width: chartContainer.clientWidth - 60,
-                            height: chartContainer.clientHeight - 60
-                        });
-                    }
                 });
             }, 100);
         }
@@ -5415,49 +5204,16 @@
         }
 
         function loadPortfolioData() {
-            console.log('loadPortfolioData() called');
-            
-            // Load overview metrics
-            console.log('Fetching /api/portfolio/overview...');
-            fetch(`/api/portfolio/overview?t=${Date.now()}`)
-            .then(response => {
-                console.log('Overview response received:', response.status);
-                return response.json();
-            })
+            fetch(`/api/portfolio/all?t=${Date.now()}`)
+            .then(response => response.json())
             .then(data => {
-                console.log('Overview data received:', data);
                 if (data.success) {
-                    updateOverviewMetrics(data.data);
+                    updateOverviewMetrics(data.overview);
+                    updateStrategyTable(data.strategies);
+                    updateBalanceAnalysis(data.balance);
                 }
-            });
-
-            // Load strategy summary
-            console.log('Fetching /api/portfolio/strategies...');
-            fetch(`/api/portfolio/strategies?t=${Date.now()}`)
-            .then(response => {
-                console.log('Strategies response received:', response.status);
-                return response.json();
             })
-            .then(data => {
-                console.log('Strategies data received:', data);
-                if (data.success) {
-                    updateStrategyTable(data.data);
-                }
-            });
-
-            // Load balance analysis
-            console.log('Fetching /api/portfolio/balance-analysis...');
-            fetch(`/api/portfolio/balance-analysis?t=${Date.now()}`)
-            .then(response => {
-                console.log('Balance analysis response received:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Balance analysis data received:', data);
-                if (data.success) {
-                    updateBalanceAnalysis(data.data);
-                }
-            });
+            .catch(error => console.error('Error loading portfolio data:', error));
 
 
             // Auto-load cumulative P&L chart only if no chart is currently loaded and not loading a saved file
@@ -8480,11 +8236,7 @@
                     if (data.error) {
                         container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
                     } else {
-                        // Parse the chart data
-                        const chartData = JSON.parse(data.chart);
-                        console.log('Parsed chart data:', chartData);
-                        
-                        // Create the table with sorting and colors
+                        const chartData = typeof data.chart === 'string' ? JSON.parse(data.chart) : data.chart;
                         createSortableWinRatesTable(chartData);
                     }
                 })
@@ -8634,11 +8386,7 @@
                     if (data.error) {
                         container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
                     } else {
-                        // Parse the chart data
-                        const chartData = JSON.parse(data.chart);
-                        console.log('Parsed chart data:', chartData);
-                        
-                        // Create the table with sorting and colors
+                        const chartData = typeof data.chart === 'string' ? JSON.parse(data.chart) : data.chart;
                         createSortableMarginAnalysisTable(chartData);
                     }
                 })
@@ -10986,21 +10734,17 @@
             console.log('Loading P&L by month table...');
             const loading = document.getElementById('chartLoading');
             const container = document.getElementById('chartContainer');
-            
-            if (loading) {
-                loading.style.display = 'block';
-            }
-            
+
+            if (loading) loading.style.display = 'block';
+            if (container) container.innerHTML = '';
+
             fetch('/api/pnl-by-month')
                 .then(response => {
-                    console.log('Response status:', response.status);
+                    if (!response.ok) throw new Error(`Server returned ${response.status}`);
                     return response.json();
                 })
                 .then(data => {
-                    console.log('P&L by month data:', data);
-                    if (loading) {
-                        loading.style.display = 'none';
-                    }
+                    if (loading) loading.style.display = 'none';
                     if (data.error) {
                         container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
                     } else {
@@ -11009,10 +10753,8 @@
                 })
                 .catch(error => {
                     console.error('Error loading P&L by month table:', error);
-                    if (loading) {
-                        loading.style.display = 'none';
-                    }
-                    container.innerHTML = '<div class="alert alert-danger">Error loading P&L by month table</div>';
+                    if (loading) loading.style.display = 'none';
+                    if (container) container.innerHTML = `<div class="alert alert-danger">Error loading P&L by month table: ${error.message}</div>`;
                 });
         }
 
@@ -11020,7 +10762,7 @@
             const container = document.getElementById('chartContainer');
             
             if (!data.data || data.data.length === 0) {
-                container.innerHTML = '<div class="alert alert-info">No monthly P&L data available</div>';
+                container.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> No monthly P&L data available. Please upload or select a file first.</div>';
                 return;
             }
             
@@ -11291,13 +11033,13 @@
         function updateThemeUI(theme) {
             const themeIcon = document.getElementById('themeIcon');
             const themeText = document.getElementById('themeText');
-            
+
             if (theme === 'dark') {
-                themeIcon.className = 'fas fa-moon';
-                themeText.textContent = 'Dark';
+                if (themeIcon) themeIcon.className = 'fas fa-moon';
+                if (themeText) themeText.textContent = 'Dark';
             } else {
-                themeIcon.className = 'fas fa-sun';
-                themeText.textContent = 'Light';
+                if (themeIcon) themeIcon.className = 'fas fa-sun';
+                if (themeText) themeText.textContent = 'Light';
             }
         }
         
@@ -13673,9 +13415,8 @@
                         overviewSection.style.display = 'block';
                         heatmapSection.style.display = 'block';
                         
-                        // Load MEIC data
+                        // Single combined load: overview fetches both APIs and renders heatmap from that data
                         loadMEICOverview();
-                        loadMEICHeatmap();
                     } else {
                         console.log('🔧 No valid MEIC trades found, showing message');
                         console.log('🔧 Response data:', data);
@@ -13838,7 +13579,9 @@
                         </div>
                     `;
                     
-                    // Mark loading as complete
+                    // Render heatmap from same data (avoids duplicate API call)
+                    renderMEICHeatmapFromData(heatmapData.data);
+                    
                     onDataLoadComplete();
                 } else {
                     overviewContainer.innerHTML = `<div class="alert alert-warning">Error loading MEIC overview data</div>`;
@@ -13850,6 +13593,49 @@
                 overviewContainer.innerHTML = `<div class="alert alert-danger">Error loading MEIC overview: ${error.message}</div>`;
                 onDataLoadError(error);
             });
+        }
+        
+        function renderMEICHeatmapFromData(heatmapData) {
+            const heatmapContainer = document.getElementById('meicHeatmapChart');
+            if (!heatmapData || !heatmapData.pnl_heatmap || Object.keys(heatmapData.pnl_heatmap).length === 0) {
+                heatmapContainer.innerHTML = '<div class="alert alert-warning">No MEIC data available for heatmap</div>';
+                return;
+            }
+            const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const orderedDays = Object.keys(heatmapData.pnl_heatmap).sort((a, b) => {
+                const ai = dayOrder.indexOf(a), bi = dayOrder.indexOf(b);
+                if (ai !== -1 && bi !== -1) return ai - bi;
+                if (ai !== -1) return -1;
+                if (bi !== -1) return 1;
+                return a.localeCompare(b);
+            });
+            const firstDay = orderedDays[0];
+            const entryTimes = Object.keys(heatmapData.pnl_heatmap[firstDay] || {});
+            if (entryTimes.length === 0) {
+                heatmapContainer.innerHTML = '<div class="alert alert-warning">No MEIC data available - no entry times found</div>';
+                return;
+            }
+            entryTimes.sort((a, b) => {
+                const timeA = a.split(':').map(Number), timeB = b.split(':').map(Number);
+                if (timeA[0] !== timeB[0]) return timeA[0] - timeB[0];
+                if (timeA[1] !== timeB[1]) return timeA[1] - timeB[1];
+                return timeA[2] - timeB[2];
+            });
+            entryTimes.reverse();
+            const zData = entryTimes.map(time => orderedDays.map(day => (heatmapData.pnl_heatmap[day] || {})[time] || 0));
+            const plotData = [{
+                z: zData, x: orderedDays, y: entryTimes, type: 'heatmap',
+                colorscale: [[0, 'rgb(220, 53, 69)'], [0.5, 'rgb(255, 255, 255)'], [1, 'rgb(40, 167, 69)']],
+                zmid: 0, text: zData, texttemplate: '%{text:.0f}', textfont: {size: 10}, hoverongaps: false,
+                hovertemplate: '<b>%{x}</b><br>Entry Time: %{y}<br>Total P&L: $%{z:.2f}<br><extra></extra>'
+            }];
+            const layout = { title: 'MEIC Performance Heatmap by Day of Week and Entry Time', xaxis: { title: 'Day of Week' }, yaxis: { title: 'Entry Time' }, height: 500, margin: { l: 120, r: 60, t: 80, b: 60 }, font: { size: 12 } };
+            const tradeCountEl = document.getElementById('meicTradeCount');
+            if (tradeCountEl && heatmapData.summary_stats) tradeCountEl.textContent = heatmapData.summary_stats.total_leg_groups.toLocaleString();
+            if (heatmapData.date_range && !meicDateRange) initializeMEICDateSliders(heatmapData.date_range);
+            Plotly.newPlot(heatmapContainer, plotData, layout).then(() => {
+                if (heatmapData.daily_pnl_totals) addDailyPnLTotals(heatmapData.daily_pnl_totals, orderedDays);
+            }).catch(err => { heatmapContainer.innerHTML = `<div class="alert alert-danger">Error rendering heatmap: ${err.message}</div>`; });
         }
         
         function loadMEICHeatmap(startDate = null, endDate = null) {
@@ -13875,146 +13661,11 @@
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    // Clear timeout
                     clearTimeout(heatmapTimeout);
-                    
-                    console.log('🔧 MEIC heatmap API response:', data);
-                    if (data.success && data.data && data.data.summary_stats.total_leg_groups > 0) {
-                        const heatmapData = data.data;
-                        console.log('🔧 MEIC heatmap data:', heatmapData);
-                        console.log('🔧 pnl_heatmap keys:', Object.keys(heatmapData.pnl_heatmap));
-                        
-                        // Initialize date sliders on first load
-                        if (heatmapData.date_range && !meicDateRange) {
-                            initializeMEICDateSliders(heatmapData.date_range);
-                        }
-                        
-                        // Update trade count display
-                        const tradeCount = heatmapData.summary_stats.total_leg_groups;
-                        document.getElementById('meicTradeCount').textContent = tradeCount.toLocaleString();
-                        
-                        // Create the heatmap using Plotly
-                        // Get all available days from the data and sort them properly
-                        const availableDays = Object.keys(heatmapData.pnl_heatmap);
-                        console.log('🔧 Available days from data:', availableDays);
-                        
-                        // Sort days in proper Monday-Friday order
-                        const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                        const orderedDays = availableDays.sort((a, b) => {
-                            const aIndex = dayOrder.indexOf(a);
-                            const bIndex = dayOrder.indexOf(b);
-                            // If both are in dayOrder, sort by dayOrder index (Monday=0, Tuesday=1, etc.)
-                            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-                            // If only one is in dayOrder, prioritize it
-                            if (aIndex !== -1) return -1;
-                            if (bIndex !== -1) return 1;
-                            // If neither is in dayOrder, sort alphabetically
-                            return a.localeCompare(b);
-                        });
-                        console.log('🔧 Ordered days:', orderedDays);
-                        
-                        // Debug: Check if we have valid data
-                        if (orderedDays.length === 0) {
-                            console.error('🔧 No ordered days found');
-                            heatmapContainer.innerHTML = '<div class="alert alert-warning">No MEIC data available - no days found</div>';
-                            return;
-                        }
-                        
-                        const firstDay = orderedDays[0];
-                        const entryTimes = Object.keys(heatmapData.pnl_heatmap[firstDay] || {});
-                        
-                        // Sort entry times chronologically (earliest first)
-                        entryTimes.sort((a, b) => {
-                            // Convert time strings to comparable format
-                            const timeA = a.split(':').map(Number);
-                            const timeB = b.split(':').map(Number);
-                            
-                            // Compare hours first, then minutes, then seconds
-                            if (timeA[0] !== timeB[0]) return timeA[0] - timeB[0];
-                            if (timeA[1] !== timeB[1]) return timeA[1] - timeB[1];
-                            return timeA[2] - timeB[2];
-                        });
-                        
-                        // Reverse the array so earliest time appears at the top of the heatmap
-                        entryTimes.reverse();
-                        
-                        console.log('🔧 Entry times for first day (sorted, earliest at top):', entryTimes);
-                        
-                        if (entryTimes.length === 0) {
-                            console.error('🔧 No entry times found');
-                            heatmapContainer.innerHTML = '<div class="alert alert-warning">No MEIC data available - no entry times found</div>';
-                            return;
-                        }
-                        
-                        // Create z data matrix - transpose for correct axis orientation
-                        // Days should be columns (x-axis), Entry times should be rows (y-axis)
-                        const zData = entryTimes.map(time => {
-                            return orderedDays.map(day => {
-                                const dayData = heatmapData.pnl_heatmap[day] || {};
-                                return dayData[time] || 0;
-                            });
-                        });
-                        
-                        console.log('🔧 Z data matrix (transposed):', zData);
-                        console.log('🔧 Days for x-axis:', orderedDays);
-                        console.log('🔧 Entry times for y-axis:', entryTimes);
-                        
-                        const plotData = [{
-                            z: zData,
-                            x: orderedDays,
-                            y: entryTimes,
-                            type: 'heatmap',
-                            colorscale: [
-                                [0, 'rgb(220, 53, 69)'],    // Red for losses (negative values)
-                                [0.5, 'rgb(255, 255, 255)'], // White for zero
-                                [1, 'rgb(40, 167, 69)']     // Green for wins (positive values)
-                            ],
-                            zmid: 0,
-                            text: zData,
-                            texttemplate: '%{text:.0f}',
-                            textfont: {size: 10},
-                            hoverongaps: false,
-                            hovertemplate: '<b>%{x}</b><br>Entry Time: %{y}<br>Total P&L: $%{z:.2f}<br><extra></extra>'
-                        }];
-                        
-                        console.log('🔧 Plot data:', plotData);
-                        
-                        const layout = {
-                            title: 'MEIC Performance Heatmap by Day of Week and Entry Time',
-                            xaxis: { title: 'Day of Week' },
-                            yaxis: { title: 'Entry Time' },
-                            height: 500,
-                            margin: { l: 120, r: 60, t: 80, b: 60 },  // Increased left margin for entry times
-                            font: { size: 12 }
-                        };
-                        
-                        console.log('🔧 About to render Plotly heatmap...');
-                        
-                        // Add timeout to catch hanging issues
-                        const renderTimeout = setTimeout(() => {
-                            console.error('🔧 Plotly rendering timed out');
-                            heatmapContainer.innerHTML = '<div class="alert alert-warning">Heatmap rendering timed out. Please try again.</div>';
-                        }, 10000); // 10 second timeout
-                        
-                        Plotly.newPlot(heatmapContainer, plotData, layout)
-                            .then(() => {
-                                clearTimeout(renderTimeout);
-                                console.log('🔧 Plotly heatmap rendered successfully');
-                                // Clear any loading content that might still be showing
-                                const loadingElements = heatmapContainer.querySelectorAll('.spinner-border, .text-center');
-                                loadingElements.forEach(el => el.remove());
-                                
-                                // Add daily P&L totals display
-                                addDailyPnLTotals(heatmapData.daily_pnl_totals, orderedDays);
-                            })
-                            .catch(error => {
-                                clearTimeout(renderTimeout);
-                                console.error('🔧 Plotly rendering error:', error);
-                                heatmapContainer.innerHTML = `<div class="alert alert-danger">Error rendering heatmap: ${error.message}</div>`;
-                            });
+                    if (data.success && data.data && (!data.data.summary_stats || data.data.summary_stats.total_leg_groups > 0)) {
+                        renderMEICHeatmapFromData(data.data);
                     } else {
-                        console.log('🔧 MEIC heatmap API returned error:', data.error);
-                        heatmapContainer.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
+                        heatmapContainer.innerHTML = `<div class="alert alert-warning">${data.error || 'No MEIC data available for heatmap'}</div>`;
                     }
                 })
                 .catch(error => {
@@ -14039,12 +13690,9 @@
 
         // Global state cleanup function
         function clearAllAppState() {
-            console.log('🧹 Clearing all application state...');
+            isLoadingData = false;
+            clearChartCache();
             
-            // Set loading state
-            isLoadingData = true;
-            
-            // Clear any existing timeout
             if (loadingTimeout) {
                 clearTimeout(loadingTimeout);
                 loadingTimeout = null;
@@ -14073,7 +13721,7 @@
             if (window.blackoutTrades) window.blackoutTrades = null;
             if (window.pendingFileUpload) window.pendingFileUpload = null;
             if (window.selectedFile) window.selectedFile = null;
-            if (window.skipAutoLoadCumulativePnl) window.skipAutoLoadCumulativePnl = false;
+            // Don't reset skipAutoLoadCumulativePnl here -- callers manage it
             
             // Clear MEIC state
             meicDateRange = null;
@@ -14253,15 +13901,23 @@
         }
 
         function showRecalculationNotice() {
-            document.getElementById('meicRecalculationNotice').style.display = 'block';
-            document.getElementById('meicRecalculateBtn').classList.add('btn-warning');
-            document.getElementById('meicRecalculateBtn').classList.remove('btn-primary');
+            const notice = document.getElementById('meicRecalculationNotice');
+            const btn = document.getElementById('meicRecalculateBtn');
+            if (notice) notice.style.display = 'block';
+            if (btn) {
+                btn.classList.add('btn-warning');
+                btn.classList.remove('btn-primary');
+            }
         }
 
         function hideRecalculationNotice() {
-            document.getElementById('meicRecalculationNotice').style.display = 'none';
-            document.getElementById('meicRecalculateBtn').classList.remove('btn-warning');
-            document.getElementById('meicRecalculateBtn').classList.add('btn-primary');
+            const notice = document.getElementById('meicRecalculationNotice');
+            const btn = document.getElementById('meicRecalculateBtn');
+            if (notice) notice.style.display = 'none';
+            if (btn) {
+                btn.classList.remove('btn-warning');
+                btn.classList.add('btn-primary');
+            }
         }
 
         function recalculateMEICHeatmap() {

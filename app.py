@@ -15,6 +15,7 @@ from datetime import datetime
 import json
 import re
 from collections import defaultdict
+import logging
 import csv
 from scipy import stats
 import zipfile
@@ -29,6 +30,8 @@ from auth import init_auth, auth_bp, guest_mode_required, get_current_data_folde
 from admin import admin_bp
 from config import Config
 from app_insights import app_insights
+
+logger = logging.getLogger(__name__)
 from version import get_version_string, get_version_info, get_build_badge
 
 def add_cache_busting_headers(response):
@@ -122,63 +125,70 @@ db_manager = DatabaseManager()
 portfolio = Portfolio()
 analyzer = None
 chart_factory = None
+mc_simulator = None
 current_user_data_dir = None
 current_data_type = None
 current_initial_capital = None
 
 def setup_user_context():
     """Set up file manager and portfolio for current user/guest session."""
-    global file_manager, portfolio, analyzer, chart_factory, current_user_data_dir, current_data_type, current_initial_capital
+    global file_manager, portfolio, analyzer, chart_factory, mc_simulator, current_user_data_dir, current_data_type, current_initial_capital
     
-    # Get current user's data folder
     new_data_dir = get_current_data_folder()
     
-    # Update file manager to use user-specific directory
-    file_manager.set_user_data_dir(new_data_dir)
+    # Only update file manager if directory actually changed
+    if current_user_data_dir != new_data_dir:
+        file_manager.set_user_data_dir(new_data_dir)
     
-    # Only reload portfolio if user data directory changed or portfolio is empty
     if current_user_data_dir != new_data_dir or len(portfolio.strategies) == 0:
         current_user_data_dir = new_data_dir
         
-        # Clear and reload portfolio for this user
         portfolio = Portfolio()
+        analyzer = None
+        chart_factory = None
+        mc_simulator = None
         
-        # Reset data type and initial capital when switching users/directories
         current_data_type = None
         current_initial_capital = None
         
-        # Try to load any existing data for this user
         try:
             csv_files = glob.glob(os.path.join(new_data_dir, '*.csv'))
             if csv_files:
-                # Load the most recent file
                 latest_file = max(csv_files, key=os.path.getctime)
                 portfolio.load_from_csv(latest_file)
                 
-                # Set current filename
                 portfolio.current_filename = os.path.basename(latest_file)
                 
-                # Try to detect data type and initial capital from the loaded file
                 filename = os.path.basename(latest_file)
-                try:
-                    df = pd.read_csv(latest_file)
-                    if 'Initial Premium' in df.columns:
-                        current_data_type = 'real_trade'
-                        current_initial_capital = extract_initial_capital_from_filename(filename, default=get_last_initial_capital())
-                    else:
-                        current_data_type = 'backtest'
-                        current_initial_capital = None
-                except Exception:
-                    pass  # If we can't detect, just leave as None
+                # Check metadata first, fall back to header-only read
+                file_type = file_manager.get_file_type(filename)
+                if file_type:
+                    current_data_type = file_type
+                else:
+                    try:
+                        cols = pd.read_csv(latest_file, nrows=0).columns
+                        if 'Initial Premium' in cols:
+                            current_data_type = 'real_trade'
+                        else:
+                            current_data_type = 'backtest'
+                        file_manager.set_file_type(filename, current_data_type)
+                    except Exception:
+                        pass
                 
-                # print(f"Loaded user data: {portfolio.total_trades} trades from {len(portfolio.strategies)} strategies")
-        except Exception as e:
-            # print(f"No previous data found for user: {e}")
+                if current_data_type == 'real_trade':
+                    current_initial_capital = extract_initial_capital_from_filename(filename, default=get_last_initial_capital())
+                else:
+                    current_initial_capital = None
+        except Exception:
             pass
+        
+        analyzer = StrategyAnalyzer(portfolio)
+        chart_factory = ChartFactory(portfolio)
     
-    # Initialize analyzer and chart factory (these are lightweight)
-    analyzer = StrategyAnalyzer(portfolio)
-    chart_factory = ChartFactory(portfolio)
+    if analyzer is None:
+        analyzer = StrategyAnalyzer(portfolio)
+    if chart_factory is None:
+        chart_factory = ChartFactory(portfolio)
 
 @app.before_request
 def before_request():
@@ -350,7 +360,7 @@ def log_margin_debug(row: dict) -> None:
                 writer.writeheader()
             writer.writerow(enriched)
     except Exception as e:
-        print(f"Failed to write margin debug log: {e}")
+        logger.debug(f"Failed to write margin debug log: {e}")
 
 
 def calculate_margin_from_legs(legs_str, context: dict | None = None):
@@ -1207,10 +1217,10 @@ def calculate_margin_from_legs(legs_str, context: dict | None = None):
                 'margin_breakdown': '; '.join(margin_breakdown)
             })
         except Exception as e:
-            print(f"Failed to log margin debug row: {e}")
+            logger.debug(f"Failed to log margin debug row: {e}")
         
     except Exception as e:
-        print(f"ERROR in margin calculation: {str(e)}")
+        logger.error(f"ERROR in margin calculation: {str(e)}")
         # If any error occurs during analysis, mark as unknown
         trade_type = 'unknown'
         overall_margin = sum(leg['premium'] * leg['quantity'] for leg in legs if leg['action'] == 'BTO')
@@ -1331,10 +1341,10 @@ def debug_charts():
 def portfolio_overview():
     """Get portfolio overview metrics."""
     try:
-        print("=== PORTFOLIO OVERVIEW API CALLED ===")
+        # print("=== PORTFOLIO OVERVIEW API CALLED ===")
         
         if not portfolio.strategies:
-            print("No strategies found, returning empty data")
+            logger.debug("No strategies found, returning empty data")
             response = jsonify({
                 'success': True,
                 'data': {
@@ -1347,12 +1357,12 @@ def portfolio_overview():
                 }
             })
         
-        print(f"Portfolio has {len(portfolio.strategies)} strategies")
+        logger.debug(f"Portfolio has {len(portfolio.strategies)} strategies")
         metrics = PortfolioMetrics(portfolio)
-        print("PortfolioMetrics created")
+        logger.debug("PortfolioMetrics created")
         
         overview = metrics.get_overview_metrics()
-        print("Overview metrics calculated")
+        logger.debug("Overview metrics calculated")
         
         # Use the same accurate calculation logic as files overview
         global current_data_type, current_initial_capital
@@ -1407,8 +1417,8 @@ def portfolio_overview():
                 overview['starting_capital'] = 0
                 overview['ending_capital'] = overview.get('final_balance', 0)
         
-        print("Portfolio overview completed successfully")
-        print("=== PORTFOLIO OVERVIEW API COMPLETED ===")
+        logger.debug("Portfolio overview completed successfully")
+        # print("=== PORTFOLIO OVERVIEW API COMPLETED ===")
         
         response = jsonify({
             'success': True,
@@ -1416,7 +1426,7 @@ def portfolio_overview():
         })
         return add_cache_busting_headers(response)
     except Exception as e:
-        print(f"ERROR in portfolio_overview: {e}")
+        logger.error(f"ERROR in portfolio_overview: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -1428,23 +1438,23 @@ def portfolio_overview():
 def strategy_summary():
     """Get strategy summary statistics."""
     try:
-        print(f"=== STRATEGY SUMMARY START ===")
+        # print(f"=== STRATEGY SUMMARY START ===")
         
         if not portfolio.strategies:
-            print("No strategies found, returning empty data")
+            logger.debug("No strategies found, returning empty data")
             return jsonify({
                 'success': True,
                 'data': []
             })
         
-        print(f"Portfolio has {len(portfolio.strategies)} strategies")
+        logger.debug(f"Portfolio has {len(portfolio.strategies)} strategies")
         
         # Check if p-values are requested (default to False for performance)
         include_pvalues = request.args.get('include_pvalues', 'false').lower() == 'true'
-        print(f"P-values requested: {include_pvalues}")
+        logger.debug(f"P-values requested: {include_pvalues}")
         
         # Get basic strategy data first (fast)
-        print("Calling portfolio.get_strategy_summary()...")
+        logger.debug("Calling portfolio.get_strategy_summary()...")
         
         # Add timeout protection for the get_strategy_summary call
         import time
@@ -1470,28 +1480,28 @@ def strategy_summary():
         thread.join(timeout=30)
         
         if thread.is_alive():
-            print("get_strategy_summary() timed out!")
+            logger.debug("get_strategy_summary() timed out!")
             return jsonify({
                 'success': False,
                 'error': 'Strategy summary calculation timed out. The portfolio data may be too large.'
             }), 408
         
         if timeout_error:
-            print(f"Error in get_strategy_summary: {timeout_error}")
+            logger.error(f"Error in get_strategy_summary: {timeout_error}")
             raise timeout_error
         
-        print(f"get_strategy_summary() returned {len(strategy_data)} strategies")
+        logger.debug(f"get_strategy_summary() returned {len(strategy_data)} strategies")
         
         # Debug: print first few strategy names
         if strategy_data:
-            print(f"First 3 strategies: {[s.get('strategy', 'N/A') for s in strategy_data[:3]]}")
+            logger.debug(f"First 3 strategies: {[s.get('strategy', 'N/A') for s in strategy_data[:3]]}")
         
         # Add p-value statistics for each strategy (only if requested)
         if include_pvalues:
-            print(f"Calculating p-values for {len(strategy_data)} strategies...")
+            logger.debug(f"Calculating p-values for {len(strategy_data)} strategies...")
             for i, strategy_info in enumerate(strategy_data):
                 strategy_name = strategy_info['strategy']
-                print(f"Processing strategy {i+1}/{len(strategy_data)}: {strategy_name}")
+                logger.debug(f"Processing strategy {i+1}/{len(strategy_data)}: {strategy_name}")
                 
                 if strategy_name in portfolio.strategies:
                     strategy = portfolio.strategies[strategy_name]
@@ -1503,7 +1513,7 @@ def strategy_summary():
                             sample_size = min(1000, len(strategy.trades))
                             sampled_trades = random.sample(strategy.trades, sample_size)
                             pnl_values = [trade.pnl for trade in sampled_trades]
-                            print(f"  Sampled {sample_size} trades from {len(strategy.trades)} total")
+                            logger.debug(f"  Sampled {sample_size} trades from {len(strategy.trades)} total")
                         else:
                             pnl_values = [trade.pnl for trade in strategy.trades]
                         
@@ -1512,7 +1522,7 @@ def strategy_summary():
                             strategy_info['p_value'] = 1.0  # All values identical
                             strategy_info['t_statistic'] = 0.0
                             strategy_info['significance'] = "ns"
-                            print(f"  All P/L values identical, skipping calculation")
+                            logger.debug(f"  All P/L values identical, skipping calculation")
                         else:
                             # Calculate p-value using one-sample t-test against zero
                             try:
@@ -1531,29 +1541,29 @@ def strategy_summary():
                                     significance = "ns"
                                 strategy_info['significance'] = significance
                                 
-                                print(f"  Calculated p-value: {p_value:.4f} ({significance})")
+                                logger.debug(f"  Calculated p-value: {p_value:.4f} ({significance})")
                                 
                             except Exception as e:
                                 # If statistical test fails, set default values
                                 strategy_info['p_value'] = None
                                 strategy_info['t_statistic'] = None
                                 strategy_info['significance'] = "N/A"
-                                print(f"  Error calculating p-value: {e}")
+                                logger.debug(f"  Error calculating p-value: {e}")
                     else:
                         strategy_info['p_value'] = None
                         strategy_info['t_statistic'] = None
                         strategy_info['significance'] = "N/A"
-                        print(f"  No trades or insufficient data for p-value calculation")
+                        logger.debug(f"  No trades or insufficient data for p-value calculation")
         
-        print(f"Strategy summary completed successfully")
-        print(f"=== STRATEGY SUMMARY END ===")
+        logger.debug(f"Strategy summary completed successfully")
+        # print(f"=== STRATEGY SUMMARY END ===")
         return jsonify({
             'success': True,
             'data': strategy_data
         })
         
     except Exception as e:
-        print(f"ERROR in strategy_summary: {e}")
+        logger.error(f"ERROR in strategy_summary: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -1565,16 +1575,16 @@ def strategy_summary():
 def strategy_summary_simple():
     """Get basic strategy summary without any complex calculations."""
     try:
-        print(f"=== SIMPLE STRATEGY SUMMARY START ===")
+        # print(f"=== SIMPLE STRATEGY SUMMARY START ===")
         
         if not portfolio.strategies:
-            print("No strategies found, returning empty data")
+            logger.debug("No strategies found, returning empty data")
             return jsonify({
                 'success': True,
                 'data': []
             })
         
-        print(f"Portfolio has {len(portfolio.strategies)} strategies")
+        logger.debug(f"Portfolio has {len(portfolio.strategies)} strategies")
         
         # Just return basic strategy info without calling get_strategy_summary()
         basic_data = []
@@ -1585,8 +1595,8 @@ def strategy_summary_simple():
                 'status': 'loaded'
             })
         
-        print(f"Simple strategy summary completed: {len(basic_data)} strategies")
-        print(f"=== SIMPLE STRATEGY SUMMARY END ===")
+        logger.debug(f"Simple strategy summary completed: {len(basic_data)} strategies")
+        # print(f"=== SIMPLE STRATEGY SUMMARY END ===")
         
         response = jsonify({
             'success': True,
@@ -1598,7 +1608,7 @@ def strategy_summary_simple():
         return response
         
     except Exception as e:
-        print(f"ERROR in simple strategy summary: {e}")
+        logger.error(f"ERROR in simple strategy summary: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -1610,18 +1620,18 @@ def strategy_summary_simple():
 def balance_analysis():
     """Get portfolio balance analysis (bullish/bearish/neutral breakdown)."""
     try:
-        print("=== BALANCE ANALYSIS API CALLED ===")
+        # print("=== BALANCE ANALYSIS API CALLED ===")
         
         analyzer = StrategyAnalyzer(portfolio)
-        print("StrategyAnalyzer created")
+        logger.debug("StrategyAnalyzer created")
         
         balance = analyzer.get_strategy_balance_analysis()
-        print("Balance analysis completed")
+        logger.debug("Balance analysis completed")
         
         diversification = analyzer.get_diversification_score()
-        print("Diversification score calculated")
+        logger.debug("Diversification score calculated")
         
-        print("=== BALANCE ANALYSIS API COMPLETED ===")
+        # print("=== BALANCE ANALYSIS API COMPLETED ===")
         
         return jsonify({
             'success': True,
@@ -1632,7 +1642,7 @@ def balance_analysis():
         })
         
     except Exception as e:
-        print(f"ERROR in balance_analysis: {e}")
+        logger.error(f"ERROR in balance_analysis: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -1641,19 +1651,86 @@ def balance_analysis():
         }), 500
 
 
+@app.route('/api/portfolio/all')
+def portfolio_all():
+    """Batch endpoint returning overview, strategies, and balance analysis in one call."""
+    try:
+        if not portfolio.strategies:
+            return jsonify({
+                'success': True,
+                'overview': {'total_pnl': 0, 'total_trades': 0, 'win_rate': 0,
+                             'max_drawdown': 0, 'strategy_count': 0, 'starting_capital': 0},
+                'strategies': [],
+                'balance': {'balance': {}, 'diversification': {}}
+            })
+        
+        metrics = PortfolioMetrics(portfolio)
+        overview = metrics.get_overview_metrics()
+        
+        global current_data_type, current_initial_capital
+        if current_data_type == 'real_trade' and current_initial_capital is not None:
+            overview['starting_capital'] = current_initial_capital
+            overview['ending_capital'] = current_initial_capital + overview.get('total_pnl', 0)
+        else:
+            earliest_trade = None
+            latest_trade = None
+            earliest_datetime = None
+            latest_datetime = None
+            for strategy in portfolio.strategies.values():
+                for trade in strategy.trades:
+                    if hasattr(trade, 'funds_at_close') and hasattr(trade, 'pnl'):
+                        trade_datetime = trade.date_closed or trade.date_opened
+                        if trade_datetime:
+                            if earliest_datetime is None or trade_datetime < earliest_datetime:
+                                earliest_datetime = trade_datetime
+                                earliest_trade = trade
+                            if latest_datetime is None or trade_datetime > latest_datetime:
+                                latest_datetime = trade_datetime
+                                latest_trade = trade
+            if earliest_trade and latest_trade:
+                if (hasattr(earliest_trade, 'funds_at_close') and earliest_trade.funds_at_close is not None and
+                    hasattr(earliest_trade, 'pnl') and earliest_trade.pnl is not None):
+                    init_cap = float(earliest_trade.funds_at_close - earliest_trade.pnl)
+                    overview['starting_capital'] = init_cap
+                    if hasattr(latest_trade, 'funds_at_close') and latest_trade.funds_at_close is not None:
+                        overview['total_pnl'] = float(latest_trade.funds_at_close - init_cap)
+                        overview['ending_capital'] = float(init_cap + overview['total_pnl'])
+        
+        strategy_data = portfolio.get_strategy_summary()
+        
+        bal_analyzer = StrategyAnalyzer(portfolio)
+        balance = bal_analyzer.get_strategy_balance_analysis()
+        diversification = bal_analyzer.get_diversification_score()
+        
+        response = jsonify({
+            'success': True,
+            'overview': overview,
+            'strategies': strategy_data,
+            'balance': {
+                'balance': balance,
+                'diversification': diversification
+            }
+        })
+        return add_cache_busting_headers(response)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/portfolio/mfe-mae-analysis')
 def mfe_mae_analysis():
     """Get MFE/MAE analysis for portfolio strategies."""
     try:
-        print("=== MFE/MAE ANALYSIS API CALLED ===")
+        # print("=== MFE/MAE ANALYSIS API CALLED ===")
         
         analyzer = StrategyAnalyzer(portfolio)
-        print("StrategyAnalyzer created for MFE/MAE analysis")
+        logger.debug("StrategyAnalyzer created for MFE/MAE analysis")
         
         mfe_mae_data = analyzer.get_mfe_mae_analysis()
-        print("MFE/MAE analysis completed")
+        logger.debug("MFE/MAE analysis completed")
         
-        print("=== MFE/MAE ANALYSIS API COMPLETED ===")
+        # print("=== MFE/MAE ANALYSIS API COMPLETED ===")
         
         response = jsonify({
             'success': True,
@@ -1662,7 +1739,7 @@ def mfe_mae_analysis():
         return add_cache_busting_headers(response)
         
     except Exception as e:
-        print(f"ERROR in mfe_mae_analysis: {e}")
+        logger.error(f"ERROR in mfe_mae_analysis: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -1674,7 +1751,7 @@ def mfe_mae_analysis():
 def live_vs_bt_analysis():
     """Get Live vs Backtest comparison analysis."""
     try:
-        print("=== LIVE VS BT ANALYSIS API CALLED ===")
+        # print("=== LIVE VS BT ANALYSIS API CALLED ===")
         
         if request.method == 'GET':
             # GET request - return message that files need to be selected
@@ -1695,7 +1772,7 @@ def live_vs_bt_analysis():
                 'message': 'Both backtest and live files must be selected.'
             })
         
-        print(f"Comparing files: {backtest_file} (backtest) vs {live_file} (live)")
+        logger.debug(f"Comparing files: {backtest_file} (backtest) vs {live_file} (live)")
         
         # Load both portfolios
         try:
@@ -1724,21 +1801,21 @@ def live_vs_bt_analysis():
             live_portfolio = Portfolio()
             live_portfolio.load_from_csv(live_path)
             
-            print(f"Loaded {len(backtest_portfolio.strategies)} strategies from backtest file")
-            print(f"Loaded {len(live_portfolio.strategies)} strategies from live file")
+            logger.debug(f"Loaded {len(backtest_portfolio.strategies)} strategies from backtest file")
+            logger.debug(f"Loaded {len(live_portfolio.strategies)} strategies from live file")
             
             # Run the comparison analysis
             analyzer = StrategyAnalyzer(backtest_portfolio)
             comparison_data = analyzer.get_live_vs_bt_analysis(live_portfolio, match_only_datetime)
             
-            print("Live vs BT analysis completed successfully")
+            logger.debug("Live vs BT analysis completed successfully")
             
             # Debug: Print first trade to verify structure
             if comparison_data and 'comparison_data' in comparison_data and len(comparison_data['comparison_data']) > 0:
                 first_trade = comparison_data['comparison_data'][0]
-                print(f"DEBUG: First trade keys: {first_trade.keys()}")
-                print(f"DEBUG: live_entry_datetime: {first_trade.get('live_entry_datetime')}")
-                print(f"DEBUG: time_diff: {first_trade.get('time_diff')}")
+                logger.debug(f"First trade keys: {first_trade.keys()}")
+                logger.debug(f"live_entry_datetime: {first_trade.get('live_entry_datetime')}")
+                logger.debug(f"time_diff: {first_trade.get('time_diff')}")
             
             response = jsonify({
                 'success': True,
@@ -1747,14 +1824,14 @@ def live_vs_bt_analysis():
             return add_cache_busting_headers(response)
             
         except Exception as file_error:
-            print(f"Error loading files: {file_error}")
+            logger.error(f"Error loading files: {file_error}")
             return jsonify({
                 'success': False,
                 'message': f'Error loading files: {str(file_error)}'
             })
         
     except Exception as e:
-        print(f"ERROR in live_vs_bt_analysis: {e}")
+        logger.error(f"ERROR in live_vs_bt_analysis: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -1847,12 +1924,12 @@ def get_chart(chart_type):
         chart_data = chart_factory.create_chart(method_name)
         
         # Debug: Check if chart_data is valid
-        print(f"DEBUG: Chart data for {method_name}: {type(chart_data)}")
+        logger.debug(f"Chart data for {method_name}: {type(chart_data)}")
         if chart_data is None:
-            print(f"DEBUG: Chart data is None for {method_name}")
+            logger.debug(f"Chart data is None for {method_name}")
             return jsonify({'error': f'Chart data is None for {method_name}'}), 500
         if not isinstance(chart_data, dict):
-            print(f"DEBUG: Chart data is not a dict for {method_name}: {type(chart_data)}")
+            logger.debug(f"Chart data is not a dict for {method_name}: {type(chart_data)}")
             return jsonify({'error': f'Chart data is not a dict for {method_name}'}), 500
         
         # Create response with cache-busting headers
@@ -1860,7 +1937,7 @@ def get_chart(chart_type):
         return add_cache_busting_headers(response)
         
     except Exception as e:
-        print(f"Error generating chart {chart_type}: {e}")
+        logger.error(f"Error generating chart {chart_type}: {e}")
         return jsonify({'error': f'Error generating chart: {str(e)}'}), 500
 
 @app.route('/api/charts/available')
@@ -1877,21 +1954,21 @@ def run_strategy_monte_carlo(strategy_name):
     """Run Monte Carlo simulation for a specific strategy."""
     try:
         # Debug: Print the received strategy name and available strategies
-        print(f"DEBUG: Received strategy name: '{strategy_name}'")
-        print(f"DEBUG: Available strategies: {list(portfolio.strategies.keys())}")
+        logger.debug(f"Received strategy name: '{strategy_name}'")
+        logger.debug(f"Available strategies: {list(portfolio.strategies.keys())}")
         
         # Try to find a matching strategy (case-insensitive and handle encoding issues)
         matching_strategy = None
         for available_strategy in portfolio.strategies.keys():
-            print(f"DEBUG: Comparing '{strategy_name}' with '{available_strategy}'")
+            logger.debug(f"Comparing '{strategy_name}' with '{available_strategy}'")
             if available_strategy == strategy_name:
                 matching_strategy = available_strategy
-                print(f"DEBUG: Exact match found: '{matching_strategy}'")
+                logger.debug(f"Exact match found: '{matching_strategy}'")
                 break
             # Try case-insensitive match
             elif available_strategy.lower() == strategy_name.lower():
                 matching_strategy = available_strategy
-                print(f"DEBUG: Case-insensitive match found: '{matching_strategy}'")
+                logger.debug(f"Case-insensitive match found: '{matching_strategy}'")
                 break
         
         if not matching_strategy:
@@ -1922,9 +1999,10 @@ def run_strategy_monte_carlo(strategy_name):
         
         # trade_size_percent validation removed - using historical position sizing
         
-        # Run simulation
-        simulator = MonteCarloSimulator(portfolio)
-        results = simulator.run_strategy_specific_simulation(matching_strategy, num_simulations, num_trades, risk_free_rate)
+        global mc_simulator
+        if mc_simulator is None:
+            mc_simulator = MonteCarloSimulator(portfolio)
+        results = mc_simulator.run_strategy_specific_simulation(matching_strategy, num_simulations, num_trades, risk_free_rate)
         
         return jsonify({
             'success': True,
@@ -2177,16 +2255,17 @@ def upload_csv():
             warning_message = None
             if os.environ.get('DISABLE_TRADE_LIMIT', 'false').lower() != 'true':
                 max_trades = int(os.environ.get('MAX_TRADES_LIMIT', '3000'))
-                print(f"DEBUG: Trade count: {trade_count}, Max trades: {max_trades}")
+                logger.debug(f"Trade count: {trade_count}, Max trades: {max_trades}")
                 if trade_count > max_trades:
                     warning_message = f'⚠️ WARNING: This file contains {trade_count:,} trades. The recommended limit is {max_trades:,} trades. Files larger than this may produce unexpected problems and slow performance. Consider splitting your data into smaller files.'
-                    print(f"DEBUG: Warning message generated: {warning_message}")
+                    logger.debug(f"Warning message generated: {warning_message}")
 
-            # Detect data type
+            # Detect data type and cache it in metadata
             if 'Initial Premium' in df.columns:
                 data_type = 'real_trade'
             else:
                 data_type = 'backtest'
+            file_manager.set_file_type(saved_filename, data_type)
 
             # Set required columns (Strategy is now optional - can be derived from filename)
             if data_type == 'real_trade':
@@ -2277,15 +2356,15 @@ def upload_csv():
                 chart_generator = ChartGenerator(portfolio)
                 chart_generator.clear_cache()
             except Exception as cache_error:
-                print(f"Warning: Could not clear chart cache: {cache_error}")
+                logger.warning(f"Could not clear chart cache: {cache_error}")
             
             # Clear portfolio cache from cache manager
             try:
                 from cache_manager import cache_manager
                 cache_manager.clear_portfolio_cache(saved_filename)
-                print(f"Cleared cache for uploaded portfolio: {saved_filename}")
+                logger.debug(f"Cleared cache for portfolio")
             except Exception as cache_error:
-                print(f"Warning: Could not clear portfolio cache: {cache_error}")
+                logger.warning(f"Could not clear portfolio cache: {cache_error}")
             
             # Clear Monte Carlo simulation cache for the new portfolio
             try:
@@ -2293,7 +2372,7 @@ def upload_csv():
                 simulator = MonteCarloSimulator(portfolio)
                 simulator.clear_cache()
             except Exception as cache_error:
-                print(f"Warning: Could not clear Monte Carlo cache: {cache_error}")
+                logger.warning(f"Could not clear Monte Carlo cache: {cache_error}")
             # Track current data type and initial capital
             global current_data_type, current_initial_capital
             current_data_type = data_type
@@ -2328,9 +2407,9 @@ def upload_csv():
             # Add warning message if file exceeds recommended trade limit
             if warning_message:
                 response_data['warning'] = warning_message
-                print(f"DEBUG: Adding warning to response: {warning_message}")
+                logger.debug(f"Adding warning to response: {warning_message}")
             else:
-                print("DEBUG: No warning message to add")
+                logger.debug("No warning message to add")
                 
             return jsonify(response_data)
             
@@ -2357,7 +2436,7 @@ def upload_csv():
 def cleanup_empty_directories():
     """Clean up empty directories in the guest data folder."""
     try:
-        print("=== CLEANUP EMPTY DIRECTORIES START ===")
+        # print("=== CLEANUP EMPTY DIRECTORIES START ===")
         
         # Track cleanup attempt
         app_insights.track_event('cleanup_empty_dirs_attempted', {
@@ -2373,7 +2452,7 @@ def cleanup_empty_directories():
             'removed_count': removed_count
         })
         
-        print(f"=== CLEANUP EMPTY DIRECTORIES SUCCESS: {removed_count} directories removed ===")
+        # print(f"=== CLEANUP EMPTY DIRECTORIES SUCCESS: {removed_count} directories removed ===")
         return jsonify({
             'success': True,
             'removed_count': removed_count,
@@ -2387,7 +2466,7 @@ def cleanup_empty_directories():
             'endpoint': 'cleanup_empty_directories'
         })
         
-        print(f"=== CLEANUP EMPTY DIRECTORIES ERROR: {str(e)} ===")
+        # print(f"=== CLEANUP EMPTY DIRECTORIES ERROR: {str(e)} ===")
         return jsonify({
             'success': False,
             'error': f'Failed to cleanup directories: {str(e)}'
@@ -2398,7 +2477,7 @@ def cleanup_empty_directories():
 def load_sample_data():
     """Load the sample portfolio data from Example-Portfolio.csv."""
     try:
-        print("=== LOAD SAMPLE DATA START ===")
+        # print("=== LOAD SAMPLE DATA START ===")
         
         # Track sample data load attempt
         app_insights.track_event('sample_data_load_attempted', {
@@ -2482,7 +2561,7 @@ def load_sample_data():
                 'filename': saved_filename
             })
             
-            print("=== LOAD SAMPLE DATA SUCCESS ===")
+            # print("=== LOAD SAMPLE DATA SUCCESS ===")
             return jsonify({
                 'success': True,
                 'data': {
@@ -2507,7 +2586,7 @@ def load_sample_data():
             'endpoint': 'load_sample_data'
         })
         
-        print(f"=== LOAD SAMPLE DATA ERROR: {str(e)} ===")
+        # print(f"=== LOAD SAMPLE DATA ERROR: {str(e)} ===")
         return jsonify({
             'success': False,
             'error': f'Failed to load sample data: {str(e)}'
@@ -2519,7 +2598,7 @@ def load_sample_data():
 def load_sample_meic_data():
     """Load the sample MEIC portfolio data from Example-Portfolio-MEIC.csv."""
     try:
-        print("=== LOAD SAMPLE MEIC DATA START ===")
+        # print("=== LOAD SAMPLE MEIC DATA START ===")
         
         # Track sample MEIC data load attempt
         app_insights.track_event('sample_meic_data_load_attempted', {
@@ -2551,7 +2630,7 @@ def load_sample_meic_data():
         
         # Copy the sample file
         shutil.copy2(sample_file_path, saved_path)
-        print(f"Copied sample MEIC file to: {saved_path}")
+        logger.debug(f"Copied sample MEIC file to: {saved_path}")
         
         # Store metadata for the copied file
         file_manager.metadata[saved_filename] = {
@@ -2570,7 +2649,7 @@ def load_sample_meic_data():
         try:
             import pandas as pd
             df = pd.read_csv(saved_path)
-            print(f"Loaded MEIC CSV with {len(df)} rows and columns: {list(df.columns)}")
+            logger.debug(f"Loaded MEIC CSV with {len(df)} rows and columns: {list(df.columns)}")
             
             # Check if required columns exist (using actual column names from MEIC data)
             required_columns = ['Date Closed', 'P/L', 'Strategy']
@@ -2605,7 +2684,7 @@ def load_sample_meic_data():
             'filename': saved_filename
         })
         
-        print("=== LOAD SAMPLE MEIC DATA SUCCESS ===")
+        # print("=== LOAD SAMPLE MEIC DATA SUCCESS ===")
         return jsonify({
             'success': True,
             'data': {
@@ -2630,7 +2709,7 @@ def load_sample_meic_data():
             'endpoint': 'load_sample_meic_data'
         })
         
-        print(f"=== LOAD SAMPLE MEIC DATA ERROR: {str(e)} ===")
+        # print(f"=== LOAD SAMPLE MEIC DATA ERROR: {str(e)} ===")
         return jsonify({
             'success': False,
             'error': f'Failed to load sample MEIC data: {str(e)}'
@@ -2640,43 +2719,29 @@ def load_sample_meic_data():
 def list_saved_files():
     """Get list of saved CSV files, ordered newest to oldest."""
     try:
-        print("=== SAVED FILES API CALLED ===")
         file_info = file_manager.get_file_list()
         
-        # Detect file type for each file
         for file in file_info:
             filename = file['filename']
-            file_path = file_manager.get_file_path(filename)
-            
-            if os.path.exists(file_path):
-                try:
-                    # Read just the header to detect columns
-                    df = pd.read_csv(file_path, nrows=0)
-                    columns = list(df.columns)
-                    
-                    # Debug: Print columns for all files
-                    print(f"DEBUG: File {filename} columns: {columns}")
-                    
-                    # Detection logic: "Initial Premium" = live, otherwise = backtest
-                    has_initial_premium = 'Initial Premium' in columns
-                    print(f"DEBUG: File {filename} has 'Initial Premium': {has_initial_premium}")
-                    
-                    if has_initial_premium:
-                        file['file_type'] = 'live'
-                    else:
-                        file['file_type'] = 'backtest'
-                    
-                    # Debug: Print detection result
-                    print(f"DEBUG: File {filename} detected as: {file['file_type']}")
-                        
-                except Exception as e:
-                    print(f"Error detecting file type for {filename}: {e}")
-                    file['file_type'] = 'unknown'
+            # Use cached type from metadata; only read headers if not cached
+            cached_type = file_manager.get_file_type(filename)
+            if cached_type:
+                file['file_type'] = 'live' if cached_type == 'real_trade' else 'backtest'
             else:
-                file['file_type'] = 'unknown'
-        
-        print(f"Returning {len(file_info)} files with type detection")
-        print("=== SAVED FILES API COMPLETED ===")
+                file_path = file_manager.get_file_path(filename)
+                if os.path.exists(file_path):
+                    try:
+                        cols = pd.read_csv(file_path, nrows=0).columns
+                        if 'Initial Premium' in cols:
+                            file['file_type'] = 'live'
+                            file_manager.set_file_type(filename, 'real_trade')
+                        else:
+                            file['file_type'] = 'backtest'
+                            file_manager.set_file_type(filename, 'backtest')
+                    except Exception:
+                        file['file_type'] = 'unknown'
+                else:
+                    file['file_type'] = 'unknown'
         
         return jsonify({
             'success': True,
@@ -2684,7 +2749,6 @@ def list_saved_files():
         })
         
     except Exception as e:
-        print(f"ERROR in saved-files: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -2709,42 +2773,32 @@ def load_saved_file(filename):
         # Check file size for large dataset warning
         file_size = os.path.getsize(file_path)
         if file_size > 50 * 1024 * 1024:  # 50MB
-            print(f"Warning: Loading large file {filename} ({file_size / 1024 / 1024:.1f}MB)")
+            logger.warning(f"Loading large file {filename} ({file_size / 1024 / 1024:.1f}MB)")
         
         # Extract initial capital from filename if present
         initial_capital = extract_initial_capital_from_filename(filename, default=get_last_initial_capital())
         set_last_initial_capital(initial_capital)
         
-        # Read CSV with error handling
-        try:
-            df = pd.read_csv(file_path)
-        except Exception as csv_error:
-            return jsonify({
-                'success': False,
-                'error': f'Failed to read CSV file: {str(csv_error)}'
-            }), 400
-        
-        # Count trades and warn if too many (unless limit is disabled)
-        trade_count = len(df)
-        warning_message = None
-        if os.environ.get('DISABLE_TRADE_LIMIT', 'false').lower() != 'true':
-            max_trades = int(os.environ.get('MAX_TRADES_LIMIT', '3000'))
-            print(f"DEBUG: Load saved file - Trade count: {trade_count}, Max trades: {max_trades}")
-            if trade_count > max_trades:
-                warning_message = f'⚠️ WARNING: This file contains {trade_count:,} trades. The recommended limit is {max_trades:,} trades. Files larger than this may produce unexpected problems and slow performance. Consider splitting your data into smaller files.'
-                print(f"DEBUG: Load saved file - Warning message generated: {warning_message}")
-        
-        # Detect data type
-        if 'Initial Premium' in df.columns:
-            data_type = 'real_trade'
+        # Detect data type from cached metadata first, fall back to header-only read
+        cached_type = file_manager.get_file_type(filename)
+        if cached_type:
+            data_type = cached_type
         else:
-            data_type = 'backtest'
+            try:
+                cols = pd.read_csv(file_path, nrows=0).columns
+                data_type = 'real_trade' if 'Initial Premium' in cols else 'backtest'
+                file_manager.set_file_type(filename, data_type)
+            except Exception as csv_error:
+                return jsonify({
+                    'success': False,
+                    'error': f'Failed to read CSV file: {str(csv_error)}'
+                }), 400
         
-        # Transform if real trade
+        # Transform if real trade (only case that needs full read before portfolio load)
         if data_type == 'real_trade':
             try:
+                df = pd.read_csv(file_path)
                 df = transform_real_trade_to_backtest(df, initial_capital=initial_capital)
-                # Overwrite file with transformed data
                 df.to_csv(file_path, index=False)
             except Exception as transform_error:
                 return jsonify({
@@ -2803,45 +2857,31 @@ def load_saved_file(filename):
         portfolio.current_filename = filename
         session['current_filename'] = filename
         
-        # Clear any cached chart data for the new portfolio
+        # Clear all caches in one consolidated block
         try:
-            from charts import ChartGenerator
-            chart_generator = ChartGenerator(portfolio)
-            chart_generator.clear_cache()
-        except Exception as cache_error:
-            print(f"Warning: Could not clear chart cache: {cache_error}")
+            from cache_manager import cache_manager as cm
+            cm.clear_portfolio_cache(filename)
+            cm._chart_cache.clear()
+            cm._analytics_cache.clear()
+        except Exception:
+            pass
         
-        # Clear portfolio cache from cache manager
-        try:
-            from cache_manager import cache_manager
-            cache_manager.clear_portfolio_cache(filename)
-            print(f"Cleared cache for portfolio: {filename}")
-        except Exception as cache_error:
-            print(f"Warning: Could not clear portfolio cache: {cache_error}")
-        
-        # Clear Monte Carlo simulation cache for the new portfolio
-        try:
-            from analytics import MonteCarloSimulator
-            simulator = MonteCarloSimulator(portfolio)
-            simulator.clear_cache()
-            print("🧹 Monte Carlo cache cleared due to data reload")
-        except Exception as cache_error:
-            print(f"Warning: Could not clear Monte Carlo cache: {cache_error}")
-        
-        # Clear any additional caches
-        try:
-            from cache_manager import cache_manager
-            # Clear chart and analytics caches
-            cache_manager._chart_cache.clear()
-            cache_manager._analytics_cache.clear()
-            print("🧹 Chart and analytics caches cleared due to data reload")
-        except Exception as cache_error:
-            print(f"Warning: Could not clear all caches: {cache_error}")
-        
-        # Track current data type and initial capital
         global current_data_type, current_initial_capital
         current_data_type = data_type
         current_initial_capital = initial_capital if data_type == 'real_trade' else None
+        
+        # Reinitialize analyzer, chart_factory, and simulator for the newly loaded portfolio
+        global analyzer, chart_factory, mc_simulator
+        analyzer = StrategyAnalyzer(portfolio)
+        chart_factory = ChartFactory(portfolio)
+        mc_simulator = None
+        
+        # Warn if trade count exceeds limit
+        warning_message = None
+        if os.environ.get('DISABLE_TRADE_LIMIT', 'false').lower() != 'true':
+            max_trades = int(os.environ.get('MAX_TRADES_LIMIT', '3000'))
+            if portfolio.total_trades > max_trades:
+                warning_message = f'This file contains {portfolio.total_trades:,} trades. The recommended limit is {max_trades:,} trades. Files larger than this may produce unexpected problems and slow performance.'
         
         response_data = {
             'success': True,
@@ -2856,12 +2896,8 @@ def load_saved_file(filename):
             }
         }
         
-        # Add warning message if file exceeds recommended trade limit
         if warning_message:
             response_data['warning'] = warning_message
-            print(f"DEBUG: Load saved file - Adding warning to response: {warning_message}")
-        else:
-            print("DEBUG: Load saved file - No warning message to add")
             
         return jsonify(response_data)
     except Exception as e:
@@ -3018,6 +3054,54 @@ def delete_file():
             'error': f'Recycle operation failed: {str(e)}'
         }), 500
 
+@app.route('/api/delete-files-batch', methods=['POST'])
+def delete_files_batch():
+    """Move multiple files to recycle folder in one request."""
+    try:
+        data = request.get_json()
+        filenames = data.get('filenames', [])
+        
+        if not filenames:
+            return jsonify({'success': False, 'error': 'No filenames provided'}), 400
+        
+        data_folder = get_current_data_folder()
+        recycle_folder = os.path.join(data_folder, 'recycle')
+        os.makedirs(recycle_folder, exist_ok=True)
+        
+        results = []
+        for filename in filenames:
+            file_path = file_manager.get_file_path(filename)
+            if not os.path.exists(file_path):
+                results.append({'filename': filename, 'success': False, 'error': 'File not found'})
+                continue
+            try:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                base_name = os.path.splitext(filename)[0]
+                zip_path = os.path.join(recycle_folder, f"{base_name}_{timestamp}.zip")
+                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    zipf.write(file_path, filename)
+                os.remove(file_path)
+                friendly_name = filename
+                if filename in file_manager.metadata:
+                    friendly_name = file_manager.metadata[filename].get('friendly_name', filename)
+                    del file_manager.metadata[filename]
+                results.append({'filename': filename, 'success': True, 'friendly_name': friendly_name})
+            except Exception as e:
+                results.append({'filename': filename, 'success': False, 'error': str(e)})
+        
+        file_manager._save_metadata()
+        
+        succeeded = sum(1 for r in results if r['success'])
+        failed = sum(1 for r in results if not r['success'])
+        return jsonify({
+            'success': True,
+            'message': f'Moved {succeeded} file(s) to recycle' + (f', {failed} failed' if failed else ''),
+            'results': results
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/cleanup-files', methods=['POST'])
 def cleanup_duplicate_files():
     """Remove duplicate CSV files, keeping only the most recent version of each base name."""
@@ -3103,9 +3187,10 @@ def run_portfolio_monte_carlo():
                 'error': 'Number of trades must be at least 10'
             }), 400
         
-        # Run simulation
-        simulator = MonteCarloSimulator(portfolio)
-        results = simulator.run_simulation(num_simulations, num_trades, risk_free_rate)
+        global mc_simulator
+        if mc_simulator is None:
+            mc_simulator = MonteCarloSimulator(portfolio)
+        results = mc_simulator.run_simulation(num_simulations, num_trades, risk_free_rate)
         
         return jsonify({
             'success': True,
@@ -3150,9 +3235,10 @@ def run_all_strategies_monte_carlo():
         
         # trade_size_percent validation removed - using historical position sizing
         
-        # Run Monte Carlo simulation for all strategies
-        simulator = MonteCarloSimulator(portfolio)
-        results = simulator.run_all_strategies_simulation(num_simulations, num_trades, risk_free_rate)
+        global mc_simulator
+        if mc_simulator is None:
+            mc_simulator = MonteCarloSimulator(portfolio)
+        results = mc_simulator.run_all_strategies_simulation(num_simulations, num_trades, risk_free_rate)
         
         return jsonify({
             'success': True,
@@ -3470,7 +3556,7 @@ def get_trade_margin():
         })
         
     except Exception as e:
-        print(f"Error calculating margin: {e}")
+        logger.error(f"Error calculating margin: {e}")
         return jsonify({
             'error': f'Error calculating margin: {str(e)}',
             'success': False
@@ -3518,7 +3604,7 @@ def get_strategy_margin_summary():
         })
         
     except Exception as e:
-        print(f"Error getting strategy margin summary: {e}")
+        logger.error(f"Error getting strategy margin summary: {e}")
         return jsonify({
             'error': f'Error getting strategy margin summary: {str(e)}',
             'success': False
@@ -3747,7 +3833,7 @@ def get_trades_by_day():
         return add_cache_busting_headers(response)
         
     except Exception as e:
-        print(f"ERROR in get_trades_by_day: {e}")
+        logger.error(f"ERROR in get_trades_by_day: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -4056,7 +4142,7 @@ def conflicting_legs_analysis():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error in conflicting_legs_analysis: {e}")
+        logger.error(f"Error in conflicting_legs_analysis: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -4111,7 +4197,7 @@ def commission_analysis():
         return jsonify(analysis)
         
     except Exception as e:
-        print(f"Error in commission_analysis: {e}")
+        logger.error(f"Error in commission_analysis: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/commission-config', methods=['GET'])
@@ -4141,7 +4227,7 @@ def get_commission_config():
         })
         
     except Exception as e:
-        print(f"Error getting commission config: {e}")
+        logger.error(f"Error getting commission config: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/commission-config', methods=['POST'])
@@ -4194,7 +4280,7 @@ def update_commission_config():
         return jsonify({'success': True, 'message': 'Commission configuration updated successfully'})
         
     except Exception as e:
-        print(f"Error updating commission config: {e}")
+        logger.error(f"Error updating commission config: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/health')
@@ -4461,7 +4547,7 @@ def get_custom_blackout_lists():
         })
         
     except Exception as e:
-        print(f"Error getting custom blackout lists: {e}")
+        logger.error(f"Error getting custom blackout lists: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/custom-blackout-lists', methods=['POST'])
@@ -4525,7 +4611,7 @@ def create_custom_blackout_list():
         })
         
     except Exception as e:
-        print(f"Error creating custom blackout list: {e}")
+        logger.error(f"Error creating custom blackout list: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/custom-blackout-lists/<int:list_id>', methods=['PUT'])
@@ -4598,7 +4684,7 @@ def update_custom_blackout_list(list_id):
         })
         
     except Exception as e:
-        print(f"Error updating custom blackout list: {e}")
+        logger.error(f"Error updating custom blackout list: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/custom-blackout-lists/<int:list_id>', methods=['DELETE'])
@@ -4637,7 +4723,7 @@ def delete_custom_blackout_list(list_id):
         })
         
     except Exception as e:
-        print(f"Error deleting custom blackout list: {e}")
+        logger.error(f"Error deleting custom blackout list: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/blackout-date-lists', methods=['GET'])
@@ -4674,7 +4760,7 @@ def get_blackout_date_lists():
             
             conn.close()
         except Exception as e:
-            print(f"Error loading custom blackout lists: {e}")
+            logger.error(f"Error loading custom blackout lists: {e}")
             # Continue with built-in lists only
         
         return jsonify({
@@ -4684,7 +4770,7 @@ def get_blackout_date_lists():
         })
         
     except Exception as e:
-        print(f"Error in get_blackout_date_lists: {e}")
+        logger.error(f"Error in get_blackout_date_lists: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/blackout-dates', methods=['POST'])
@@ -4730,7 +4816,7 @@ def get_blackout_dates_analysis():
             
             conn.close()
         except Exception as e:
-            print(f"Error loading custom blackout lists: {e}")
+            logger.error(f"Error loading custom blackout lists: {e}")
             # Continue with built-in lists only
         
         # Get the selected date list
@@ -4859,7 +4945,7 @@ def get_blackout_dates_analysis():
                             # If it's a string, try to extract just the date part
                             date_opened_str = str(trade.date_opened).split(' ')[0]
                     except Exception as e:
-                        print(f"DEBUG: Error converting date_opened: {e}")
+                        logger.debug(f"Error converting date_opened: {e}")
                         date_opened_str = 'N/A'
                     
                     trade_dict = {
@@ -4884,12 +4970,12 @@ def get_blackout_dates_analysis():
         strategy_results.sort(key=lambda x: x['total_pnl'], reverse=True)
         
         # Debug: Check for any non-serializable objects
-        print(f"DEBUG: About to return strategy_results with {len(strategy_results)} strategies")
+        logger.debug(f"About to return strategy_results with {len(strategy_results)} strategies")
         for i, result in enumerate(strategy_results):
-            print(f"DEBUG: Strategy {i}: {result['strategy']}, trades count: {len(result.get('trades', []))}")
+            logger.debug(f"Strategy {i}: {result['strategy']}, trades count: {len(result.get('trades', []))}")
             if 'trades' in result:
                 for j, trade in enumerate(result['trades']):
-                    print(f"DEBUG: Trade {j}: type={type(trade)}, keys={list(trade.keys()) if isinstance(trade, dict) else 'not dict'}")
+                    logger.debug(f"Trade {j}: type={type(trade)}, keys={list(trade.keys()) if isinstance(trade, dict) else 'not dict'}")
         
         # Prepare chart data for cumulative P&L over time
         chart_data = []
@@ -4968,7 +5054,7 @@ def get_blackout_dates_analysis():
         })
         
     except Exception as e:
-        print(f"Error in blackout dates analysis: {e}")
+        logger.error(f"Error in blackout dates analysis: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/price-movement/range')
@@ -4990,7 +5076,7 @@ def get_price_movement_range():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error getting price movement range: {e}")
+        logger.error(f"Error getting price movement range: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -5019,7 +5105,7 @@ def analyze_price_movement():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error analyzing price movement: {e}")
+        logger.error(f"Error analyzing price movement: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -5099,7 +5185,7 @@ def get_price_movement_trades():
         })
         
     except Exception as e:
-        print(f"Error getting price movement trades: {e}")
+        logger.error(f"Error getting price movement trades: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -5117,7 +5203,7 @@ def get_vix_range():
         result = analyzer.calculate_vix_range()
         return jsonify(result)
     except Exception as e:
-        print(f"Error getting VIX range: {e}")
+        logger.error(f"Error getting VIX range: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/vix/analysis', methods=['POST'])
@@ -5135,7 +5221,7 @@ def analyze_vix():
         result = analyzer.analyze_vix_performance(min_vix, max_vix)
         return jsonify(result)
     except Exception as e:
-        print(f"Error analyzing VIX: {e}")
+        logger.error(f"Error analyzing VIX: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 
@@ -5154,15 +5240,16 @@ def get_vix_trades():
         result = analyzer.get_vix_trades(min_vix, max_vix)
         return jsonify(result)
     except Exception as e:
-        print(f"Error getting VIX trades: {e}")
+        logger.error(f"Error getting VIX trades: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+
+_files_overview_cache = {}
 
 @app.route('/api/files/overview')
 def get_files_overview():
     """Get overview of all uploaded files with their metrics."""
     try:
-        # Get list of all saved files
         files = file_manager.get_file_list()
         
         files_overview = []
@@ -5173,9 +5260,18 @@ def get_files_overview():
             
             if not os.path.exists(file_path):
                 continue
+            
+            # Use cached metrics if file hasn't changed
+            file_mtime = os.path.getmtime(file_path)
+            cache_key = f"{file_path}:{file_mtime}"
+            if cache_key in _files_overview_cache:
+                cached = _files_overview_cache[cache_key].copy()
+                cached['friendly_name'] = file_info['friendly_name']
+                cached['upload_date'] = file_info['upload_date']
+                files_overview.append(cached)
+                continue
                 
             try:
-                # Read CSV to detect data type and get date range
                 df = pd.read_csv(file_path)
                 
                 # Detect data type
@@ -5319,12 +5415,12 @@ def get_files_overview():
                             else:
                                 max_drawdown_pct = 0
                     except Exception as e:
-                        print(f"DEBUG {filename}: Error in max drawdown calculation: {e}")
+                        logger.debug(f"DEBUG {filename}: Error in max drawdown calculation: {e}")
                         import traceback
                         traceback.print_exc()
                         pass
                 
-                files_overview.append({
+                overview_entry = {
                     'filename': filename,
                     'friendly_name': file_info['friendly_name'],
                     'upload_date': file_info['upload_date'],
@@ -5340,7 +5436,9 @@ def get_files_overview():
                     'max_drawdown': round(max_drawdown, 2),
                     'max_drawdown_pct': round(max_drawdown_pct, 2),
                     'file_size': file_info.get('file_size', 0)
-                })
+                }
+                _files_overview_cache[cache_key] = overview_entry
+                files_overview.append(overview_entry)
                 
             except Exception as e:
                 # If we can't process this file, add it with minimal info
@@ -5385,13 +5483,25 @@ def get_meic_stopout_statistics():
                 'error': 'No portfolio data available'
             })
         
-        # Get the current filename from session or use None
         current_filename = session.get('current_filename')
-        
+        cache_key = f"meic_stopout:{current_filename or 'default'}:{portfolio.total_trades}"
+        try:
+            from cache_manager import cache_manager
+            cached = cache_manager.get(cache_key)
+            if cached is not None:
+                return jsonify(cached)
+        except ImportError:
+            pass
+
         from analytics import MEICAnalyzer
         analyzer = MEICAnalyzer(portfolio, current_filename)
         result = analyzer.get_stopout_statistics()
-        
+        try:
+            from cache_manager import cache_manager
+            cache_manager.set(cache_key, result, 1800)
+        except ImportError:
+            pass
+
         return jsonify(result)
         
     except Exception as e:
@@ -5411,17 +5521,27 @@ def get_meic_time_heatmap():
                 'error': 'No portfolio data available'
             })
         
-        # Get date filter parameters from query string
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
-        
-        # Get the current filename from session or use None
         current_filename = session.get('current_filename')
-        
+        cache_key = f"meic_heatmap:{current_filename or 'default'}:{portfolio.total_trades}:{start_date or ''}:{end_date or ''}"
+        try:
+            from cache_manager import cache_manager
+            cached = cache_manager.get(cache_key)
+            if cached is not None:
+                return jsonify(cached)
+        except ImportError:
+            pass
+
         from analytics import MEICAnalyzer
         analyzer = MEICAnalyzer(portfolio, current_filename)
         result = analyzer.get_time_heatmap_data(start_date=start_date, end_date=end_date)
-        
+        try:
+            from cache_manager import cache_manager
+            cache_manager.set(cache_key, result, 1800)
+        except ImportError:
+            pass
+
         return jsonify(result)
         
     except Exception as e:
@@ -5448,19 +5568,19 @@ def parse_log():
             }), 400
         
         # Read the log content
-        print(f"DEBUG API: Starting to read file: {file.filename}")
+        logger.debug(f"DEBUG API: Starting to read file: {file.filename}")
         log_content = file.read().decode('utf-8')
-        print(f"DEBUG API: File read successfully, content length: {len(log_content)}")
+        logger.debug(f"DEBUG API: File read successfully, content length: {len(log_content)}")
         
         # Parse the log using the same logic as the script
-        print("DEBUG API: Starting to extract trades from log")
+        logger.debug("DEBUG API: Starting to extract trades from log")
         trades = extract_trades_from_log(log_content)
-        print(f"DEBUG API: Trade extraction completed, found {len(trades)} trades")
+        logger.debug(f"DEBUG API: Trade extraction completed, found {len(trades)} trades")
         
         # Debug: log the trades being returned
-        print(f"DEBUG API: Returning {len(trades)} trades")
+        logger.debug(f"DEBUG API: Returning {len(trades)} trades")
         for i, trade in enumerate(trades[:300]):  # Log first 3 trades
-            print(f"DEBUG API: Trade {i+1}: {trade['strategy']} - Initial: {trade['initial_order_price']}, Final: {trade['final_fill_price']}, Slippage: {trade['slippage']}")
+            logger.debug(f"DEBUG API: Trade {i+1}: {trade['strategy']} - Initial: {trade['initial_order_price']}, Final: {trade['final_fill_price']}, Slippage: {trade['slippage']}")
         
         return jsonify({
             'success': True,
@@ -5487,10 +5607,10 @@ def extract_trades_from_log(log):
     import re
     from datetime import datetime
 
-    print("DEBUG: Starting extract_trades_from_log")
+    logger.debug("Starting extract_trades_from_log")
     lines = log.splitlines()
     lines = [l.strip() for l in lines if l.strip()]
-    print(f"DEBUG: Processed {len(lines)} lines")
+    logger.debug(f"Processed {len(lines)} lines")
 
     # Parse log into simple format: timestamp, strategy, detail
     log_entries = []
@@ -5500,7 +5620,7 @@ def extract_trades_from_log(log):
         # Check if this is a strategy header
         if line.startswith("Activity Log for "):
             current_strategy = line.split("for ", 1)[1].replace(',', '')
-            print(f"DEBUG: Found strategy: {current_strategy}")
+            logger.debug(f"Found strategy: {current_strategy}")
             continue
         
         # Check if this is a timestamp line
@@ -5517,7 +5637,7 @@ def extract_trades_from_log(log):
                     })
             continue
     
-    print(f"DEBUG: Found {len(log_entries)} log entries")
+    logger.debug(f"Found {len(log_entries)} log entries")
     
     # Now extract trades from the parsed log entries
     trades = []
@@ -5552,7 +5672,7 @@ def extract_trades_from_log(log):
                 price_matches = re.findall(r'([\+\-])(\d+).*?\$([\d.]+)', detail)
                 if price_matches:
                     try:
-                        print(f"DEBUG: Price matches found: {price_matches}")
+                        logger.debug(f"Price matches found: {price_matches}")
                         # Calculate net price (sum of all prices with their signs and quantities)
                         net_price = 0.0
                         for sign_str, qty_str, price_str in price_matches:
@@ -5561,9 +5681,9 @@ def extract_trades_from_log(log):
                             sign = -1 if sign_str == '-' else 1
                             contribution = sign * quantity * price
                             net_price += contribution
-                            print(f"DEBUG: {sign_str}{qty_str} × {price_str} = {contribution}, running total: {net_price}")
+                            logger.debug(f"{sign_str}{qty_str} × {price_str} = {contribution}, running total: {net_price}")
                         initial_price = round(net_price, 2)
-                        print(f"DEBUG: Calculated initial price from trade description: {initial_price} from: {detail}")
+                        logger.debug(f"Calculated initial price from trade description: {initial_price} from: {detail}")
                     except:
                         pass
             
@@ -5618,17 +5738,17 @@ def extract_trades_from_log(log):
                             price_match = re.search(r'price: ([\d.]+)', order_detail)
                             if price_match:
                                 initial_price = float(price_match.group(1))
-                                print(f"DEBUG: Found initial price from order status: {initial_price} from: {order_detail}")
+                                logger.debug(f"Found initial price from order status: {initial_price} from: {order_detail}")
                         elif initial_price is None and 'order price:' in order_detail:
                             price_match = re.search(r'order price: ([\d.]+)', order_detail)
                             if price_match:
                                 initial_price = float(price_match.group(1))
-                                print(f"DEBUG: Found initial price from order price: {initial_price} from: {order_detail}")
+                                logger.debug(f"Found initial price from order price: {initial_price} from: {order_detail}")
                         elif initial_price is None and 'status: "WORKING"' in order_detail and 'price:' in order_detail:
                             price_match = re.search(r'price: ([\d.]+)', order_detail)
                             if price_match:
                                 initial_price = float(price_match.group(1))
-                                print(f"DEBUG: Found initial price from WORKING status: {initial_price} from: {order_detail}")
+                                logger.debug(f"Found initial price from WORKING status: {initial_price} from: {order_detail}")
                         
                         # Check for closing trade status
                         if trade_type == 'Closing' and "Trade closed with exit condition" in order_detail:
@@ -5641,7 +5761,7 @@ def extract_trades_from_log(log):
                                     initial_price = None
                                     final_fill_price = None
                                     modifications = 0
-                                    print(f"DEBUG: Found {status.lower()} trade - no pricing info available")
+                                    logger.debug(f"Found {status.lower()} trade - no pricing info available")
                         elif trade_type == 'Closing' and "Manually closing trade" in order_detail:
                             # Handle manual exit indicator
                             status = "ManualUserExit"
@@ -5652,7 +5772,7 @@ def extract_trades_from_log(log):
                             if price_match:
                                 raw_price = float(price_match.group(1))
                                 final_fill_price = raw_price
-                                print(f"DEBUG: Found final fill price: {final_fill_price} (raw: {raw_price}) from: {order_detail}")
+                                logger.debug(f"Found final fill price: {final_fill_price} (raw: {raw_price}) from: {order_detail}")
                             
                             qty_match = re.search(r'with quantity ([\d.]+)', order_detail)
                             if qty_match:
@@ -5663,7 +5783,7 @@ def extract_trades_from_log(log):
                             attempt_match = re.search(r'filled after (\d+) attempt', order_detail)
                             if attempt_match:
                                 modifications = int(attempt_match.group(1)) - 1  # Subtract 1 because first attempt is not a modification
-                                print(f"DEBUG: Found modifications: {modifications} from: {order_detail}")
+                                logger.debug(f"Found modifications: {modifications} from: {order_detail}")
                         
                         # Check for failed trades
                         if "canceled after" in order_detail and "attempt" in order_detail:
@@ -5674,7 +5794,7 @@ def extract_trades_from_log(log):
                             attempt_match = re.search(r'canceled after (\d+) attempt', order_detail)
                             if attempt_match:
                                 modifications = int(attempt_match.group(1)) - 1  # Subtract 1 because first attempt is not a modification
-                                print(f"DEBUG: Found modifications from failed trade: {modifications} from: {order_detail}")
+                                logger.debug(f"Found modifications from failed trade: {modifications} from: {order_detail}")
                             
                 except:
                     pass
@@ -5683,10 +5803,10 @@ def extract_trades_from_log(log):
             if initial_price is not None and final_fill_price is not None:
                 if initial_price > 0 and final_fill_price < 0:
                     final_fill_price = abs(final_fill_price)
-                    print(f"DEBUG: Converted final fill price from negative to positive: {final_fill_price}")
+                    logger.debug(f"Converted final fill price from negative to positive: {final_fill_price}")
                 elif initial_price < 0 and final_fill_price > 0:
                     final_fill_price = -abs(final_fill_price)
-                    print(f"DEBUG: Converted final fill price from positive to negative: {final_fill_price}")
+                    logger.debug(f"Converted final fill price from positive to negative: {final_fill_price}")
             
             # Calculate slippage (unsigned/absolute value)
             slippage = None
@@ -5716,9 +5836,9 @@ def extract_trades_from_log(log):
                 'slippage': slippage
             })
 
-            print(f"DEBUG: Found trade - {strategy} | {entry_date} {entry_time} | {detail}")
+            logger.debug(f"Found trade - {strategy} | {entry_date} {entry_time} | {detail}")
     
-    print(f"DEBUG: extract_trades_from_log completed, returning {len(trades)} trades")
+    logger.debug(f"extract_trades_from_log completed, returning {len(trades)} trades")
     return trades
 
 # WSGI entry point for Azure App Service

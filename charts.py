@@ -3,6 +3,8 @@ Modular chart generation system for strategy-focused portfolio analytics.
 Creates interactive Plotly.js charts optimized for strategy comparison and analysis.
 """
 
+import json
+import logging
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -12,6 +14,13 @@ from typing import Dict, List, Any
 from models import Portfolio
 from analytics import StrategyAnalyzer, PortfolioMetrics, MonteCarloSimulator
 from cache_manager import cache_chart_result, cache_manager
+
+
+def _fig_to_dict(fig):
+    """Convert a Plotly figure to a JSON-compatible dict, avoiding double-serialization."""
+    return json.loads(fig.to_json())
+
+logger = logging.getLogger(__name__)
 
 class ChartGenerator:
     """Generates interactive Plotly charts for strategy analysis."""
@@ -34,437 +43,173 @@ class ChartGenerator:
             portfolio_id = self.portfolio.current_filename
             cache_manager.clear_portfolio_cache(portfolio_id)
     
-    def _get_all_trades_optimized(self) -> List[Dict]:
-        """Get all trades in an optimized format for charting."""
-        all_trades = []
-        
-        # Pre-allocate lists for better performance
+    def _get_all_trades_as_df(self) -> pd.DataFrame:
+        """Get all trades as a sorted DataFrame, avoiding per-element pd.to_datetime."""
         dates = []
         pnls = []
         strategies = []
         
         for strategy_name, strategy in self.portfolio.strategies.items():
             for trade in strategy.trades:
-                # Include all trades, not just those with date_closed
-                # Use date_closed if available, otherwise use date_opened
                 trade_date = trade.date_closed if trade.date_closed else trade.date_opened
                 if trade_date:
-                    dates.append(pd.to_datetime(trade_date))
+                    dates.append(trade_date)
                     pnls.append(trade.pnl)
                     strategies.append(strategy_name)
         
-        # Create optimized data structure
-        for i, (date, pnl, strategy) in enumerate(zip(dates, pnls, strategies)):
-            all_trades.append({
-                'date': date,
-                'pnl': pnl,
-                'strategy': strategy
-            })
+        if not dates:
+            return pd.DataFrame(columns=['date', 'pnl', 'strategy'])
         
-        return all_trades
+        df = pd.DataFrame({'date': dates, 'pnl': pnls, 'strategy': strategies})
+        df['date'] = pd.to_datetime(df['date'])
+        return df.sort_values('date').reset_index(drop=True)
     
     @cache_chart_result()
     def create_cumulative_pnl_chart(self) -> Dict:
-        """Create cumulative P&L chart with strategy breakdown option (optimized)."""
-        overview = self.metrics.get_overview_metrics()
+        """Create cumulative P&L chart with strategy breakdown option.
         
-        if not overview['cumulative_pnl_series']:
-            return self._empty_chart("No data available")
+        Builds the Plotly JSON spec as a plain dict to avoid the overhead of
+        go.Figure construction, validation, to_json() serialization, and
+        json.loads() deserialization.
+        """
+        df = self._get_all_trades_as_df()
         
-        # Use optimized trade collection
-        all_trades = self._get_all_trades_optimized()
-        
-        if not all_trades:
+        if df.empty:
             return self._empty_chart("No trades found")
         
-        # Use vectorized operations for better performance
-        df = pd.DataFrame(all_trades)
-        df = df.sort_values('date')
+        n = len(df)
+        pnl_arr = df['pnl'].values
+        cumulative = np.cumsum(pnl_arr)
+        hwm = np.maximum.accumulate(cumulative)
+        drawdown = cumulative - hwm
         
-        # No data sampling - include all trades to preserve accurate totals
+        # Vectorized days-since-high
+        is_new_high = np.empty(n, dtype=bool)
+        is_new_high[0] = True
+        is_new_high[1:] = cumulative[1:] > hwm[:-1]
+        date_vals = df['date'].values
+        high_dates = np.where(is_new_high, date_vals, np.datetime64('NaT'))
+        high_dates = pd.Series(high_dates).ffill().values
+        days_since_high = ((date_vals - high_dates) / np.timedelta64(1, 'D')).astype(int)
         
-        df['cumulative'] = df['pnl'].cumsum()
+        # Convert to plain Python lists once -- reused by all traces
+        dates_list = df['date'].dt.strftime('%Y-%m-%d').tolist()
+        cum_list = cumulative.tolist()
+        hwm_list = hwm.tolist()
+        days_since_list = days_since_high.tolist()
         
-        # Debug: Print total P&L to verify calculation
-        total_pnl = df['pnl'].sum()
-        final_cumulative = df['cumulative'].iloc[-1] if len(df) > 0 else 0
-        print(f"DEBUG: Total P&L from trades: ${total_pnl:,.2f}")
-        print(f"DEBUG: Final cumulative P&L: ${final_cumulative:,.2f}")
-        print(f"DEBUG: Number of trades included: {len(df)}")
+        # Drawdown period detection (vectorized)
+        dd_int = (drawdown < 0).astype(np.int8)
+        dd_diff = np.diff(dd_int, prepend=0)
+        start_idxs = np.where(dd_diff == 1)[0]
+        end_idxs = np.where(dd_diff == -1)[0]
+        if len(start_idxs) > len(end_idxs):
+            end_idxs = np.append(end_idxs, n - 1)
         
-        # Calculate high water mark (running maximum) - vectorized
-        df['high_water_mark'] = df['cumulative'].cummax()
-        
-        # Calculate drawdown (difference between current value and high water mark) - vectorized
-        df['drawdown'] = df['cumulative'] - df['high_water_mark']
-        
-        # Calculate days since last NEW high water mark
-        # Track when we actually set a new high (not just when we match a previous high)
-        df['days_since_high'] = 0
-        max_high_so_far = None
-        last_high_date = None
-        
-        for i, row in df.iterrows():
-            current_cumulative = row['cumulative']
-            current_date = row['date']
-            
-            # Check if this is a NEW high water mark (exceeds previous maximum)
-            if max_high_so_far is None or current_cumulative > max_high_so_far:
-                # This is a new high water mark - reset counter and update tracking
-                max_high_so_far = current_cumulative
-                last_high_date = current_date
-                df.at[i, 'days_since_high'] = 0
-            else:
-                # Not a new high - calculate days since the last new high
-                if last_high_date is not None:
-                    df.at[i, 'days_since_high'] = (current_date - last_high_date).days
-                else:
-                    df.at[i, 'days_since_high'] = 0
-        
-        # Identify drawdown periods (when current value is below high water mark) - vectorized
-        df['in_drawdown'] = df['drawdown'] < 0
-        
-        fig = go.Figure()
-        
-        # Create drawdown bars - optimized detection
-        drawdown_periods = []
-        in_drawdown = False
-        start_idx = None
-        
-        for i in range(len(df)):
-            if df.iloc[i]['in_drawdown']:
-                if not in_drawdown:
-                    # Start of drawdown period
-                    in_drawdown = True
-                    start_idx = i
-            else:
-                if in_drawdown:
-                    # End of drawdown period
-                    drawdown_periods.append({
-                        'start_date': df.iloc[start_idx]['date'],
-                        'end_date': df.iloc[i]['date'],
-                        'start_value': df.iloc[start_idx]['cumulative'],
-                        'end_value': df.iloc[i]['cumulative'],
-                        'high_water_mark': df.iloc[start_idx]['high_water_mark']
-                    })
-                    in_drawdown = False
-        
-        # Handle case where drawdown period extends to the end of data
-        if in_drawdown and start_idx is not None:
-            drawdown_periods.append({
-                'start_date': df.iloc[start_idx]['date'],
-                'end_date': df.iloc[-1]['date'],
-                'start_value': df.iloc[start_idx]['cumulative'],
-                'end_value': df.iloc[-1]['cumulative'],
-                'high_water_mark': df.iloc[start_idx]['high_water_mark']
-            })
-        
-        # Get the full Y-axis range for the bars
-        y_min = df['cumulative'].min()
-        y_max = df['cumulative'].max()
+        y_min = float(cumulative.min())
+        y_max = float(cumulative.max())
         y_range = y_max - y_min
-        # Extend the range slightly for better visual effect
-        y_min_extended = y_min - y_range * 0.05
-        y_max_extended = y_max + y_range * 0.05
+        y_min_ext = y_min - y_range * 0.05
+        y_max_ext = y_max + y_range * 0.05
         
-        # Add drawdown bars as vertical rectangles spanning full height
-        for period in drawdown_periods:
-            # Calculate duration of drawdown period
-            duration_days = (period['end_date'] - period['start_date']).days
-            
-            fig.add_shape(
-                type="rect",
-                x0=period['start_date'],
-                y0=y_min_extended,
-                x1=period['end_date'],
-                y1=y_max_extended,
-                fillcolor='rgba(255, 182, 193, 0.3)',
-                line=dict(width=0),
-                layer="below"
-            )
-            
-            # Add duration label if drawdown exceeded 5 days
-            if duration_days > 5:
-                # Calculate midpoint of the drawdown period
-                mid_date = period['start_date'] + (period['end_date'] - period['start_date']) / 2
-                
-                fig.add_annotation(
-                    x=mid_date,
-                    y=y_max_extended,
-                    text=f"{duration_days}d",
-                    showarrow=False,
-                    font=dict(size=10, color='#666666'),
-                    bgcolor='rgba(255, 255, 255, 0.8)',
-                    bordercolor='#cccccc',
-                    borderwidth=1,
-                    borderpad=2
-                )
+        shapes = []
+        annotations = []
+        date_objs = df['date'].values
+        for s, e in zip(start_idxs, end_idxs):
+            s_d, e_d = dates_list[s], dates_list[e]
+            shapes.append({
+                'type': 'rect', 'x0': s_d, 'y0': y_min_ext, 'x1': e_d, 'y1': y_max_ext,
+                'fillcolor': 'rgba(255,182,193,0.3)', 'line': {'width': 0}, 'layer': 'below'
+            })
+            dur = int((date_objs[e] - date_objs[s]) / np.timedelta64(1, 'D'))
+            if dur > 5:
+                mid_ns = date_objs[s] + (date_objs[e] - date_objs[s]) // 2
+                mid_str = str(mid_ns)[:10]
+                annotations.append({
+                    'x': mid_str, 'y': y_max_ext, 'text': f'{dur}d', 'showarrow': False,
+                    'font': {'size': 10, 'color': '#666666'},
+                    'bgcolor': 'rgba(255,255,255,0.8)', 'bordercolor': '#cccccc',
+                    'borderwidth': 1, 'borderpad': 2
+                })
         
-        # High water mark line (green solid bold)
-        fig.add_trace(go.Scatter(
-            x=df['date'],
-            y=df['high_water_mark'],
-            mode='lines',
-            name='High Water Mark',
-            line=dict(color='#2E8B57', width=4),
-            hovertemplate='<b>Date:</b> %{x}<br><b>High Water Mark:</b> $%{y:,.2f}<extra></extra>'
-        ))
-        
-        # Main cumulative P&L line with enhanced tooltip
-        fig.add_trace(go.Scatter(
-            x=df['date'],
-            y=df['cumulative'],
-            mode='lines',
-            name='Portfolio Equity',
-            line=dict(color='#1f77b4', width=3),
-            hovertemplate='<b>Date:</b> %{x}<br><b>Cumulative P&L:</b> $%{y:,.2f}<br><b>Days Since High:</b> %{customdata}<extra></extra>',
-            customdata=df['days_since_high']
-        ))
-        
-        # Add strategy-specific lines (initially hidden) - optimized
-        strategy_colors = {}
-        for i, (strategy_name, strategy) in enumerate(self.portfolio.strategies.items()):
-            color = self.colors[i % len(self.colors)]
-            strategy_colors[strategy_name] = color
-            
-            strategy_trades = df[df['strategy'] == strategy_name].copy()
-            if not strategy_trades.empty:
-                strategy_trades['strategy_cumulative'] = strategy_trades['pnl'].cumsum()
-                
-                # No sampling for strategy data - preserve all data points
-                
-                # Only add strategy line if it has meaningful data (not all zeros or very small values)
-                strategy_max = strategy_trades['strategy_cumulative'].max()
-                strategy_min = strategy_trades['strategy_cumulative'].min()
-                strategy_range = strategy_max - strategy_min
-                
-                # Skip strategies with very small ranges that would distort the scale
-                if strategy_range > 10:  # Only show strategies with at least $10 range
-                    fig.add_trace(go.Scatter(
-                        x=strategy_trades['date'],
-                        y=strategy_trades['strategy_cumulative'],
-                        mode='lines',
-                        name=strategy_name,
-                        line=dict(color=color, width=2),
-                        visible='legendonly',  # Hidden by default
-                        hovertemplate=f'<b>{strategy_name}</b><br><b>Cumulative P&L:</b> $%{{y:,.2f}}<extra></extra>'
-                    ))
-        
-        # Calculate data range for log scale handling
-        min_pnl = df['cumulative'].min()
-        max_pnl = df['cumulative'].max()
-        
-        # Create update menu buttons
-        buttons = [
+        # Build traces as plain dicts (no go.Scatter overhead)
+        traces = [
             {
-                'args': [{'yaxis': {'type': 'linear', 'title': 'Cumulative P&L ($)'}}],
-                'label': 'Linear Scale',
-                'method': 'relayout'
-            }
-        ]
-        
-        # Check if we have negative values
-        has_negative = min_pnl < 0
-        
-        if has_negative:
-            # For data with negatives, implement symlog scale
-            # Calculate symlog transformation parameters
-            max_abs = max(abs(min_pnl), abs(max_pnl))
-            linthresh = max_abs / 20  # Linear threshold for symlog
-            
-            # Create symlog transformed data
-            def symlog_transform(x, linthresh):
-                """Symmetric log transformation"""
-                return np.sign(x) * np.log1p(np.abs(x) / linthresh)
-            
-            # Transform the main data
-            df['cumulative_symlog'] = df['cumulative'].apply(lambda x: symlog_transform(x, linthresh))
-            df['high_water_mark_symlog'] = df['high_water_mark'].apply(lambda x: symlog_transform(x, linthresh))
-            
-            # Create transformed traces for symlog
-            symlog_traces = []
-            
-            # High water mark line (symlog) - solid bold
-            symlog_traces.append({
-                'x': df['date'].tolist(),
-                'y': df['high_water_mark_symlog'].tolist(),
-                'mode': 'lines',
-                'name': 'High Water Mark',
+                'type': 'scatter', 'x': dates_list, 'y': hwm_list,
+                'mode': 'lines', 'name': 'High Water Mark',
                 'line': {'color': '#2E8B57', 'width': 4},
-                'hovertemplate': '<b>Date:</b> %{x}<br><b>High Water Mark:</b> $%{customdata:,.2f}<extra></extra>',
-                'customdata': df['high_water_mark'].tolist(),
-                'type': 'scatter'
-            })
-            
-            # Portfolio equity line (symlog)
-            symlog_traces.append({
-                'x': df['date'].tolist(),
-                'y': df['cumulative_symlog'].tolist(),
-                'mode': 'lines',
-                'name': 'Portfolio Equity',
-                'line': {'color': '#1f77b4', 'width': 3},
-                'hovertemplate': '<b>Date:</b> %{x}<br><b>Cumulative P&L:</b> $%{customdata:,.2f}<br><b>Days Since High:</b> %{customdata2}<extra></extra>',
-                'customdata': df['cumulative'].tolist(),
-                'customdata2': df['days_since_high'].tolist(),
-                'type': 'scatter'
-            })
-            
-            # Add strategy lines (symlog)
-            for i, (strategy_name, strategy) in enumerate(self.portfolio.strategies.items()):
-                color = self.colors[i % len(self.colors)]
-                strategy_trades = df[df['strategy'] == strategy_name].copy()
-                if not strategy_trades.empty:
-                    strategy_trades['strategy_cumulative'] = strategy_trades['pnl'].cumsum()
-                    strategy_trades['strategy_cumulative_symlog'] = strategy_trades['strategy_cumulative'].apply(lambda x: symlog_transform(x, linthresh))
-                    
-                    symlog_traces.append({
-                        'x': strategy_trades['date'].tolist(),
-                        'y': strategy_trades['strategy_cumulative_symlog'].tolist(),
-                        'mode': 'lines',
-                        'name': strategy_name,
-                        'line': {'color': color, 'width': 2},
-                        'visible': 'legendonly',
-                        'hovertemplate': f'<b>{strategy_name}</b><br><b>Date:</b> %{{x}}<br><b>Cumulative P&L:</b> $%{{customdata:,.2f}}<extra></extra>',
-                        'customdata': strategy_trades['strategy_cumulative'].tolist(),
-                        'type': 'scatter'
-                    })
-            
-            # Create tick values for symlog scale
-            tick_vals = []
-            tick_text = []
-            
-            # Generate symmetric tick points
-            tick_points = [0]  # Always include zero
-            for i in range(1, 8):
-                val = max_abs * (i / 8)  # More granular ticks
-                tick_points.extend([val, -val])
-            
-            # Transform tick points and create labels
-            for val in sorted(set(tick_points)):
-                if abs(val) <= max_abs * 1.1:
-                    transformed_val = symlog_transform(val, linthresh)
-                    tick_vals.append(transformed_val)
-                    tick_text.append(f'${val:,.0f}')
-            
-            buttons.append({
-                'args': [{
-                    'data': symlog_traces,
-                    'layout': {
-                        'yaxis': {
-                            'type': 'linear',
-                            'title': 'Cumulative P&L ($) - Symlog Scale',
-                            'tickmode': 'array',
-                            'tickvals': tick_vals,
-                            'ticktext': tick_text
-                        }
-                    }
-                }],
-                'label': 'Symlog Scale',
-                'method': 'restyle'
-            })
-        else:
-            # Smart log scale for positive-only data that handles multiple strategies better
-            # Calculate a reasonable range that focuses on the main portfolio data
-            main_min = df['cumulative'].min()
-            main_max = df['cumulative'].max()
-            
-            # For log scale, ensure we have a reasonable range that doesn't get distorted by small strategy values
-            if main_min > 0 and main_max > main_min * 10:  # Only use log if there's significant range
-                import math
-                # Constrain log scale to 2-3 orders of magnitude for better data visibility
-                # Find the appropriate range that focuses on the main data
-                data_center = (main_min + main_max) / 2
-                
-                # Dynamic range calculation based on actual data
-                # Calculate appropriate range that fits the data with some margin
-                data_range = main_max - main_min
-                
-                # Set minimum to be 10% below the minimum value, but not less than 1
-                log_min = max(main_min * 0.9, 1)
-                
-                # Set maximum to be 20% above the maximum value
-                log_max = main_max * 1.2
-                
-                # Ensure we have at least 2 orders of magnitude for meaningful log scale
-                min_range = log_max / 100  # At least 100x range
-                if log_min > min_range:
-                    log_min = min_range
-                
-                buttons.append({
-                    'args': [{
-                        'yaxis': {
-                            'type': 'log',
-                            'title': 'Cumulative P&L ($) - Log Scale',
-                            'range': [math.log10(log_min), math.log10(log_max)]
-                        }
-                    }],
-                    'label': 'Log Scale',
-                    'method': 'relayout'
-                })
-            else:
-                # Use linear scale if range is too small for meaningful log scale
-                buttons.append({
-                    'args': [{'yaxis': {'type': 'linear', 'title': 'Cumulative P&L ($) - Linear Scale'}}],
-                    'label': 'Linear Scale',
-                    'method': 'relayout'
-                })
-        
-        # Store the drawdown shapes for the toggle button
-        drawdown_shapes = fig.layout.shapes if hasattr(fig.layout, 'shapes') else []
-        
-        # Add drawdown toggle button
-        drawdown_buttons = [
-            {
-                'args': [{'shapes': drawdown_shapes}],
-                'label': 'Show Drawdown Areas',
-                'method': 'relayout'
+                'hovertemplate': '<b>Date:</b> %{x}<br><b>High Water Mark:</b> $%{y:,.2f}<extra></extra>'
             },
             {
-                'args': [{'shapes': []}],
-                'label': 'Hide Drawdown Areas',
-                'method': 'relayout'
+                'type': 'scatter', 'x': dates_list, 'y': cum_list,
+                'mode': 'lines', 'name': 'Portfolio Equity',
+                'line': {'color': '#1f77b4', 'width': 3},
+                'hovertemplate': '<b>Date:</b> %{x}<br><b>Cumulative P&L:</b> $%{y:,.2f}<br><b>Days Since High:</b> %{customdata}<extra></extra>',
+                'customdata': days_since_list
             }
         ]
         
-        fig.update_layout(
-            title='Track your portfolio\'s value progression over time with drawdown highlighting',
-            xaxis_title='Date',
-            yaxis_title='Cumulative P&L ($)',
-            hovermode='x unified',
-            template='plotly_white',
-            height=750,
-            autosize=True,
-            margin=dict(l=60, r=30, t=100, b=60),
-            legend=dict(
-                orientation='h',
-                y=-0.2,
-                x=0.5,
-                xanchor='center'
-            ),
-            updatemenus=[
-                {
-                    'buttons': buttons,
-                    'direction': 'down',
-                    'showactive': True,
-                    'x': 0.1,
-                    'xanchor': 'left',
-                    'y': 1.08,
-                    'yanchor': 'top'
-                },
-                {
-                    'buttons': drawdown_buttons,
-                    'direction': 'down',
-                    'showactive': True,
-                    'x': 0.3,
-                    'xanchor': 'left',
-                    'y': 1.08,
-                    'yanchor': 'top'
-                }
+        # Strategy lines via single-pass groupby cumsum
+        strategy_cumsum = df.groupby('strategy')['pnl'].cumsum()
+        strategy_col = df['strategy'].values
+        for i, strategy_name in enumerate(self.portfolio.strategies):
+            mask = strategy_col == strategy_name
+            if not mask.any():
+                continue
+            s_cum = strategy_cumsum.values[mask]
+            if float(s_cum.max() - s_cum.min()) <= 10:
+                continue
+            traces.append({
+                'type': 'scatter',
+                'x': [dates_list[j] for j in np.where(mask)[0]],
+                'y': s_cum.tolist(),
+                'mode': 'lines', 'name': strategy_name,
+                'line': {'color': self.colors[i % len(self.colors)], 'width': 2},
+                'visible': 'legendonly',
+                'hovertemplate': f'<b>{strategy_name}</b><br><b>Cumulative P&L:</b> $%{{y:,.2f}}<extra></extra>'
+            })
+        
+        # Scale toggle buttons (relayout-only, no data duplication)
+        scale_buttons = [
+            {'args': [{'yaxis.type': 'linear', 'yaxis.title': 'Cumulative P&L ($)'}],
+             'label': 'Linear Scale', 'method': 'relayout'}
+        ]
+        if y_min >= 0 and y_max > max(y_min * 10, 1):
+            import math
+            log_min = max(y_min * 0.9, 1)
+            log_max = y_max * 1.2
+            scale_buttons.append({
+                'args': [{'yaxis.type': 'log', 'yaxis.title': 'Cumulative P&L ($) - Log Scale',
+                          'yaxis.range': [math.log10(log_min), math.log10(log_max)]}],
+                'label': 'Log Scale', 'method': 'relayout'
+            })
+        
+        dd_buttons = [
+            {'args': [{'shapes': shapes}], 'label': 'Show Drawdown Areas', 'method': 'relayout'},
+            {'args': [{'shapes': []}], 'label': 'Hide Drawdown Areas', 'method': 'relayout'}
+        ]
+        
+        layout = {
+            'title': {'text': 'Track your portfolio\'s value progression over time with drawdown highlighting'},
+            'xaxis': {'title': {'text': 'Date'}},
+            'yaxis': {'title': {'text': 'Cumulative P&L ($)'}},
+            'hovermode': 'x unified',
+            'template': 'plotly_white',
+            'height': 750, 'autosize': True,
+            'margin': {'l': 60, 'r': 30, 't': 100, 'b': 60},
+            'legend': {'orientation': 'h', 'y': -0.2, 'x': 0.5, 'xanchor': 'center'},
+            'shapes': shapes,
+            'annotations': annotations,
+            'updatemenus': [
+                {'buttons': scale_buttons, 'direction': 'down', 'showactive': True,
+                 'x': 0.1, 'xanchor': 'left', 'y': 1.08, 'yanchor': 'top'},
+                {'buttons': dd_buttons, 'direction': 'down', 'showactive': True,
+                 'x': 0.3, 'xanchor': 'left', 'y': 1.08, 'yanchor': 'top'}
             ]
-        )
+        }
         
         return {
-            'chart': fig.to_json(),
+            'chart': {'data': traces, 'layout': layout},
             'type': 'cumulative_pnl',
             'description': 'Cumulative P&L over time with drawdown areas and high water mark. Click strategy names in legend to show/hide individual strategy performance. Use the "Show/Hide Drawdown Areas" button to toggle drawdown visualization.'
         }
@@ -508,7 +253,7 @@ class ChartGenerator:
         )
         
         return {
-            'chart': fig.to_json(),
+            'chart': _fig_to_dict(fig),
             'type': 'strategy_pnl',
             'description': 'Total P&L comparison across all strategies. Green bars are profitable, red bars are losses.'
         }
@@ -639,7 +384,7 @@ class ChartGenerator:
         )
         
         return {
-            'chart': fig.to_json(),
+            'chart': _fig_to_dict(fig),
             'type': 'monthly_stacked',
             'description': 'Monthly P&L breakdown stacked by strategy. Negative values have borders and patterns for better visibility.'
         }
@@ -661,7 +406,7 @@ class ChartGenerator:
         # Add extra width for the colorbar/legend
         total_width = matrix_size + 200  # Add 200px for colorbar and spacing
         
-        print(f"DEBUG: Correlation matrix - {num_strategies} strategies, matrix size: {matrix_size}x{matrix_size}px, total width: {total_width}px")
+        logger.debug("Correlation matrix - %d strategies, %dx%dpx, total width: %dpx", num_strategies, matrix_size, matrix_size, total_width)
         
         fig = go.Figure(data=go.Heatmap(
             z=correlations.values,
@@ -712,7 +457,7 @@ class ChartGenerator:
         )
         
         return {
-            'chart': fig.to_json(),
+            'chart': _fig_to_dict(fig),
             'type': 'correlation_heatmap',
             'description': 'Correlation matrix between strategy daily returns. Blue = negative correlation, Red = positive correlation.'
         }
@@ -794,9 +539,7 @@ class ChartGenerator:
             pull=[0.05 if data[2] < 0 else 0 for data in custom_data]  # Pull negative slices slightly (data[2] is pnl)
         )])
         
-        # Debug: Print customdata structure
-        print(f"DEBUG: Custom data structure: {custom_data}")
-        print(f"DEBUG: First custom data item: {custom_data[0] if custom_data else 'None'}")
+        logger.debug("Custom data structure: %s", custom_data[:1] if custom_data else 'None')
         
         
         fig.update_layout(
@@ -814,7 +557,7 @@ class ChartGenerator:
         )
         
         return {
-            'chart': fig.to_json(),
+            'chart': _fig_to_dict(fig),
             'type': 'portfolio_balance',
             'description': 'Distribution of portfolio P&L across bullish, bearish, and neutral strategies with detailed strategy information and classification logic.'
         }
@@ -887,7 +630,7 @@ class ChartGenerator:
         )
         
         return {
-            'chart': fig.to_json(),
+            'chart': _fig_to_dict(fig),
             'type': 'risk_return',
             'description': 'Risk vs Return scatter plot. Bubble size = trade count, color = Sharpe ratio. Top-left quadrant is ideal (low risk, high return).'
         }
@@ -921,7 +664,7 @@ class ChartGenerator:
         )
         
         return {
-            'chart': fig.to_json(),
+            'chart': _fig_to_dict(fig),
             'type': 'win_rate',
             'description': 'Win rate comparison across different strategies.'
         }
@@ -1016,7 +759,7 @@ class ChartGenerator:
         )
         
         return {
-            'chart': fig.to_json(),
+            'chart': _fig_to_dict(fig),
             'type': 'win_rates_table',
             'description': 'Detailed win rate statistics and performance metrics by strategy.',
             'raw_data': table_data  # Include raw data for sorting
@@ -1211,13 +954,10 @@ class ChartGenerator:
             # Calculate Calmar ratio (annual return / max drawdown percentage)
             calmar_ratio = annual_return / max_drawdown_pct if max_drawdown_pct != 0 else 0
             
-            # Debug: Print values to help troubleshoot
-            print(f"DEBUG: Initial balance: {balance_values[0] if balance_values else 'N/A'}")
-            print(f"DEBUG: Final balance: {balance_values[-1] if balance_values else 'N/A'}")
-            print(f"DEBUG: Years: {len(dates) / 252 if dates else 'N/A'}")
-            print(f"DEBUG: Annual return: {annual_return}")
-            print(f"DEBUG: Max drawdown: {max_drawdown}")
-            print(f"DEBUG: Calmar ratio: {calmar_ratio}")
+            logger.debug("Calmar calc: initial=%s, final=%s, annual_return=%.4f, max_dd=%.4f, calmar=%.4f",
+                         balance_values[0] if balance_values else 'N/A',
+                         balance_values[-1] if balance_values else 'N/A',
+                         annual_return, max_drawdown, calmar_ratio)
             
             volatility_metrics = {
                 'daily_volatility': daily_volatility,
@@ -1247,7 +987,7 @@ class ChartGenerator:
             }
         
         return {
-            'chart': fig.to_json(),
+            'chart': _fig_to_dict(fig),
             'type': 'daily_pnl',
             'description': 'Daily P&L distribution showing portfolio performance over time in both dollars and percentage.',
             'volatility_metrics': volatility_metrics
@@ -1531,7 +1271,7 @@ class ChartGenerator:
         )
         
         return {
-            'chart': fig.to_json(),
+            'chart': _fig_to_dict(fig),
             'type': 'drawdown',
             'description': 'Portfolio drawdown analysis showing peak-to-trough declines with per-strategy details.',
             'strategy_stats': strategy_drawdown_stats
@@ -1604,7 +1344,7 @@ class ChartGenerator:
             )
             
             return {
-                'chart': fig.to_json(),
+                'chart': _fig_to_dict(fig),
                 'type': 'monte_carlo_distribution'
             }
             
@@ -1772,7 +1512,7 @@ class ChartGenerator:
             )
             
             return {
-                'chart': fig.to_json(),
+                'chart': _fig_to_dict(fig),
                 'type': 'monte_carlo_confidence'
             }
             
@@ -1850,7 +1590,7 @@ class ChartGenerator:
             )
             
             return {
-                'chart': fig.to_json(),
+                'chart': _fig_to_dict(fig),
                 'type': 'monte_carlo_risk_metrics'
             }
             
@@ -2071,8 +1811,8 @@ class ChartGenerator:
             margin_pct_99th = np.percentile(margin_percentages, 99)
             
             return {
-                'chart': fig.to_json(),
-                'table': table_fig.to_json(),
+                'chart': _fig_to_dict(fig),
+                'table': _fig_to_dict(table_fig),
                 'table_data': table_data,  # Raw data for custom sorting
                 'summary': {
                     'total_days': len(daily_list),
@@ -2290,7 +2030,7 @@ class ChartGenerator:
             fig.update_traces(hoverlabel=dict(font=dict(size=18, family="Arial")))
             
             return {
-                'chart': fig.to_json(),
+                'chart': _fig_to_dict(fig),
                 'type': 'margin_analysis',
                 'description': 'Margin per contract statistics by strategy with P&L performance metrics. Uses CSV margin data when available, otherwise calculated from option legs.'
             }
@@ -2383,7 +2123,7 @@ class ChartGenerator:
             )
             
             return {
-                'chart': fig.to_json(),
+                'chart': _fig_to_dict(fig),
                 'type': 'pnl_by_day_of_week',
                 'description': 'P&L breakdown by day of week for each strategy.'
             }
@@ -2411,7 +2151,7 @@ class ChartGenerator:
         )
         
         return {
-            'chart': fig.to_json(),
+            'chart': _fig_to_dict(fig),
             'type': 'empty',
             'description': message
         }
@@ -2465,7 +2205,7 @@ class ChartGenerator:
             )
             
             return {
-                'chart': fig.to_json(),
+                'chart': _fig_to_dict(fig),
                 'type': 'meic_heatmap',
                 'description': 'MEIC performance heatmap showing total P&L by day of week and entry time. Green indicates profitable periods, red indicates losses.'
             }

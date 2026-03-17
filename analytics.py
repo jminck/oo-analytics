@@ -3,11 +3,14 @@ Strategy-focused analytics functions for portfolio analysis.
 Handles calculations for strategy comparison, balance analysis, and diversification.
 """
 
+import logging
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Tuple
 from models import Portfolio, Strategy, Trade
 from config import Config
+
+logger = logging.getLogger(__name__)
 
 class StrategyAnalyzer:
     """Handles strategy-focused analytics for portfolio balance and diversification."""
@@ -567,7 +570,7 @@ class StrategyAnalyzer:
             }
             
         except Exception as e:
-            print(f"Error in MFE/MAE analysis: {e}")
+            logger.error("Error in MFE/MAE analysis: %s", e)
             return {
                 'available': False,
                 'message': f'Error analyzing MFE/MAE data: {str(e)}'
@@ -587,56 +590,15 @@ class StrategyAnalyzer:
         return False
     
     def _print_debug_cards(self, mfe_mae_data: List[Dict]):
-        """Print debug data as cards - one row per strategy with loser and winner cards."""
-        print("\n" + "="*120)
-        print("MFE/MAE ANALYSIS - SAMPLE TRADES BY STRATEGY")
-        print("="*120)
-        
+        """Log debug data for MFE/MAE analysis."""
+        if not logger.isEnabledFor(logging.DEBUG):
+            return
         for strategy in mfe_mae_data:
-            strategy_name = strategy['strategy_name']
-            print(f"\n{strategy_name}")
-            print("-" * 80)
-            
-            # Print cards side by side
             loser = strategy.get('debug_loser', {})
             winner = strategy.get('debug_winner', {})
-            
-            if loser and winner:
-                # Card headers
-                print(f"{'LOSER':<40} | {'WINNER':<40}")
-                print("-" * 40 + " | " + "-" * 40)
-                
-                # Trade type
-                print(f"Type: {loser.get('trade_type', 'N/A'):<35} | Type: {winner.get('trade_type', 'N/A'):<35}")
-                
-                # P&L
-                print(f"P&L: ${loser.get('pnl', 0):,.2f}{'':<25} | P&L: ${winner.get('pnl', 0):,.2f}{'':<25}")
-                
-                # Premium
-                print(f"Premium: ${loser.get('premium', 0):,.2f}{'':<22} | Premium: ${winner.get('premium', 0):,.2f}{'':<22}")
-                
-                # Closing Cost
-                print(f"Closing Cost: ${loser.get('avg_closing_cost', 0):,.2f}{'':<18} | Closing Cost: ${winner.get('avg_closing_cost', 0):,.2f}{'':<18}")
-                
-                # Contracts
-                print(f"Contracts: {loser.get('contracts', 0):<30} | Contracts: {winner.get('contracts', 0):<30}")
-                
-                # Margin per Contract
-                print(f"Margin/Contract: ${loser.get('margin_per_contract', 0):,.2f}{'':<17} | Margin/Contract: ${winner.get('margin_per_contract', 0):,.2f}{'':<17}")
-                
-                # Final P&L %
-                print(f"Final P&L %: {loser.get('final_pnl_pct', 0):.1f}%{'':<26} | Final P&L %: {winner.get('final_pnl_pct', 0):.1f}%{'':<26}")
-                
-                # MFE %
-                print(f"MFE %: {loser.get('mfe_pct', 0):.1f}%{'':<30} | MFE %: {winner.get('mfe_pct', 0):.1f}%{'':<30}")
-                
-                # MAE %
-                print(f"MAE %: {loser.get('mae_pct', 0):.1f}%{'':<30} | MAE %: {winner.get('mae_pct', 0):.1f}%{'':<30}")
-                
-                # Profit Kept % (only for winner)
-                print(f"{'':<40} | Profit Kept %: {winner.get('profit_kept_pct', 0):.1f}%{'':<22}")
-            
-            print()
+            logger.debug("MFE/MAE %s: loser_pnl=%.2f, winner_pnl=%.2f",
+                         strategy['strategy_name'],
+                         loser.get('pnl', 0), winner.get('pnl', 0))
     
     def _calculate_mfe_mae_summary(self, mfe_mae_data: List[Dict]) -> Dict:
         """Calculate summary statistics for MFE/MAE analysis."""
@@ -943,10 +905,10 @@ class StrategyAnalyzer:
         if not hasattr(self, '_debug_count'):
             self._debug_count = 0
         if self._debug_count < 10:  # Increased debug count
-            print(f"DEBUG: Strategy comparison:")
-            print(f"  BT: '{bt_strategy}'")
-            print(f"  Live: '{live_strategy}'")
-            print(f"  BT in Live: {bt_strategy in live_strategy}")
+            logger.debug(f"Strategy comparison:")
+            logger.debug("BT: %s", bt_strategy)
+            logger.debug("Live: %s", live_strategy)
+            logger.debug("BT in Live: %s", bt_strategy in live_strategy)
             self._debug_count += 1
         
         # First try exact substring match
@@ -958,9 +920,9 @@ class StrategyAnalyzer:
         live_normalized = self._normalize_strategy_name(live_strategy)
         
         if self._debug_count < 5:
-            print(f"  BT Normalized: '{bt_normalized}'")
-            print(f"  Live Normalized: '{live_normalized}'")
-            print(f"  BT Normalized in Live Normalized: {bt_normalized in live_normalized}")
+            logger.debug("BT Normalized: %s", bt_normalized)
+            logger.debug("Live Normalized: %s", live_normalized)
+            logger.debug("BT Normalized in Live Normalized: %s", bt_normalized in live_normalized)
         
         return bt_normalized in live_normalized
     
@@ -1316,7 +1278,7 @@ class MonteCarloSimulator:
     def clear_cache(self):
         """Clear the simulation cache to free memory."""
         self._simulation_cache.clear()
-        print(f"🧹 Monte Carlo cache cleared. Previous stats: {self._cache_hits} hits, {self._cache_misses} misses")
+        logger.debug("Monte Carlo cache cleared")
     
     def _calculate_daily_portfolio_returns(self, trades: List) -> List[float]:
         """
@@ -1362,24 +1324,11 @@ class MonteCarloSimulator:
     def _calculate_historical_margin_percentage(self, all_trades: List, initial_balance: float) -> float:
         """Calculate historical margin percentage using the same logic as the overview page."""
         if not all_trades or initial_balance <= 0:
-            return 1.0  # Default fallback
+            return 1.0
         
-        # Use the chronologically first trade to calculate margin percentage (same as Strategy.get_summary_stats)
-        sorted_trades_for_calc = sorted(all_trades, key=lambda t: pd.to_datetime(t.date_closed))
-        first_trade = sorted_trades_for_calc[0]
+        sorted_trades = sorted(all_trades, key=lambda t: pd.to_datetime(t.date_closed))
+        first_trade = sorted_trades[0]
         first_trade_margin_req = getattr(first_trade, 'margin_req', 0)
-        
-        # Debug: Check the first few trades to see what margin data looks like
-        # Sort trades by date to get the chronologically first trades
-        sorted_trades_for_debug = sorted(all_trades, key=lambda t: pd.to_datetime(t.date_closed))
-        print(f"DEBUG: First 5 trades margin data (chronologically):")
-        for i, trade in enumerate(sorted_trades_for_debug[:5]):
-            margin_req = getattr(trade, 'margin_req', 0)
-            contracts = getattr(trade, 'contracts', 1)
-            pnl = getattr(trade, 'pnl', 0)
-            funds_at_close = getattr(trade, 'funds_at_close', 0)
-            date_closed = getattr(trade, 'date_closed', 'Unknown')
-            print(f"DEBUG: Trade {i+1} ({date_closed}): margin_req=${margin_req:,.2f}, contracts={contracts}, pnl=${pnl:,.2f}, funds_at_close=${funds_at_close:,.2f}")
         
         if first_trade_margin_req > 0:
             # Use the same calculation as Strategy Performance section (models.py line 474)
@@ -1389,21 +1338,21 @@ class MonteCarloSimulator:
             # Initial balance = funds at close - P&L of first trade (same as Strategy Performance)
             calculated_initial_balance = funds_at_close - first_trade_pnl
             
-            print(f"DEBUG: Historical margin calculation (using Strategy Performance method):")
-            print(f"DEBUG: First trade margin req: ${first_trade_margin_req:,.2f}")
-            print(f"DEBUG: First trade funds at close: ${funds_at_close:,.2f}")
-            print(f"DEBUG: First trade P&L: ${first_trade_pnl:,.2f}")
-            print(f"DEBUG: Calculated initial balance: ${calculated_initial_balance:,.2f}")
-            print(f"DEBUG: Passed initial balance: ${initial_balance:,.2f}")
+            logger.debug(f"Historical margin calculation (using Strategy Performance method):")
+            logger.debug(f"First trade margin req: ${first_trade_margin_req:,.2f}")
+            logger.debug(f"First trade funds at close: ${funds_at_close:,.2f}")
+            logger.debug(f"First trade P&L: ${first_trade_pnl:,.2f}")
+            logger.debug(f"Calculated initial balance: ${calculated_initial_balance:,.2f}")
+            logger.debug(f"Passed initial balance: ${initial_balance:,.2f}")
             
             if calculated_initial_balance > 0:
                 margin_percentage = (first_trade_margin_req / calculated_initial_balance) * 100
-                print(f"DEBUG: Calculated margin percentage: {margin_percentage:.2f}%")
+                logger.debug(f"Calculated margin percentage: {margin_percentage:.2f}%")
                 return margin_percentage
             else:
                 # Fallback to using the passed initial_balance
                 margin_percentage = (first_trade_margin_req / initial_balance) * 100
-                print(f"DEBUG: Fallback margin percentage: {margin_percentage:.2f}%")
+                logger.debug(f"Fallback margin percentage: {margin_percentage:.2f}%")
                 return margin_percentage
         else:
             # Fallback: estimate from average margin per contract
@@ -1422,23 +1371,23 @@ class MonteCarloSimulator:
                 avg_margin_per_contract = total_margin / total_contracts
                 # Estimate margin percentage based on average margin per contract
                 estimated_margin_percentage = (avg_margin_per_contract / initial_balance) * 100
-                print(f"DEBUG: Fallback margin calculation:")
-                print(f"DEBUG: Average margin per contract: ${avg_margin_per_contract:,.2f}")
-                print(f"DEBUG: Estimated margin percentage: {estimated_margin_percentage:.2f}%")
+                logger.debug(f"Fallback margin calculation:")
+                logger.debug(f"Average margin per contract: ${avg_margin_per_contract:,.2f}")
+                logger.debug(f"Estimated margin percentage: {estimated_margin_percentage:.2f}%")
                 return estimated_margin_percentage
             else:
                 # Final fallback
-                print(f"DEBUG: Using default margin percentage: 1.0%")
+                logger.debug(f"Using default margin percentage: 1.0%")
                 return 1.0
     
     def run_simulation(self, num_simulations: int = 1000, num_trades: int = None, 
                       risk_free_rate: float = None,
                       confidence_levels: List[float] = [0.05, 0.25, 0.5, 0.75, 0.95]) -> Dict:
         
-        print(f"DEBUG: run_simulation called with:")
-        print(f"DEBUG: num_simulations: {num_simulations}")
-        print(f"DEBUG: num_trades: {num_trades}")
-        print(f"DEBUG: risk_free_rate: {risk_free_rate}")
+        logger.debug(f"run_simulation called with:")
+        logger.debug(f"num_simulations: {num_simulations}")
+        logger.debug(f"num_trades: {num_trades}")
+        logger.debug(f"risk_free_rate: {risk_free_rate}")
         """
         Run Monte Carlo simulation by randomly sampling from historical trade outcomes.
         Uses each strategy's historical margin percentage for position sizing.
@@ -1459,7 +1408,7 @@ class MonteCarloSimulator:
         cache_key = f"portfolio_{num_simulations}_{num_trades}_{hash(str(confidence_levels))}"
         if cache_key in self._simulation_cache:
             self._cache_hits += 1
-            print(f"🚀 Monte Carlo cache hit! ({self._cache_hits} hits, {self._cache_misses} misses)")
+            logger.debug("Monte Carlo cache hit")
             return self._simulation_cache[cache_key]
         
         self._cache_misses += 1
@@ -1497,9 +1446,9 @@ class MonteCarloSimulator:
                 # This ensures Monte Carlo simulation uses the same position sizing as historical data
                 strategy_position_size = strategy_margin_pct
                 
-                print(f"DEBUG: Portfolio simulation - Strategy {strategy_name}:")
-                print(f"DEBUG: Historical margin: {strategy_margin_pct:.2f}%")
-                print(f"DEBUG: Using historical margin for position sizing")
+                logger.debug(f"Portfolio simulation - Strategy {strategy_name}:")
+                logger.debug(f"Historical margin: {strategy_margin_pct:.2f}%")
+                logger.debug(f"Using historical margin for position sizing")
                 
                 strategy_data[strategy_name] = {
                     'strategy': strategy,
@@ -1510,40 +1459,40 @@ class MonteCarloSimulator:
                 }
                 total_trades += len(strategy.trades)
                 
-                print(f"DEBUG: Strategy '{strategy_name}':")
-                print(f"DEBUG: - Historical margin: {strategy_margin_pct:.2f}%")
-                print(f"DEBUG: - Position size: {strategy_position_size:.2f}%")
-                print(f"DEBUG: - Trade count: {len(strategy.trades)}")
+                logger.debug(f"Strategy '{strategy_name}':")
+                logger.debug(f"- Historical margin: {strategy_margin_pct:.2f}%")
+                logger.debug(f"- Position size: {strategy_position_size:.2f}%")
+                logger.debug(f"- Trade count: {len(strategy.trades)}")
         
-        print(f"DEBUG: Total strategies: {len(strategy_data)}")
-        print(f"DEBUG: Total trades across all strategies: {total_trades}")
+        logger.debug(f"Total strategies: {len(strategy_data)}")
+        logger.debug(f"Total trades across all strategies: {total_trades}")
         
-        print(f"DEBUG: Monte Carlo simulation parameters:")
-        print(f"DEBUG: Total historical trades: {total_trades}")
-        print(f"DEBUG: Trades per simulation: {num_trades}")
-        print(f"DEBUG: Number of simulations: {num_simulations}")
-        print(f"DEBUG: Using historical position sizing for each strategy")
-        print(f"DEBUG: Initial balance: ${initial_balance:,.2f}")
+        logger.debug(f"Monte Carlo simulation parameters:")
+        logger.debug(f"Total historical trades: {total_trades}")
+        logger.debug(f"Trades per simulation: {num_trades}")
+        logger.debug(f"Number of simulations: {num_simulations}")
+        logger.debug(f"Using historical position sizing for each strategy")
+        logger.debug(f"Initial balance: ${initial_balance:,.2f}")
         
         # Multi-strategy Monte Carlo simulation with proper position sizing per strategy
-        print(f"DEBUG: Using multi-strategy bootstrap sampling for realistic Monte Carlo simulation")
+        logger.debug(f"Using multi-strategy bootstrap sampling for realistic Monte Carlo simulation")
         
         # Calculate total win rate across all strategies
         total_positive_trades = sum(sum(1 for trade in data['trades'] if getattr(trade, 'pnl', 0) > 0) for data in strategy_data.values())
         total_negative_trades = sum(sum(1 for trade in data['trades'] if getattr(trade, 'pnl', 0) < 0) for data in strategy_data.values())
         overall_win_rate = total_positive_trades / (total_positive_trades + total_negative_trades) * 100 if (total_positive_trades + total_negative_trades) > 0 else 0
         
-        print(f"DEBUG: Overall portfolio statistics:")
-        print(f"DEBUG: - Total trades: {total_trades}")
-        print(f"DEBUG: - Positive trades: {total_positive_trades}")
-        print(f"DEBUG: - Negative trades: {total_negative_trades}")
-        print(f"DEBUG: - Win rate: {overall_win_rate:.1f}%")
+        logger.debug(f"Overall portfolio statistics:")
+        logger.debug(f"- Total trades: {total_trades}")
+        logger.debug(f"- Positive trades: {total_positive_trades}")
+        logger.debug(f"- Negative trades: {total_negative_trades}")
+        logger.debug(f"- Win rate: {overall_win_rate:.1f}%")
         
         # Run simulations using multi-strategy bootstrap sampling
         simulation_results = []
         
         try:
-            print(f"DEBUG: Starting Monte Carlo simulation with {num_simulations} simulations")
+            logger.debug(f"Starting Monte Carlo simulation with {num_simulations} simulations")
             for sim_num in range(num_simulations):
                 # Sample trades from each strategy proportionally
                 simulated_trade_dollars = []
@@ -1576,10 +1525,10 @@ class MonteCarloSimulator:
                     strategy_historical_margin = data['margin_pct'] / 100.0  # Convert to decimal
                     position_scaling_factor = strategy_position_size / strategy_historical_margin
                     
-                    print(f"DEBUG: Strategy {strategy_name} position scaling:")
-                    print(f"DEBUG: Strategy position size: {strategy_position_size*100:.2f}%")
-                    print(f"DEBUG: Historical margin: {strategy_historical_margin*100:.2f}%")
-                    print(f"DEBUG: Position scaling factor: {position_scaling_factor:.4f}")
+                    logger.debug(f"Strategy {strategy_name} position scaling:")
+                    logger.debug(f"Strategy position size: {strategy_position_size*100:.2f}%")
+                    logger.debug(f"Historical margin: {strategy_historical_margin*100:.2f}%")
+                    logger.debug(f"Position scaling factor: {position_scaling_factor:.4f}")
                     
                     for trade in sampled_trades:
                         # Get the actual P&L from the trade
@@ -1613,18 +1562,18 @@ class MonteCarloSimulator:
             
                 # Debug first few simulations
                 if sim_num < 3:
-                    print(f"DEBUG: Simulation {sim_num + 1}:")
-                    print(f"DEBUG: - Final balance: ${final_balance:,.2f}")
-                    print(f"DEBUG: - Total P&L: ${cumulative_pnl[-1]:,.2f}")
-                    print(f"DEBUG: - Max drawdown: ${max_drawdown:,.2f}")
-                    print(f"DEBUG: - Winning trades: {sum(1 for x in simulated_trade_dollars if x > 0)}")
-                    print(f"DEBUG: - Losing trades: {sum(1 for x in simulated_trade_dollars if x < 0)}")
-                    print(f"DEBUG: - Win rate: {sum(1 for x in simulated_trade_dollars if x > 0) / len(simulated_trade_dollars) * 100:.1f}%")
-                    print(f"DEBUG: - Trades per strategy: {trades_per_strategy}")
+                    logger.debug(f"Simulation {sim_num + 1}:")
+                    logger.debug(f"- Final balance: ${final_balance:,.2f}")
+                    logger.debug(f"- Total P&L: ${cumulative_pnl[-1]:,.2f}")
+                    logger.debug(f"- Max drawdown: ${max_drawdown:,.2f}")
+                    logger.debug(f"- Winning trades: {sum(1 for x in simulated_trade_dollars if x > 0)}")
+                    logger.debug(f"- Losing trades: {sum(1 for x in simulated_trade_dollars if x < 0)}")
+                    logger.debug(f"- Win rate: {sum(1 for x in simulated_trade_dollars if x > 0) / len(simulated_trade_dollars) * 100:.1f}%")
+                    logger.debug(f"- Trades per strategy: {trades_per_strategy}")
         
         except Exception as e:
             error_msg = f"Monte Carlo simulation failed: {str(e)}"
-            print(f"DEBUG: {error_msg}")
+            logger.debug(f"{error_msg}")
             import traceback
             traceback.print_exc()
             # Log to file for debugging
@@ -1762,11 +1711,11 @@ class MonteCarloSimulator:
             trade_pnls.append(trade_pnl)
         
         # Debug: Check the actual values
-        print(f"DEBUG: Strategy {strategy_name} - Sample trade P&Ls:")
+        logger.debug(f"Strategy {strategy_name} - Sample trade P&Ls:")
         for i, trade in enumerate(strategy.trades[:5]):  # First 5 trades
-            print(f"DEBUG: Trade {i+1}: P&L=${trade.pnl:,.2f}, Contracts={trade.contracts}, P&L/Lot=${trade.pnl_per_lot:,.2f}")
-        print(f"DEBUG: Trade P&L range: ${min(trade_pnls):,.2f} to ${max(trade_pnls):,.2f}")
-        print(f"DEBUG: Mean trade P&L: ${np.mean(trade_pnls):,.2f}")
+            logger.debug(f"Trade {i+1}: P&L=${trade.pnl:,.2f}, Contracts={trade.contracts}, P&L/Lot=${trade.pnl_per_lot:,.2f}")
+        logger.debug(f"Trade P&L range: ${min(trade_pnls):,.2f} to ${max(trade_pnls):,.2f}")
+        logger.debug(f"Mean trade P&L: ${np.mean(trade_pnls):,.2f}")
         
         # Calculate initial balance (for single strategy, use average account balance)
         # Since we're using per-lot P&L, we need to normalize the initial balance calculation
@@ -1791,32 +1740,32 @@ class MonteCarloSimulator:
             first_trade = sorted_trades[0]
             # Starting balance = funds at close - P&L (this gives us the balance before the trade)
             initial_balance = first_trade.funds_at_close - first_trade.pnl
-            print(f"DEBUG: Strategy '{strategy_name}' first trade date: {first_trade.date_closed}")
-            print(f"DEBUG: First trade funds_at_close: ${first_trade.funds_at_close:,.2f}")
-            print(f"DEBUG: First trade P&L: ${first_trade.pnl:,.2f}")
-            print(f"DEBUG: Calculated initial balance: ${initial_balance:,.2f}")
+            logger.debug(f"Strategy '{strategy_name}' first trade date: {first_trade.date_closed}")
+            logger.debug(f"First trade funds_at_close: ${first_trade.funds_at_close:,.2f}")
+            logger.debug(f"First trade P&L: ${first_trade.pnl:,.2f}")
+            logger.debug(f"Calculated initial balance: ${initial_balance:,.2f}")
         else:
             initial_balance = 1000.0  # Fallback if no trades
         
         # Calculate strategy's margin percentage for position sizing
         strategy_margin_pct = self._calculate_historical_margin_percentage(strategy.trades, initial_balance)
-        print(f"DEBUG: Strategy '{strategy_name}' margin percentage: {strategy_margin_pct:.2f}%")
+        logger.debug(f"Strategy '{strategy_name}' margin percentage: {strategy_margin_pct:.2f}%")
         
         # Use the user-specified trade size if provided, otherwise use strategy's historical margin
         # Use historical margin percentage to maintain same position sizing as original data
         # This ensures Monte Carlo simulation uses the same position sizing as historical data
         strategy_position_size = strategy_margin_pct
         
-        print(f"DEBUG: Using historical margin percentage: {strategy_margin_pct:.2f}%")
+        logger.debug(f"Using historical margin percentage: {strategy_margin_pct:.2f}%")
         
-        print(f"DEBUG: Strategy '{strategy_name}' position size: {strategy_position_size:.2f}%")
+        logger.debug(f"Strategy '{strategy_name}' position size: {strategy_position_size:.2f}%")
         
         # Run simulations
         simulation_results = []
         final_pnls = []
         
         try:
-            print(f"DEBUG: Starting strategy-specific simulation for '{strategy_name}' with {num_simulations} simulations")
+            logger.debug(f"Starting strategy-specific simulation for '{strategy_name}' with {num_simulations} simulations")
             for sim_num in range(num_simulations):
                 # Randomly sample trades with replacement
                 simulated_trades = np.random.choice(trade_pnls, size=num_trades, replace=True)
@@ -1850,18 +1799,18 @@ class MonteCarloSimulator:
                 
                 # Debug first few simulations
                 if sim_num < 3:
-                    print(f"DEBUG: Simulation {sim_num + 1}:")
-                    print(f"DEBUG: - Final balance: ${account_balance[-1]:,.2f}")
-                    print(f"DEBUG: - Total P&L: ${final_pnl:,.2f}")
-                    print(f"DEBUG: - Position size: {strategy_position_size:.2f}%")
-                    print(f"DEBUG: - Position scaling factor: {position_scaling_factor:.4f}")
-                    print(f"DEBUG: - Winning trades: {sum(1 for x in scaled_trades if x > 0)}")
-                    print(f"DEBUG: - Losing trades: {sum(1 for x in scaled_trades if x < 0)}")
-                    print(f"DEBUG: - Win rate: {sum(1 for x in scaled_trades if x > 0) / len(scaled_trades) * 100:.1f}%")
+                    logger.debug(f"Simulation {sim_num + 1}:")
+                    logger.debug(f"- Final balance: ${account_balance[-1]:,.2f}")
+                    logger.debug(f"- Total P&L: ${final_pnl:,.2f}")
+                    logger.debug(f"- Position size: {strategy_position_size:.2f}%")
+                    logger.debug(f"- Position scaling factor: {position_scaling_factor:.4f}")
+                    logger.debug(f"- Winning trades: {sum(1 for x in scaled_trades if x > 0)}")
+                    logger.debug(f"- Losing trades: {sum(1 for x in scaled_trades if x < 0)}")
+                    logger.debug(f"- Win rate: {sum(1 for x in scaled_trades if x > 0) / len(scaled_trades) * 100:.1f}%")
         
         except Exception as e:
             error_msg = f"Strategy-specific Monte Carlo simulation failed for '{strategy_name}': {str(e)}"
-            print(f"DEBUG: {error_msg}")
+            logger.debug(f"{error_msg}")
             import traceback
             traceback.print_exc()
             # Log to file for debugging
@@ -1877,11 +1826,11 @@ class MonteCarloSimulator:
         final_balances = initial_balance + final_pnls
         
         # Debug: Check simulation results
-        print(f"DEBUG: Simulation results for {strategy_name}:")
-        print(f"DEBUG: Final P&Ls range: ${np.min(final_pnls):,.2f} to ${np.max(final_pnls):,.2f}")
-        print(f"DEBUG: Mean final P&L: ${np.mean(final_pnls):,.2f}")
-        print(f"DEBUG: Initial balance: ${initial_balance:,.2f}")
-        print(f"DEBUG: Final balances range: ${np.min(final_balances):,.2f} to ${np.max(final_balances):,.2f}")
+        logger.debug(f"Simulation results for {strategy_name}:")
+        logger.debug(f"Final P&Ls range: ${np.min(final_pnls):,.2f} to ${np.max(final_pnls):,.2f}")
+        logger.debug(f"Mean final P&L: ${np.mean(final_pnls):,.2f}")
+        logger.debug(f"Initial balance: ${initial_balance:,.2f}")
+        logger.debug(f"Final balances range: ${np.min(final_balances):,.2f} to ${np.max(final_balances):,.2f}")
         
         # Calculate max drawdowns for each simulation
         max_drawdowns = []
@@ -1989,10 +1938,10 @@ class MonteCarloSimulator:
             if strategy.trades:
                 # Calculate historical margin percentage for this strategy
                 strategy_margin_pct = self._calculate_historical_margin_percentage(strategy.trades)
-                print(f"DEBUG: Strategy '{strategy_name}' calculated margin percentage: {strategy_margin_pct:.4f}%")
+                logger.debug(f"Strategy '{strategy_name}' calculated margin percentage: {strategy_margin_pct:.4f}%")
             else:
                 strategy_margin_pct = 1.0  # Fallback value
-                print(f"DEBUG: Strategy '{strategy_name}' has no trades, using fallback: {strategy_margin_pct:.4f}%")
+                logger.debug(f"Strategy '{strategy_name}' has no trades, using fallback: {strategy_margin_pct:.4f}%")
             
             strategy_results[strategy_name] = self.run_strategy_specific_simulation(
                 strategy_name, num_simulations, num_trades, strategy_margin_pct, risk_free_rate
@@ -2153,22 +2102,22 @@ class MonteCarloSimulator:
         # Handle infinity values for JSON serialization
         def safe_float(value):
             if value == float('inf') or value == float('-inf'):
-                print(f"DEBUG: Converting infinity to None: {value}")
+                logger.debug(f"Converting infinity to None: {value}")
                 return None
             if abs(value) > 1000:  # Cap extremely large values
-                print(f"DEBUG: Capping large value: {value} -> 1000")
+                logger.debug(f"Capping large value: {value} -> 1000")
                 return 1000.0
             return value
         
-        print(f"DEBUG: _calculate_risk_ratios called with strategy_trades: {strategy_trades is not None}")
+        logger.debug(f"_calculate_risk_ratios called with strategy_trades: {strategy_trades is not None}")
         if strategy_trades:
-            print(f"DEBUG: Number of strategy trades: {len(strategy_trades)}")
+            logger.debug(f"Number of strategy trades: {len(strategy_trades)}")
         else:
-            print("DEBUG: No strategy trades provided, using portfolio-level calculation")
+            logger.debug("No strategy trades provided, using portfolio-level calculation")
         
         # For portfolio simulations (strategy_trades=None), calculate risk ratios directly from simulation results
         if strategy_trades is None:
-            print("DEBUG: Portfolio simulation - calculating risk ratios from simulation results")
+            logger.debug("Portfolio simulation - calculating risk ratios from simulation results")
             
             # Calculate time period from historical data for annualization
             all_trades = []
@@ -2190,12 +2139,12 @@ class MonteCarloSimulator:
                     total_return = (mean_final_balance - initial_balance) / initial_balance
                     annual_return = (1 + total_return) ** (1/years) - 1
                     
-                    print(f"DEBUG: Annual return calculation details:")
-                    print(f"DEBUG: Mean final balance: ${mean_final_balance:,.2f}")
-                    print(f"DEBUG: Initial balance: ${initial_balance:,.2f}")
-                    print(f"DEBUG: Total return: {total_return*100:.2f}%")
-                    print(f"DEBUG: Years: {years:.2f}")
-                    print(f"DEBUG: Annual return: {annual_return*100:.2f}%")
+                    logger.debug(f"Annual return calculation details:")
+                    logger.debug(f"Mean final balance: ${mean_final_balance:,.2f}")
+                    logger.debug(f"Initial balance: ${initial_balance:,.2f}")
+                    logger.debug(f"Total return: {total_return*100:.2f}%")
+                    logger.debug(f"Years: {years:.2f}")
+                    logger.debug(f"Annual return: {annual_return*100:.2f}%")
                     
                     # Calculate volatility from actual historical data, not simulation results
                     # The simulation results show uncertainty in final outcomes, not strategy volatility
@@ -2226,11 +2175,11 @@ class MonteCarloSimulator:
                         # Fallback: use a reasonable estimate
                         annual_volatility = 0.15  # 15% annual volatility as reasonable estimate
                     
-                    print(f"DEBUG: Volatility calculation details:")
-                    print(f"DEBUG: Number of simulations: {len(total_pnls)}")
-                    print(f"DEBUG: Using historical daily returns for volatility calculation")
-                    print(f"DEBUG: Annual volatility: {annual_volatility*100:.2f}%")
-                    print(f"DEBUG: Years: {years:.2f}")
+                    logger.debug(f"Volatility calculation details:")
+                    logger.debug(f"Number of simulations: {len(total_pnls)}")
+                    logger.debug(f"Using historical daily returns for volatility calculation")
+                    logger.debug(f"Annual volatility: {annual_volatility*100:.2f}%")
+                    logger.debug(f"Years: {years:.2f}")
                     
                     # Calculate downside deviation from historical daily returns
                     if 'daily_returns' in locals() and len(daily_returns) > 1:
@@ -2260,34 +2209,34 @@ class MonteCarloSimulator:
                     if sortino_ratio > 10.0:
                         sortino_ratio = 10.0
                     
-                    print(f"DEBUG: Risk ratio calculations (all in decimal form):")
-                    print(f"DEBUG: Annual return: {annual_return_decimal:.6f} ({annual_return_decimal*100:.2f}%)")
-                    print(f"DEBUG: Risk-free rate: {risk_free_rate_decimal:.6f} ({risk_free_rate_decimal*100:.2f}%)")
-                    print(f"DEBUG: Excess return: {excess_return_decimal:.6f} ({excess_return_decimal*100:.2f}%)")
-                    print(f"DEBUG: Annual volatility: {annual_volatility_decimal:.6f} ({annual_volatility_decimal*100:.2f}%)")
-                    print(f"DEBUG: Downside deviation: {downside_deviation_decimal:.6f} ({downside_deviation_decimal*100:.2f}%)")
-                    print(f"DEBUG: Sharpe ratio: {sharpe_ratio:.4f}")
-                    print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                    logger.debug(f"Risk ratio calculations (all in decimal form):")
+                    logger.debug(f"Annual return: {annual_return_decimal:.6f} ({annual_return_decimal*100:.2f}%)")
+                    logger.debug(f"Risk-free rate: {risk_free_rate_decimal:.6f} ({risk_free_rate_decimal*100:.2f}%)")
+                    logger.debug(f"Excess return: {excess_return_decimal:.6f} ({excess_return_decimal*100:.2f}%)")
+                    logger.debug(f"Annual volatility: {annual_volatility_decimal:.6f} ({annual_volatility_decimal*100:.2f}%)")
+                    logger.debug(f"Downside deviation: {downside_deviation_decimal:.6f} ({downside_deviation_decimal*100:.2f}%)")
+                    logger.debug(f"Sharpe ratio: {sharpe_ratio:.4f}")
+                    logger.debug(f"Sortino ratio: {sortino_ratio:.4f}")
                     
                     # Calculate MAR ratio using actual historical maximum drawdown
                     # Get the actual maximum drawdown from portfolio overview for consistency
                     metrics = PortfolioMetrics(self.portfolio)
                     portfolio_metrics = metrics.get_overview_metrics()
                     actual_max_drawdown_pct = abs(portfolio_metrics['max_drawdown_pct']) / 100.0
-                    print(f"DEBUG: Portfolio metrics max_drawdown_pct: {portfolio_metrics['max_drawdown_pct']:.2f}%")
-                    print(f"DEBUG: Actual max drawdown (decimal): {actual_max_drawdown_pct:.4f}")
+                    logger.debug(f"Portfolio metrics max_drawdown_pct: {portfolio_metrics['max_drawdown_pct']:.2f}%")
+                    logger.debug(f"Actual max drawdown (decimal): {actual_max_drawdown_pct:.4f}")
                     mar_ratio = annual_return / actual_max_drawdown_pct if actual_max_drawdown_pct > 0 else 0
                     
                     # Information ratio (using same calculation as Sharpe for now)
                     information_ratio = sharpe_ratio
                     
-                    print(f"DEBUG: Portfolio simulation risk ratios:")
-                    print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
-                    print(f"DEBUG: Annual volatility: {annual_volatility*100:.4f}%")
-                    print(f"DEBUG: Downside deviation: {downside_deviation*100:.4f}%")
-                    print(f"DEBUG: Sharpe ratio: {sharpe_ratio:.4f}")
-                    print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
-                    print(f"DEBUG: MAR ratio: {mar_ratio:.4f}")
+                    logger.debug(f"Portfolio simulation risk ratios:")
+                    logger.debug(f"Annual return: {annual_return*100:.4f}%")
+                    logger.debug(f"Annual volatility: {annual_volatility*100:.4f}%")
+                    logger.debug(f"Downside deviation: {downside_deviation*100:.4f}%")
+                    logger.debug(f"Sharpe ratio: {sharpe_ratio:.4f}")
+                    logger.debug(f"Sortino ratio: {sortino_ratio:.4f}")
+                    logger.debug(f"MAR ratio: {mar_ratio:.4f}")
                     
                     return {
                         'sharpe_ratio': safe_float(sharpe_ratio),
@@ -2309,11 +2258,11 @@ class MonteCarloSimulator:
             if risk_free_rate > 1:
                 risk_free_rate = risk_free_rate / 100.0
         
-        print(f"DEBUG: Input parameters:")
-        print(f"DEBUG: Total P&Ls shape: {total_pnls.shape if hasattr(total_pnls, 'shape') else len(total_pnls)}")
-        print(f"DEBUG: Final balances shape: {final_balances.shape if hasattr(final_balances, 'shape') else len(final_balances)}")
-        print(f"DEBUG: Using historical position sizing")
-        print(f"DEBUG: Risk-free rate: {risk_free_rate*100:.4f}%")
+        logger.debug(f"Input parameters:")
+        logger.debug(f"Total P&Ls shape: {total_pnls.shape if hasattr(total_pnls, 'shape') else len(total_pnls)}")
+        logger.debug(f"Final balances shape: {final_balances.shape if hasattr(final_balances, 'shape') else len(final_balances)}")
+        logger.debug(f"Using historical position sizing")
+        logger.debug(f"Risk-free rate: {risk_free_rate*100:.4f}%")
         
         try:
             
@@ -2328,24 +2277,24 @@ class MonteCarloSimulator:
                 end_date = pd.to_datetime(sorted_trades[-1].date_closed)
                 days_elapsed = (end_date - start_date).days
                 
-                print(f"DEBUG: Start date: {start_date}, End date: {end_date}")
-                print(f"DEBUG: Days elapsed: {days_elapsed}")
+                logger.debug(f"Start date: {start_date}, End date: {end_date}")
+                logger.debug(f"Days elapsed: {days_elapsed}")
                 
                 if days_elapsed > 0:
-                    print("DEBUG: Using time-normalized annualized returns calculation")
-                    print(f"DEBUG: Days elapsed: {days_elapsed}, Valid for annualization")
+                    logger.debug("Using time-normalized annualized returns calculation")
+                    logger.debug(f"Days elapsed: {days_elapsed}, Valid for annualization")
                     # Calculate trades per year
                     trades_per_year = len(sorted_trades) * 365.25 / days_elapsed
-                    print(f"DEBUG: Trades per year: {trades_per_year:.2f}")
+                    logger.debug(f"Trades per year: {trades_per_year:.2f}")
                     
                     # Calculate actual position sizing and compounding for each trade
                     # Scale the position sizing by the trade size percentage
                     trade_returns = []
                     current_balance = sorted_trades[0].funds_at_close - sorted_trades[0].pnl  # Initial balance
                     
-                    print(f"DEBUG: Strategy {sorted_trades[0].strategy if hasattr(sorted_trades[0], 'strategy') else 'Unknown'}")
-                    print(f"DEBUG: Initial balance: ${current_balance:,.2f}")
-                    print(f"DEBUG: Number of trades: {len(sorted_trades)}")
+                    logger.debug(f"Strategy {sorted_trades[0].strategy if hasattr(sorted_trades[0], 'strategy') else 'Unknown'}")
+                    logger.debug(f"Initial balance: ${current_balance:,.2f}")
+                    logger.debug(f"Number of trades: {len(sorted_trades)}")
                     
                     for i, trade in enumerate(sorted_trades[:5]):  # Debug first 5 trades
                         # Calculate margin requirement for this trade
@@ -2367,7 +2316,7 @@ class MonteCarloSimulator:
                             # Fallback to per-lot calculation scaled by trade size
                             trade_return = (trade.pnl_per_lot / 1000.0) * 1.0  # Use historical position sizing
                         
-                        print(f"DEBUG: Trade {i+1}: Balance=${current_balance:,.2f}, Margin=${margin_req:,.2f}, P&L=${trade.pnl:,.2f}, Position%={position_size_pct*100:.2f}%, Return={trade_return*100:.4f}%")
+                        logger.debug(f"Trade {i+1}: Balance=${current_balance:,.2f}, Margin=${margin_req:,.2f}, P&L=${trade.pnl:,.2f}, Position%={position_size_pct*100:.2f}%, Return={trade_return*100:.4f}%")
                         
                         trade_returns.append(trade_return)
                         
@@ -2390,7 +2339,7 @@ class MonteCarloSimulator:
                         current_balance = trade.funds_at_close
                     
                     # Debug last 5 trades
-                    print("DEBUG: Last 5 trades:")
+                    logger.debug("Last 5 trades:")
                     for i, trade in enumerate(sorted_trades[-5:]):
                         margin_req = getattr(trade, 'margin_req', 0)
                         if margin_req == 0:
@@ -2402,7 +2351,7 @@ class MonteCarloSimulator:
                         # Calculate return based on actual margin requirement and position sizing
                         trade_return = (trade.pnl / margin_req) * position_size_pct
                         
-                        print(f"DEBUG: Trade {len(sorted_trades)-4+i}: Balance=${current_balance:,.2f}, Margin=${margin_req:,.2f}, P&L=${trade.pnl:,.2f}, Position%={position_size_pct*100:.2f}%, Return={trade_return*100:.4f}%")
+                        logger.debug(f"Trade {len(sorted_trades)-4+i}: Balance=${current_balance:,.2f}, Margin=${margin_req:,.2f}, P&L=${trade.pnl:,.2f}, Position%={position_size_pct*100:.2f}%, Return={trade_return*100:.4f}%")
                         
                         trade_returns.append(trade_return)
                         current_balance = trade.funds_at_close
@@ -2415,20 +2364,20 @@ class MonteCarloSimulator:
                     # If we have 50 trades per year, each trade represents 1/50th of a year
                     trade_period_risk_free_rate = risk_free_rate / trades_per_year
                     
-                    print(f"DEBUG: Mean return per trade: {np.mean(trade_returns)*100:.4f}%")
-                    print(f"DEBUG: Trades per year: {trades_per_year:.2f}")
-                    print(f"DEBUG: Annual return: {np.mean(trade_returns)*trades_per_year*100:.2f}%")
-                    print(f"DEBUG: Annual volatility: {np.std(trade_returns)*np.sqrt(trades_per_year)*100:.2f}%")
-                    print(f"DEBUG: Trade period risk-free rate: {trade_period_risk_free_rate*100:.4f}%")
+                    logger.debug(f"Mean return per trade: {np.mean(trade_returns)*100:.4f}%")
+                    logger.debug(f"Trades per year: {trades_per_year:.2f}")
+                    logger.debug(f"Annual return: {np.mean(trade_returns)*trades_per_year*100:.2f}%")
+                    logger.debug(f"Annual volatility: {np.std(trade_returns)*np.sqrt(trades_per_year)*100:.2f}%")
+                    logger.debug(f"Trade period risk-free rate: {trade_period_risk_free_rate*100:.4f}%")
                 else:
-                    print("DEBUG: Using fallback per-lot returns calculation (days_elapsed <= 0)")
+                    logger.debug("Using fallback per-lot returns calculation (days_elapsed <= 0)")
                     # Fallback to per-lot returns if no time data
                     initial_balance = 1000.0
                     returns = np.array([trade.pnl_per_lot / initial_balance for trade in strategy_trades])
             else:
                 # For portfolio-level analysis, calculate daily portfolio returns from historical data
                 # This gives us a more accurate representation of portfolio volatility
-                print(f"DEBUG: Portfolio-level analysis - calculating daily portfolio returns")
+                logger.debug(f"Portfolio-level analysis - calculating daily portfolio returns")
                 
                 # Get all trades from all strategies, sorted by date
                 all_trades = []
@@ -2444,17 +2393,17 @@ class MonteCarloSimulator:
                     
                     if len(daily_returns) > 1:
                         returns = np.array(daily_returns)
-                        print(f"DEBUG: Portfolio-level daily returns calculation:")
-                        print(f"DEBUG: - Number of trading days: {len(returns)}")
-                        print(f"DEBUG: - Mean daily return: {np.mean(returns)*100:.6f}%")
-                        print(f"DEBUG: - Std daily return: {np.std(returns)*100:.6f}%")
-                        print(f"DEBUG: - Min daily return: {np.min(returns)*100:.6f}%")
-                        print(f"DEBUG: - Max daily return: {np.max(returns)*100:.6f}%")
+                        logger.debug(f"Portfolio-level daily returns calculation:")
+                        logger.debug(f"- Number of trading days: {len(returns)}")
+                        logger.debug(f"- Mean daily return: {np.mean(returns)*100:.6f}%")
+                        logger.debug(f"- Std daily return: {np.std(returns)*100:.6f}%")
+                        logger.debug(f"- Min daily return: {np.min(returns)*100:.6f}%")
+                        logger.debug(f"- Max daily return: {np.max(returns)*100:.6f}%")
                     else:
-                        print(f"DEBUG: Portfolio-level analysis: Insufficient daily return data")
+                        logger.debug(f"Portfolio-level analysis: Insufficient daily return data")
                         returns = np.array([0.0])
                 else:
-                    print(f"DEBUG: Portfolio-level analysis: Insufficient trade data")
+                    logger.debug(f"Portfolio-level analysis: Insufficient trade data")
                     returns = np.array([0.0])
             
             # Calculate mean return and standard deviation
@@ -2462,26 +2411,26 @@ class MonteCarloSimulator:
                 mean_return = np.mean(returns)
                 std_return = np.std(returns)
                 
-                print(f"DEBUG: Basic return statistics:")
-                print(f"DEBUG: Mean return: {mean_return*100:.6f}%")
-                print(f"DEBUG: Standard deviation: {std_return*100:.6f}%")
-                print(f"DEBUG: Number of returns: {len(returns)}")
-                print(f"DEBUG: Min return: {np.min(returns)*100:.6f}%")
-                print(f"DEBUG: Max return: {np.max(returns)*100:.6f}%")
+                logger.debug(f"Basic return statistics:")
+                logger.debug(f"Mean return: {mean_return*100:.6f}%")
+                logger.debug(f"Standard deviation: {std_return*100:.6f}%")
+                logger.debug(f"Number of returns: {len(returns)}")
+                logger.debug(f"Min return: {np.min(returns)*100:.6f}%")
+                logger.debug(f"Max return: {np.max(returns)*100:.6f}%")
             except Exception as e:
-                print(f"DEBUG: Error calculating basic return statistics: {e}")
+                logger.debug(f"Error calculating basic return statistics: {e}")
                 mean_return = 0
                 std_return = 0
             
             # Check if returns are reasonable (not too large)
             if mean_return > 10.0:  # More than 1000% return
-                print(f"DEBUG: WARNING: Mean return is very large ({mean_return*100:.2f}%), this might cause issues")
+                logger.debug(f"WARNING: Mean return is very large ({mean_return*100:.2f}%), this might cause issues")
             if std_return > 5.0:  # More than 500% volatility
-                print(f"DEBUG: WARNING: Standard deviation is very large ({std_return*100:.2f}%), this might cause issues")
+                logger.debug(f"WARNING: Standard deviation is very large ({std_return*100:.2f}%), this might cause issues")
             
             # Sharpe Ratio: (Annual Return - Risk Free Rate) / Annual Volatility
-            print(f"DEBUG: === SHARPE RATIO CALCULATION ===")
-            print(f"DEBUG: About to calculate Sharpe ratio with mean_return={mean_return:.6f}, std_return={std_return:.6f}")
+            logger.debug(f"=== SHARPE RATIO CALCULATION ===")
+            logger.debug(f"About to calculate Sharpe ratio with mean_return={mean_return:.6f}, std_return={std_return:.6f}")
             try:
                 if std_return > 0:
                     if strategy_trades and days_elapsed > 0:
@@ -2508,16 +2457,16 @@ class MonteCarloSimulator:
                         excess_return = annual_return - risk_free_rate
                         sharpe_ratio = excess_return / annual_volatility
                         
-                        print(f"DEBUG: Strategy-specific Sharpe calculation:")
-                        print(f"DEBUG: Time period: {years:.2f} years")
-                        print(f"DEBUG: Trades per year: {trades_per_year:.2f}")
-                        print(f"DEBUG: Mean return per trade: {mean_return*100:.4f}%")
-                        print(f"DEBUG: Total return over period: {total_return*100:.4f}%")
-                        print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
-                        print(f"DEBUG: Annual volatility: {annual_volatility*100:.4f}%")
-                        print(f"DEBUG: Risk-free rate: {risk_free_rate*100:.4f}%")
-                        print(f"DEBUG: Excess return: {excess_return*100:.4f}%")
-                        print(f"DEBUG: Sharpe ratio: {sharpe_ratio:.4f}")
+                        logger.debug(f"Strategy-specific Sharpe calculation:")
+                        logger.debug(f"Time period: {years:.2f} years")
+                        logger.debug(f"Trades per year: {trades_per_year:.2f}")
+                        logger.debug(f"Mean return per trade: {mean_return*100:.4f}%")
+                        logger.debug(f"Total return over period: {total_return*100:.4f}%")
+                        logger.debug(f"Annual return: {annual_return*100:.4f}%")
+                        logger.debug(f"Annual volatility: {annual_volatility*100:.4f}%")
+                        logger.debug(f"Risk-free rate: {risk_free_rate*100:.4f}%")
+                        logger.debug(f"Excess return: {excess_return*100:.4f}%")
+                        logger.debug(f"Sharpe ratio: {sharpe_ratio:.4f}")
                     else:
                         # For portfolio-level, we need to annualize the returns
                         # The returns are total returns over the entire simulation period
@@ -2546,40 +2495,40 @@ class MonteCarloSimulator:
                                 excess_return = annual_return - risk_free_rate
                                 sharpe_ratio = excess_return / annual_volatility
                                 
-                                print(f"DEBUG: Portfolio-level Sharpe calculation (annualized):")
-                                print(f"DEBUG: Time period: {years:.2f} years")
-                                print(f"DEBUG: Total return: {total_return*100:.4f}%")
-                                print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
-                                print(f"DEBUG: Annual volatility: {annual_volatility*100:.4f}%")
-                                print(f"DEBUG: Risk-free rate: {risk_free_rate*100:.4f}%")
-                                print(f"DEBUG: Excess return: {excess_return*100:.4f}%")
-                                print(f"DEBUG: Sharpe ratio: {sharpe_ratio:.4f}")
+                                logger.debug(f"Portfolio-level Sharpe calculation (annualized):")
+                                logger.debug(f"Time period: {years:.2f} years")
+                                logger.debug(f"Total return: {total_return*100:.4f}%")
+                                logger.debug(f"Annual return: {annual_return*100:.4f}%")
+                                logger.debug(f"Annual volatility: {annual_volatility*100:.4f}%")
+                                logger.debug(f"Risk-free rate: {risk_free_rate*100:.4f}%")
+                                logger.debug(f"Excess return: {excess_return*100:.4f}%")
+                                logger.debug(f"Sharpe ratio: {sharpe_ratio:.4f}")
                             else:
                                 sharpe_ratio = 0
-                                print(f"DEBUG: Portfolio-level Sharpe calculation: Time period too short ({years:.2f} years)")
+                                logger.debug(f"Portfolio-level Sharpe calculation: Time period too short ({years:.2f} years)")
                         else:
                             sharpe_ratio = 0
-                            print(f"DEBUG: Portfolio-level Sharpe calculation: Insufficient trade data")
+                            logger.debug(f"Portfolio-level Sharpe calculation: Insufficient trade data")
                 else:
                     sharpe_ratio = 0
-                    print(f"DEBUG: Sharpe ratio = 0 (standard deviation is 0)")
+                    logger.debug(f"Sharpe ratio = 0 (standard deviation is 0)")
             except Exception as e:
-                print(f"DEBUG: Error in Sharpe ratio calculation: {e}")
+                logger.debug(f"Error in Sharpe ratio calculation: {e}")
                 sharpe_ratio = 0
             
             # Sortino Ratio: (Annual Return - Risk Free Rate) / Annual Downside Deviation
             # Downside deviation only considers negative returns
             negative_returns = returns[returns < 0]
             
-            print(f"DEBUG: === SORTINO RATIO CALCULATION ===")
-            print(f"DEBUG: Total returns: {len(returns)}")
-            print(f"DEBUG: Negative returns: {len(negative_returns)}")
+            logger.debug(f"=== SORTINO RATIO CALCULATION ===")
+            logger.debug(f"Total returns: {len(returns)}")
+            logger.debug(f"Negative returns: {len(negative_returns)}")
             if len(negative_returns) > 0:
-                print(f"DEBUG: Negative returns range: {np.min(negative_returns)*100:.6f}% to {np.max(negative_returns)*100:.6f}%")
-                print(f"DEBUG: Mean negative return: {np.mean(negative_returns)*100:.6f}%")
-                print(f"DEBUG: Std dev of negative returns: {np.std(negative_returns)*100:.6f}%")
+                logger.debug(f"Negative returns range: {np.min(negative_returns)*100:.6f}% to {np.max(negative_returns)*100:.6f}%")
+                logger.debug(f"Mean negative return: {np.mean(negative_returns)*100:.6f}%")
+                logger.debug(f"Std dev of negative returns: {np.std(negative_returns)*100:.6f}%")
             else:
-                print(f"DEBUG: No negative returns found - perfect downside protection")
+                logger.debug(f"No negative returns found - perfect downside protection")
             
             if strategy_trades and days_elapsed > 0:
                 # Calculate annualized metrics for proper Sortino ratio
@@ -2593,11 +2542,11 @@ class MonteCarloSimulator:
                 total_return = (final_balance - initial_balance) / initial_balance
                 annual_return = (1 + total_return) ** (1/years) - 1
                 
-                print(f"DEBUG: Strategy-specific Sortino calculation:")
-                print(f"DEBUG: Time period: {years:.2f} years")
-                print(f"DEBUG: Trades per year: {trades_per_year:.2f}")
-                print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
-                print(f"DEBUG: Risk-free rate: {risk_free_rate*100:.4f}%")
+                logger.debug(f"Strategy-specific Sortino calculation:")
+                logger.debug(f"Time period: {years:.2f} years")
+                logger.debug(f"Trades per year: {trades_per_year:.2f}")
+                logger.debug(f"Annual return: {annual_return*100:.4f}%")
+                logger.debug(f"Risk-free rate: {risk_free_rate*100:.4f}%")
                 
                 # Calculate downside deviation from historical daily returns (same as portfolio simulation)
                 daily_returns = self._calculate_daily_portfolio_returns(sorted_trades)
@@ -2609,28 +2558,28 @@ class MonteCarloSimulator:
                         daily_downside_deviation = np.std(negative_daily_returns)
                         downside_deviation = daily_downside_deviation * np.sqrt(252)  # Annualize
                         sortino_ratio = (annual_return - risk_free_rate) / downside_deviation
-                        print(f"DEBUG: Multiple negative daily returns case:")
-                        print(f"DEBUG: Downside deviation (annualized): {downside_deviation*100:.4f}%")
-                        print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                        logger.debug(f"Multiple negative daily returns case:")
+                        logger.debug(f"Downside deviation (annualized): {downside_deviation*100:.4f}%")
+                        logger.debug(f"Sortino ratio: {sortino_ratio:.4f}")
                     else:
                         # If no negative daily returns, use a reasonable estimate
                         downside_deviation = annual_volatility * 0.5  # Assume downside is 50% of total volatility
                         sortino_ratio = (annual_return - risk_free_rate) / downside_deviation
-                        print(f"DEBUG: No negative daily returns case (using 50% of volatility):")
-                        print(f"DEBUG: Downside deviation: {downside_deviation*100:.4f}%")
-                        print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                        logger.debug(f"No negative daily returns case (using 50% of volatility):")
+                        logger.debug(f"Downside deviation: {downside_deviation*100:.4f}%")
+                        logger.debug(f"Sortino ratio: {sortino_ratio:.4f}")
                 else:
                     # Fallback: use a reasonable estimate
                     downside_deviation = annual_volatility * 0.5  # Assume downside is 50% of total volatility
                     sortino_ratio = (annual_return - risk_free_rate) / downside_deviation
-                    print(f"DEBUG: Fallback downside deviation case:")
-                    print(f"DEBUG: Downside deviation: {downside_deviation*100:.4f}%")
-                    print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                    logger.debug(f"Fallback downside deviation case:")
+                    logger.debug(f"Downside deviation: {downside_deviation*100:.4f}%")
+                    logger.debug(f"Sortino ratio: {sortino_ratio:.4f}")
             else:
                 # For portfolio-level, we need to annualize the returns for Sortino calculation
-                print(f"DEBUG: Portfolio-level Sortino calculation:")
-                print(f"DEBUG: Mean return: {mean_return*100:.4f}%")
-                print(f"DEBUG: Risk-free rate: {risk_free_rate*100:.4f}%")
+                logger.debug(f"Portfolio-level Sortino calculation:")
+                logger.debug(f"Mean return: {mean_return*100:.4f}%")
+                logger.debug(f"Risk-free rate: {risk_free_rate*100:.4f}%")
                 
                 # Calculate time period from historical data (same as Sharpe calculation)
                 all_trades = []
@@ -2656,25 +2605,25 @@ class MonteCarloSimulator:
                             downside_deviation = np.std(negative_returns) * np.sqrt(252)
                             if downside_deviation > 0:
                                 sortino_ratio = (annual_return - risk_free_rate) / downside_deviation
-                                print(f"DEBUG: Multiple negative returns case (annualized):")
-                                print(f"DEBUG: Time period: {years:.2f} years")
-                                print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
-                                print(f"DEBUG: Downside deviation (annualized): {downside_deviation*100:.4f}%")
-                                print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                                logger.debug(f"Multiple negative returns case (annualized):")
+                                logger.debug(f"Time period: {years:.2f} years")
+                                logger.debug(f"Annual return: {annual_return*100:.4f}%")
+                                logger.debug(f"Downside deviation (annualized): {downside_deviation*100:.4f}%")
+                                logger.debug(f"Sortino ratio: {sortino_ratio:.4f}")
                             else:
                                 sortino_ratio = (annual_return - risk_free_rate) / 0.001
-                                print(f"DEBUG: Identical negative returns case (using 0.001 divisor):")
-                                print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                                logger.debug(f"Identical negative returns case (using 0.001 divisor):")
+                                logger.debug(f"Sortino ratio: {sortino_ratio:.4f}")
                         elif len(negative_returns) == 1:
                             # Annualize single negative return for daily returns
                             downside_deviation = abs(negative_returns[0]) * np.sqrt(252)
                             sortino_ratio = (annual_return - risk_free_rate) / downside_deviation
-                            print(f"DEBUG: Single negative return case (annualized):")
-                            print(f"DEBUG: Time period: {years:.2f} years")
-                            print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
-                            print(f"DEBUG: Single negative return: {negative_returns[0]*100:.6f}%")
-                            print(f"DEBUG: Downside deviation (annualized): {downside_deviation*100:.4f}%")
-                            print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                            logger.debug(f"Single negative return case (annualized):")
+                            logger.debug(f"Time period: {years:.2f} years")
+                            logger.debug(f"Annual return: {annual_return*100:.4f}%")
+                            logger.debug(f"Single negative return: {negative_returns[0]*100:.6f}%")
+                            logger.debug(f"Downside deviation (annualized): {downside_deviation*100:.4f}%")
+                            logger.debug(f"Sortino ratio: {sortino_ratio:.4f}")
                         else:
                             # When no negative returns, use a more realistic approach
                             if annual_return > risk_free_rate:
@@ -2691,29 +2640,29 @@ class MonteCarloSimulator:
                             else:
                                 sortino_ratio = 0
                                 
-                            print(f"DEBUG: No negative returns case (using conservative estimate, annualized):")
-                            print(f"DEBUG: Time period: {years:.2f} years")
-                            print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
-                            print(f"DEBUG: Sortino ratio: {sortino_ratio:.4f}")
+                            logger.debug(f"No negative returns case (using conservative estimate, annualized):")
+                            logger.debug(f"Time period: {years:.2f} years")
+                            logger.debug(f"Annual return: {annual_return*100:.4f}%")
+                            logger.debug(f"Sortino ratio: {sortino_ratio:.4f}")
                     else:
                         sortino_ratio = 0
-                        print(f"DEBUG: Portfolio-level Sortino calculation: Time period too short ({years:.2f} years)")
+                        logger.debug(f"Portfolio-level Sortino calculation: Time period too short ({years:.2f} years)")
                 else:
                     sortino_ratio = 0
-                    print(f"DEBUG: Portfolio-level Sortino calculation: Insufficient trade data")
+                    logger.debug(f"Portfolio-level Sortino calculation: Insufficient trade data")
             
             # MAR (Maximum Adverse Return): Annual Return / Maximum Drawdown
             # Use the max drawdowns from the simulation results
-            print(f"DEBUG: === MAR (MAXIMUM ADVERSE RETURN) CALCULATION ===")
+            logger.debug(f"=== MAR (MAXIMUM ADVERSE RETURN) CALCULATION ===")
             if max_drawdowns is not None:
-                print(f"DEBUG: Max drawdowns array length: {len(max_drawdowns)}")
+                logger.debug(f"Max drawdowns array length: {len(max_drawdowns)}")
                 if len(max_drawdowns) > 0:
-                    print(f"DEBUG: Sample max drawdowns (first 5): {max_drawdowns[:5]}")
-                    print(f"DEBUG: Mean max drawdown: ${np.mean(max_drawdowns):,.2f}")
+                    logger.debug(f"Sample max drawdowns (first 5): {max_drawdowns[:5]}")
+                    logger.debug(f"Mean max drawdown: ${np.mean(max_drawdowns):,.2f}")
                 else:
-                    print(f"DEBUG: No max drawdowns available")
+                    logger.debug(f"No max drawdowns available")
             else:
-                print(f"DEBUG: Max drawdowns is None")
+                logger.debug(f"Max drawdowns is None")
             
             if max_drawdowns is not None and len(max_drawdowns) > 0:
                 mean_max_drawdown = np.mean(max_drawdowns)
@@ -2723,20 +2672,20 @@ class MonteCarloSimulator:
                         # Strategy-specific: already have annual_return
                         # Calculate initial balance for this strategy
                         strategy_initial_balance = sorted_trades[0].funds_at_close - sorted_trades[0].pnl
-                        print(f"DEBUG: Strategy-specific MAR calculation:")
-                        print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
-                        print(f"DEBUG: Mean max drawdown: ${mean_max_drawdown:,.2f}")
-                        print(f"DEBUG: Strategy initial balance: ${strategy_initial_balance:,.2f}")
-                        print(f"DEBUG: Max drawdown as % of balance: {(mean_max_drawdown/strategy_initial_balance)*100:.4f}%")
+                        logger.debug(f"Strategy-specific MAR calculation:")
+                        logger.debug(f"Annual return: {annual_return*100:.4f}%")
+                        logger.debug(f"Mean max drawdown: ${mean_max_drawdown:,.2f}")
+                        logger.debug(f"Strategy initial balance: ${strategy_initial_balance:,.2f}")
+                        logger.debug(f"Max drawdown as % of balance: {(mean_max_drawdown/strategy_initial_balance)*100:.4f}%")
                         # Use the actual maximum drawdown from portfolio overview for consistency
                         # Get the actual max drawdown from portfolio metrics
                         metrics = PortfolioMetrics(self.portfolio)
                         portfolio_metrics = metrics.get_overview_metrics()
                         actual_max_drawdown_pct = abs(portfolio_metrics['max_drawdown_pct']) / 100.0
-                        print(f"DEBUG: Portfolio metrics max_drawdown_pct: {portfolio_metrics['max_drawdown_pct']:.2f}%")
-                        print(f"DEBUG: Actual max drawdown (decimal): {actual_max_drawdown_pct:.4f}")
+                        logger.debug(f"Portfolio metrics max_drawdown_pct: {portfolio_metrics['max_drawdown_pct']:.2f}%")
+                        logger.debug(f"Actual max drawdown (decimal): {actual_max_drawdown_pct:.4f}")
                         mar_ratio = annual_return / actual_max_drawdown_pct
-                        print(f"DEBUG: MAR (Maximum Adverse Return): {mar_ratio:.4f}")
+                        logger.debug(f"MAR (Maximum Adverse Return): {mar_ratio:.4f}")
                     else:
                         # Portfolio-level: need to calculate annual return
                         all_trades = []
@@ -2763,18 +2712,18 @@ class MonteCarloSimulator:
                                 actual_max_drawdown_pct = abs(portfolio_metrics['max_drawdown_pct']) / 100.0
                                 mar_ratio = annual_return / actual_max_drawdown_pct
                                 
-                                print(f"DEBUG: Portfolio-level MAR calculation:")
-                                print(f"DEBUG: Time period: {years:.2f} years")
-                                print(f"DEBUG: Annual return: {annual_return*100:.4f}%")
-                                print(f"DEBUG: Portfolio metrics max_drawdown_pct: {portfolio_metrics['max_drawdown_pct']:.2f}%")
-                                print(f"DEBUG: Actual max drawdown (decimal): {actual_max_drawdown_pct:.4f}")
-                                print(f"DEBUG: MAR (Maximum Adverse Return): {mar_ratio:.4f}")
+                                logger.debug(f"Portfolio-level MAR calculation:")
+                                logger.debug(f"Time period: {years:.2f} years")
+                                logger.debug(f"Annual return: {annual_return*100:.4f}%")
+                                logger.debug(f"Portfolio metrics max_drawdown_pct: {portfolio_metrics['max_drawdown_pct']:.2f}%")
+                                logger.debug(f"Actual max drawdown (decimal): {actual_max_drawdown_pct:.4f}")
+                                logger.debug(f"MAR (Maximum Adverse Return): {mar_ratio:.4f}")
                             else:
                                 mar_ratio = 0
-                                print(f"DEBUG: Portfolio-level MAR calculation: Time period too short ({years:.2f} years)")
+                                logger.debug(f"Portfolio-level MAR calculation: Time period too short ({years:.2f} years)")
                         else:
                             mar_ratio = 0
-                            print(f"DEBUG: Portfolio-level MAR calculation: Insufficient trade data")
+                            logger.debug(f"Portfolio-level MAR calculation: Insufficient trade data")
                 else:
                     # When no drawdown, use a conservative estimate
                     if strategy_trades and days_elapsed > 0:
@@ -2788,7 +2737,7 @@ class MonteCarloSimulator:
                 else:
                     mar_ratio = min(10.0, mean_return / 0.01)
             
-            print(f"DEBUG: MAR (Maximum Adverse Return) calculation completed: {mar_ratio}")
+            logger.debug(f"MAR (Maximum Adverse Return) calculation completed: {mar_ratio}")
             
             # Ensure actual_max_drawdown_pct is defined for return values
             if 'actual_max_drawdown_pct' not in locals():
@@ -2820,29 +2769,29 @@ class MonteCarloSimulator:
             # Return to Risk Ratio: Annual Return / Annual Volatility
             # Use annualized values for consistency with other ratios
             return_to_risk = annual_return / annual_volatility if annual_volatility > 0 else 0
-            print(f"DEBUG: Return to Risk calculation:")
-            print(f"DEBUG: Mean return: {mean_return:.6f}")
-            print(f"DEBUG: Std return: {std_return:.6f}")
-            print(f"DEBUG: Return to Risk: {return_to_risk:.6f}")
+            logger.debug(f"Return to Risk calculation:")
+            logger.debug(f"Mean return: {mean_return:.6f}")
+            logger.debug(f"Std return: {std_return:.6f}")
+            logger.debug(f"Return to Risk: {return_to_risk:.6f}")
             
             # Debug the raw risk ratio values
-            print(f"DEBUG: Raw risk ratio values:")
-            print(f"DEBUG: Sharpe ratio: {sharpe_ratio} (type: {type(sharpe_ratio)})")
-            print(f"DEBUG: Sortino ratio: {sortino_ratio} (type: {type(sortino_ratio)})")
-            print(f"DEBUG: MAR (Maximum Adverse Return): {mar_ratio} (type: {type(mar_ratio)})")
-            print(f"DEBUG: Information ratio: {information_ratio} (type: {type(information_ratio)})")
-            print(f"DEBUG: Return to risk: {return_to_risk} (type: {type(return_to_risk)})")
+            logger.debug(f"Raw risk ratio values:")
+            logger.debug(f"Sharpe ratio: {sharpe_ratio} (type: {type(sharpe_ratio)})")
+            logger.debug(f"Sortino ratio: {sortino_ratio} (type: {type(sortino_ratio)})")
+            logger.debug(f"MAR (Maximum Adverse Return): {mar_ratio} (type: {type(mar_ratio)})")
+            logger.debug(f"Information ratio: {information_ratio} (type: {type(information_ratio)})")
+            logger.debug(f"Return to risk: {return_to_risk} (type: {type(return_to_risk)})")
             
             # Debug the safe_float conversions
-            print(f"DEBUG: After safe_float conversion:")
-            print(f"DEBUG: Sharpe ratio: {safe_float(sharpe_ratio)}")
-            print(f"DEBUG: Sortino ratio: {safe_float(sortino_ratio)}")
-            print(f"DEBUG: MAR (Maximum Adverse Return): {safe_float(mar_ratio)}")
-            print(f"DEBUG: Information ratio: {safe_float(information_ratio)}")
-            print(f"DEBUG: Return to risk: {safe_float(return_to_risk)}")
+            logger.debug(f"After safe_float conversion:")
+            logger.debug(f"Sharpe ratio: {safe_float(sharpe_ratio)}")
+            logger.debug(f"Sortino ratio: {safe_float(sortino_ratio)}")
+            logger.debug(f"MAR (Maximum Adverse Return): {safe_float(mar_ratio)}")
+            logger.debug(f"Information ratio: {safe_float(information_ratio)}")
+            logger.debug(f"Return to risk: {safe_float(return_to_risk)}")
             
-            print(f"DEBUG: === FINAL RISK RATIO RETURN ===")
-            print(f"DEBUG: About to return risk ratios")
+            logger.debug(f"=== FINAL RISK RATIO RETURN ===")
+            logger.debug(f"About to return risk ratios")
             
             return {
                 'sharpe_ratio': safe_float(sharpe_ratio),
@@ -2858,9 +2807,9 @@ class MonteCarloSimulator:
             
         except Exception as e:
             # Return default values if calculation fails
-            print(f"DEBUG: Exception in _calculate_risk_ratios: {e}")
+            logger.debug(f"Exception in _calculate_risk_ratios: {e}")
             import traceback
-            print(f"DEBUG: Traceback: {traceback.format_exc()}")
+            logger.debug(f"Traceback: {traceback.format_exc()}")
             return {
                 'sharpe_ratio': 0,
                 'sortino_ratio': 0,
@@ -3192,11 +3141,11 @@ class CrossFileAnalyzer:
             if selected_files:
                 # Filter to only selected files
                 file_list = [f for f in all_files if f['filename'] in selected_files]
-                print(f"DEBUG: Filtering to {len(file_list)} selected files out of {len(all_files)} total files")
+                logger.debug(f"Filtering to {len(file_list)} selected files out of {len(all_files)} total files")
             else:
                 # Use all files (backward compatibility)
                 file_list = all_files
-                print(f"DEBUG: Using all {len(file_list)} files for analysis")
+                logger.debug(f"Using all {len(file_list)} files for analysis")
             
             if len(file_list) < 2:
                 return {
@@ -3208,33 +3157,33 @@ class CrossFileAnalyzer:
             # Load all portfolios and their strategies
             portfolios_data = []
             
-            print(f"DEBUG: Found {len(file_list)} files to analyze:")
+            logger.debug(f"Found {len(file_list)} files to analyze:")
             for file_info in file_list:
-                print(f"  - {file_info['friendly_name']} ({file_info['filename']})")
+                logger.debug("File: %s (%s)", file_info['friendly_name'], file_info['filename'])
             
             for file_info in file_list:
                 try:
                     file_path = self.file_manager.get_file_path(file_info['filename'])
-                    print(f"DEBUG: Loading file {file_info['friendly_name']} from {file_path}")
+                    logger.debug(f"Loading file {file_info['friendly_name']} from {file_path}")
                     
                     # Create temporary portfolio for this file
                     from models import Portfolio
                     temp_portfolio = Portfolio()
                     temp_portfolio.load_from_csv(file_path)
                     
-                    print(f"DEBUG: Loaded {len(temp_portfolio.strategies)} strategies from {file_info['friendly_name']}")
+                    logger.debug(f"Loaded {len(temp_portfolio.strategies)} strategies from {file_info['friendly_name']}")
                     
                     # Get date range for this file
                     all_trades = []
                     for strategy in temp_portfolio.strategies.values():
                         all_trades.extend(strategy.trades)
                     
-                    print(f"DEBUG: Found {len(all_trades)} total trades in {file_info['friendly_name']}")
+                    logger.debug(f"Found {len(all_trades)} total trades in {file_info['friendly_name']}")
                     
                     if all_trades:
                         # Debug: Show sample dates before parsing
                         sample_dates = [trade.date_closed for trade in all_trades[:3]]
-                        print(f"DEBUG: Sample date_closed values from {file_info['friendly_name']}: {sample_dates}")
+                        logger.debug(f"Sample date_closed values from {file_info['friendly_name']}: {sample_dates}")
                         
                         dates = []
                         for trade in all_trades:
@@ -3242,14 +3191,14 @@ class CrossFileAnalyzer:
                                 parsed_date = pd.to_datetime(trade.date_closed)
                                 dates.append(parsed_date)
                             except Exception as e:
-                                print(f"DEBUG: Failed to parse date '{trade.date_closed}' from {file_info['friendly_name']}: {e}")
+                                logger.debug(f"Failed to parse date '{trade.date_closed}' from {file_info['friendly_name']}: {e}")
                                 continue
                         
                         if dates:
                             start_date = min(dates)
                             end_date = max(dates)
                             
-                            print(f"DEBUG: Date range for {file_info['friendly_name']}: {start_date.date()} to {end_date.date()}")
+                            logger.debug(f"Date range for {file_info['friendly_name']}: {start_date.date()} to {end_date.date()}")
                             
                             portfolios_data.append({
                                 'filename': file_info['filename'],
@@ -3260,11 +3209,11 @@ class CrossFileAnalyzer:
                                 'trade_count': len(all_trades)
                             })
                         else:
-                            print(f"DEBUG: No valid dates found in {file_info['friendly_name']}")
+                            logger.debug(f"No valid dates found in {file_info['friendly_name']}")
                     else:
-                        print(f"DEBUG: No trades found in {file_info['friendly_name']}")
+                        logger.debug(f"No trades found in {file_info['friendly_name']}")
                 except Exception as e:
-                    print(f"Warning: Could not load file {file_info['filename']}: {e}")
+                    logger.warning("Could not load file %s: %s", file_info['filename'], e)
                     import traceback
                     traceback.print_exc()
                     continue
@@ -3281,23 +3230,23 @@ class CrossFileAnalyzer:
             common_end = min(p['end_date'] for p in portfolios_data)
             
             # Debug: Print date ranges for troubleshooting
-            print(f"DEBUG: Cross-file correlation date analysis:")
+            logger.debug(f"Cross-file correlation date analysis:")
             for p in portfolios_data:
-                print(f"  {p['friendly_name']}: {p['start_date'].date()} to {p['end_date'].date()}")
-                print(f"    Raw dates: {p['start_date']} to {p['end_date']}")
-                print(f"    Date types: {type(p['start_date'])} to {type(p['end_date'])}")
+                logger.debug("%s raw_dates=%s..%s types=%s..%s", p,
+                             p['start_date'], p['end_date'],
+                             type(p['start_date']), type(p['end_date']))
             
-            print(f"  Common range: {common_start.date()} to {common_end.date()}")
-            print(f"  Raw common dates: {common_start} to {common_end}")
-            print(f"  Overlap check: {common_start.date()} > {common_end.date()} = {common_start > common_end}")
-            print(f"  Raw comparison: {common_start} > {common_end} = {common_start > common_end}")
+            logger.debug("Common range: %s to %s", common_start, common_end)
+            logger.debug("Raw common dates: %s to %s", common_start, common_end)
+            logger.debug("Overlap check: %s > %s = %s", common_start, common_end, common_start > common_end)
+            logger.debug("Raw comparison: %s > %s = %s", common_start, common_end, common_start > common_end)
             
             # Additional debugging: show the actual values being compared
-            print(f"  common_start value: {repr(common_start)}")
-            print(f"  common_end value: {repr(common_end)}")
-            print(f"  common_start > common_end: {common_start > common_end}")
-            print(f"  common_start >= common_end: {common_start >= common_end}")
-            print(f"  common_start == common_end: {common_start == common_end}")
+            logger.debug("common_start: %r", common_start)
+            logger.debug("common_end: %r", common_end)
+            logger.debug("common_start > common_end: %s", common_start > common_end)
+            logger.debug("common_start >= common_end: %s", common_start >= common_end)
+            logger.debug("common_start == common_end: %s", common_start == common_end)
             
             if common_start > common_end:
                 return {
@@ -3358,7 +3307,7 @@ class CrossFileAnalyzer:
             
             # Limit strategies if max_pairs is specified and we have more strategies than the limit
             if max_pairs and len(correlation_matrix.columns) > max_pairs:
-                print(f"DEBUG: Limiting correlation matrix to top {max_pairs} most uncorrelated strategies (from {len(correlation_matrix.columns)} total)")
+                logger.debug(f"Limiting correlation matrix to top {max_pairs} most uncorrelated strategies (from {len(correlation_matrix.columns)} total)")
                 
                 # Find the most uncorrelated strategies by calculating average absolute correlation for each strategy
                 strategy_correlations = {}
@@ -3373,9 +3322,9 @@ class CrossFileAnalyzer:
                 most_uncorrelated_strategies = sorted(strategy_correlations.items(), key=lambda x: x[1])[:max_pairs]
                 top_strategies = [strategy for strategy, _ in most_uncorrelated_strategies]
                 
-                print(f"DEBUG: Selected {len(top_strategies)} most uncorrelated strategies:")
+                logger.debug(f"Selected {len(top_strategies)} most uncorrelated strategies:")
                 for strategy, avg_corr in most_uncorrelated_strategies:
-                    print(f"  {strategy.split('::')[1]}: avg correlation = {avg_corr:.3f}")
+                    logger.debug("%s: avg correlation = %.3f", strategy, avg_corr)
                 
                 # Filter correlation matrix to only include most uncorrelated strategies
                 correlation_matrix = correlation_matrix.loc[top_strategies, top_strategies]
@@ -3938,68 +3887,46 @@ class MEICAnalyzer:
             except:
                 pass
         
-        # Create a DataFrame for easier manipulation
-        heatmap_data = []
-        
+        # Build lists for vectorized DataFrame creation
+        days, times, pnls, dates = [], [], [], []
         for group in valid_leg_groups.values():
             entry_date = pd.to_datetime(group['entry_date'])
-            
-            # Apply date filtering
             if start_date_parsed and entry_date < start_date_parsed:
                 continue
             if end_date_parsed and entry_date > end_date_parsed:
                 continue
-            
-            day_of_week = entry_date.strftime('%A')
-            entry_time = group['entry_time']
-            
-            # Calculate total P&L for this leg group
-            total_pnl = 0
-            if group['put_spread']:
-                total_pnl += group['put_spread'].pnl
-            if group['call_spread']:
-                total_pnl += group['call_spread'].pnl
-            
-            heatmap_data.append({
-                'day_of_week': day_of_week,
-                'entry_time': entry_time,
-                'total_pnl': total_pnl,
-                'entry_date': entry_date
-            })
+            total_pnl = (group['put_spread'].pnl if group['put_spread'] else 0) + (group['call_spread'].pnl if group['call_spread'] else 0)
+            days.append(entry_date.strftime('%A'))
+            times.append(group['entry_time'])
+            pnls.append(total_pnl)
+            dates.append(entry_date)
+        df = pd.DataFrame({'day_of_week': days, 'entry_time': times, 'total_pnl': pnls, 'entry_date': dates})
         
-        df = pd.DataFrame(heatmap_data)
+        if df.empty:
+            return {
+                'success': False,
+                'error': 'No valid MEIC trades in date range',
+                'data': {
+                    'pnl_heatmap': {},
+                    'count_heatmap': {},
+                    'daily_pnl_totals': {},
+                    'summary_stats': {'total_leg_groups': 0, 'total_pnl': 0, 'avg_pnl_per_group': 0, 'best_day': None, 'worst_day': None},
+                    'date_range': None
+                }
+            }
         
-        # Group by day of week and entry time
-        heatmap_summary = df.groupby(['day_of_week', 'entry_time']).agg({
-            'total_pnl': ['sum', 'count', 'mean']
-        }).round(2)
+        heatmap_summary = df.groupby(['day_of_week', 'entry_time']).agg(total_pnl=('total_pnl', 'sum'), trade_count=('total_pnl', 'count'), avg_pnl=('total_pnl', 'mean')).round(2).reset_index()
         
-        # Flatten column names
-        heatmap_summary.columns = ['total_pnl', 'trade_count', 'avg_pnl']
-        heatmap_summary = heatmap_summary.reset_index()
-        
-        # Create pivot table for heatmap
         pivot_pnl = heatmap_summary.pivot(index='day_of_week', columns='entry_time', values='total_pnl').fillna(0)
         pivot_count = heatmap_summary.pivot(index='day_of_week', columns='entry_time', values='trade_count').fillna(0)
         
-        # Order days of week
         day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        pivot_pnl = pivot_pnl.reindex([day for day in day_order if day in pivot_pnl.index])
-        pivot_count = pivot_count.reindex([day for day in day_order if day in pivot_pnl.index])
+        pivot_pnl = pivot_pnl.reindex([d for d in day_order if d in pivot_pnl.index])
+        pivot_count = pivot_count.reindex([d for d in day_order if d in pivot_count.index])
         
-        # Convert to ordered dictionary to preserve day order
-        ordered_pnl_heatmap = {}
-        for day in pivot_pnl.index:
-            ordered_pnl_heatmap[day] = pivot_pnl.loc[day].to_dict()
-        
-        ordered_count_heatmap = {}
-        for day in pivot_count.index:
-            ordered_count_heatmap[day] = pivot_count.loc[day].to_dict()
-        
-        # Calculate P&L totals per day
-        daily_pnl_totals = {}
-        for day in pivot_pnl.index:
-            daily_pnl_totals[day] = round(pivot_pnl.loc[day].sum(), 2)
+        ordered_pnl_heatmap = pivot_pnl.to_dict('index')
+        ordered_count_heatmap = pivot_count.to_dict('index')
+        daily_pnl_totals = {day: round(pivot_pnl.loc[day].sum(), 2) for day in pivot_pnl.index}
         
         # Calculate date range for sliders
         date_range = None
@@ -4012,9 +3939,8 @@ class MEICAnalyzer:
                 'total_trades': len(df)
             }
 
-        # Calculate total P&L from ALL MEIC trades (gross P&L, no commission subtraction)
-        total_meic_pnl = sum(trade.pnl for trade in self.meic_trades)
-        
+        total_pnl_filtered = df['total_pnl'].sum()
+        day_totals = df.groupby('day_of_week')['total_pnl'].sum()
         return {
             'success': True,
             'data': {
@@ -4022,11 +3948,11 @@ class MEICAnalyzer:
                 'count_heatmap': ordered_count_heatmap,
                 'daily_pnl_totals': daily_pnl_totals,
                 'summary_stats': {
-                    'total_leg_groups': len(self.leg_groups),
-                    'total_pnl': round(total_meic_pnl, 2),  # Gross P&L from all MEIC trades
-                    'avg_pnl_per_group': round(df['total_pnl'].mean(), 2) if not df.empty else 0,
-                    'best_day': df.groupby('day_of_week')['total_pnl'].sum().idxmax() if not df.empty else None,
-                    'worst_day': df.groupby('day_of_week')['total_pnl'].sum().idxmin() if not df.empty else None
+                    'total_leg_groups': len(df),
+                    'total_pnl': round(total_pnl_filtered, 2),
+                    'avg_pnl_per_group': round(df['total_pnl'].mean(), 2),
+                    'best_day': day_totals.idxmax() if len(day_totals) > 0 else None,
+                    'worst_day': day_totals.idxmin() if len(day_totals) > 0 else None
                 },
                 'date_range': date_range
             }

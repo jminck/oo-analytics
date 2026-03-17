@@ -1,7 +1,7 @@
 {
   "spx": {
-    "opening_cost": 1.78,
-    "closing_cost": 0.78,
+    "opening_cost": 1.0,
+    "closing_cost": 1.0,
     "exercise_fee": 9.0
   },
   "qqq": {

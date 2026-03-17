@@ -159,7 +159,9 @@ class I18n {
         chartButtons.forEach(button => {
             const chartType = button.getAttribute('data-chart-type');
             if (chartType && this.translations[`chart_${chartType}`]) {
-                button.textContent = this.t(`chart_${chartType}`);
+                const icon = button.querySelector('i');
+                const iconHTML = icon ? icon.outerHTML : '';
+                button.innerHTML = iconHTML + ' ' + this.t(`chart_${chartType}`);
             }
         });
 

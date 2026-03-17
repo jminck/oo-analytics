@@ -4,9 +4,11 @@ Handles Redis caching for chart results and expensive calculations.
 """
 
 import os
+import time
 import json
 import pickle
 import hashlib
+from collections import OrderedDict
 from typing import Any, Optional, Callable
 from functools import wraps
 import logging
@@ -24,11 +26,13 @@ logger = logging.getLogger(__name__)
 class CacheManager:
     """Manages caching for expensive calculations."""
     
+    MAX_CACHE_SIZE = 200
+
     def __init__(self):
         self.cache_ttl = 3600  # 1 hour default TTL
-        self._memory_cache = {}  # Fallback in-memory cache
-        self._chart_cache = {}  # Dedicated chart cache
-        self._analytics_cache = {}  # Dedicated analytics cache
+        self._memory_cache = OrderedDict()  # LRU in-memory cache
+        self._chart_cache = OrderedDict()  # LRU chart cache
+        self._analytics_cache = OrderedDict()  # LRU analytics cache
         
         if REDIS_AVAILABLE:
             try:
@@ -63,8 +67,8 @@ class CacheManager:
                 # Use in-memory cache
                 if key in self._memory_cache:
                     data, timestamp = self._memory_cache[key]
-                    # Check if expired (simple TTL check)
-                    if os.path.getmtime(__file__) - timestamp < self.cache_ttl:
+                    if time.time() - timestamp < self.cache_ttl:
+                        self._memory_cache.move_to_end(key)
                         return data
                     else:
                         del self._memory_cache[key]
@@ -81,8 +85,9 @@ class CacheManager:
                 self.redis_client.setex(key, ttl, pickle.dumps(data))
                 return True
             else:
-                # Use in-memory cache
-                self._memory_cache[key] = (data, os.path.getmtime(__file__))
+                self._memory_cache[key] = (data, time.time())
+                if len(self._memory_cache) > self.MAX_CACHE_SIZE:
+                    self._memory_cache.popitem(last=False)
                 return True
         except Exception as e:
             logger.warning(f"Cache set error for key {key}: {e}")
@@ -123,38 +128,65 @@ class CacheManager:
     
     def get_chart_cache(self, key: str) -> Optional[Any]:
         """Get cached chart data."""
-        return self._chart_cache.get(key)
+        val = self._chart_cache.get(key)
+        if val is not None:
+            self._chart_cache.move_to_end(key)
+        return val
     
     def set_chart_cache(self, key: str, data: Any):
         """Set cached chart data."""
         self._chart_cache[key] = data
+        if len(self._chart_cache) > self.MAX_CACHE_SIZE:
+            self._chart_cache.popitem(last=False)
     
     def get_analytics_cache(self, key: str) -> Optional[Any]:
         """Get cached analytics data."""
-        return self._analytics_cache.get(key)
+        val = self._analytics_cache.get(key)
+        if val is not None:
+            self._analytics_cache.move_to_end(key)
+        return val
     
     def set_analytics_cache(self, key: str, data: Any):
         """Set cached analytics data."""
         self._analytics_cache[key] = data
+        if len(self._analytics_cache) > self.MAX_CACHE_SIZE:
+            self._analytics_cache.popitem(last=False)
 
 # Global cache manager instance
 cache_manager = CacheManager()
+
+def _get_stable_key_args(args):
+    """Extract stable cache key components, replacing object instances with portfolio identity."""
+    stable_args = []
+    for arg in args:
+        if hasattr(arg, 'portfolio'):
+            portfolio = arg.portfolio
+            fname = getattr(portfolio, 'current_filename', 'default')
+            trade_count = getattr(portfolio, 'total_trades', 0)
+            stable_args.append(f"portfolio:{fname}:{trade_count}")
+        elif hasattr(arg, 'current_filename'):
+            fname = getattr(arg, 'current_filename', 'default')
+            trade_count = getattr(arg, 'total_trades', 0)
+            stable_args.append(f"portfolio:{fname}:{trade_count}")
+        else:
+            stable_args.append(str(arg))
+    return tuple(stable_args)
+
 
 def cache_result(prefix: str, ttl: Optional[int] = None):
     """Decorator to cache function results."""
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # Generate cache key
-            cache_key = cache_manager._generate_cache_key(prefix, *args, **kwargs)
+            stable_args = _get_stable_key_args(args)
+            # Include function name so different chart types don't share cache
+            cache_key = cache_manager._generate_cache_key(prefix, func.__name__, *stable_args, **kwargs)
             
-            # Try to get from cache
             cached_result = cache_manager.get(cache_key)
             if cached_result is not None:
                 logger.debug(f"Cache hit for {func.__name__}")
                 return cached_result
             
-            # Execute function and cache result
             logger.debug(f"Cache miss for {func.__name__}, executing...")
             result = func(*args, **kwargs)
             cache_manager.set(cache_key, result, ttl)
@@ -165,8 +197,8 @@ def cache_result(prefix: str, ttl: Optional[int] = None):
 
 def cache_chart_result(ttl: Optional[int] = None):
     """Decorator specifically for chart results."""
-    return cache_result("chart", ttl or 1800)  # 30 minutes for charts
+    return cache_result("chart", ttl or 1800)
 
 def cache_analytics_result(ttl: Optional[int] = None):
     """Decorator specifically for analytics results."""
-    return cache_result("analytics", ttl or 3600)  # 1 hour for analytics
+    return cache_result("analytics", ttl or 3600)
