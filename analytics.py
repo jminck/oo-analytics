@@ -7,7 +7,7 @@ import logging
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Tuple
-from models import Portfolio, Strategy, Trade
+from models import Portfolio, Strategy, Trade, _get_commission_calculator
 from config import Config
 
 logger = logging.getLogger(__name__)
@@ -168,23 +168,30 @@ class StrategyAnalyzer:
         if len(trades) < 2:
             return 0.0
         
+        # Sort by date to ensure correct time-span calculation.
+        # Use pd.Timestamp.min as a sentinel for trades with missing date_closed.
+        sorted_trades = sorted(
+            trades,
+            key=lambda t: pd.to_datetime(t.date_closed) if t.date_closed else pd.Timestamp.min
+        )
+        
         # Calculate time span and trade frequency
-        start_date = pd.to_datetime(trades[0].date_closed)
-        end_date = pd.to_datetime(trades[-1].date_closed)
+        start_date = pd.to_datetime(sorted_trades[0].date_closed)
+        end_date = pd.to_datetime(sorted_trades[-1].date_closed)
         days_elapsed = (end_date - start_date).days
         
         if days_elapsed <= 0:
             return 0.0
         
         # Calculate trades per year
-        trades_per_year = len(trades) * 365.25 / days_elapsed
+        trades_per_year = len(sorted_trades) * 365.25 / days_elapsed
         
         # Calculate returns as percentage (using per-lot P&L relative to a standard margin base)
         # Use a standard margin base of $1000 for normalization
         standard_margin_base = 1000.0
         returns = []
         
-        for trade in trades:
+        for trade in sorted_trades:
             # Calculate return as percentage of standard margin base
             return_pct = trade.pnl_per_lot / standard_margin_base
             returns.append(return_pct)
@@ -1176,8 +1183,7 @@ class PortfolioMetrics:
         total_margin = sum(getattr(trade, 'margin_req', 0) for trade in all_trades)
         
         # Calculate actual contract count from legs, fallback to CSV field
-        from commission_config import CommissionCalculator
-        calc = CommissionCalculator()
+        calc = _get_commission_calculator()
         total_contracts = 0
         for trade in all_trades:
             legs = getattr(trade, 'legs', '')

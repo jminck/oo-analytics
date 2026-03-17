@@ -6,11 +6,23 @@ Optimized for strategy-focused analytics with 25k+ trades.
 import sqlite3
 import pandas as pd
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 import numpy as np
 import csv
 import re
+
+# Lazy singleton for CommissionCalculator to avoid re-instantiating on every call
+_commission_calculator = None
+
+
+def _get_commission_calculator():
+    """Return a module-level CommissionCalculator singleton (lazy-initialised)."""
+    global _commission_calculator
+    if _commission_calculator is None:
+        from commission_config import CommissionCalculator
+        _commission_calculator = CommissionCalculator()
+    return _commission_calculator
 
 # Configure paths for Azure App Service
 if os.environ.get('WEBSITES_PORT'):
@@ -255,8 +267,7 @@ class Strategy:
     @property
     def total_contracts(self) -> int:
         """Total contracts traded for this strategy."""
-        from commission_config import CommissionCalculator
-        calc = CommissionCalculator()
+        calc = _get_commission_calculator()
         
         total = 0
         for trade in self.trades:
@@ -416,7 +427,15 @@ class Strategy:
                 'max_win_streak': 0
             }
         
-        # Calculate everything in a single pass
+        # Sort trades once chronologically — required for correct streak calculation.
+        # Use date.min as a sentinel for missing dates so None values don't raise TypeError.
+        from datetime import date as _date
+        sorted_trades = sorted(
+            self.trades,
+            key=lambda t: t.date_closed or t.date_opened or _date.min
+        )
+        
+        # Calculate everything in a single pass, including streaks and per-lot medians
         total_pnl = 0
         wins_count = 0
         losses_count = 0
@@ -424,6 +443,8 @@ class Strategy:
         total_commissions = 0
         wins = []
         losses = []
+        wins_per_lot = []
+        losses_per_lot = []
         max_win = 0
         max_loss = 0
         max_win_per_lot = 0
@@ -432,10 +453,15 @@ class Strategy:
         loser_contracts = 0
         total_win_pnl = 0.0
         total_loss_pnl = 0.0
+        current_win_streak = 0
+        current_loss_streak = 0
+        max_win_streak = 0
+        max_loss_streak = 0
         
-        for trade in self.trades:
+        for trade in sorted_trades:
             pnl = trade.pnl
             contracts = getattr(trade, 'contracts', 1)
+            pnl_per_lot = pnl / contracts if contracts > 0 else 0.0
             total_pnl += pnl
             total_contracts += contracts
             total_commissions += getattr(trade, 'opening_commissions', 0) + getattr(trade, 'closing_commissions', 0)
@@ -443,17 +469,25 @@ class Strategy:
             if pnl > 0:
                 wins_count += 1
                 wins.append(pnl)
+                wins_per_lot.append(pnl_per_lot)
                 total_win_pnl += pnl
                 winner_contracts += contracts
                 max_win = max(max_win, pnl)
-                max_win_per_lot = max(max_win_per_lot, pnl / contracts)
+                max_win_per_lot = max(max_win_per_lot, pnl_per_lot)
+                current_win_streak += 1
+                current_loss_streak = 0
+                max_win_streak = max(max_win_streak, current_win_streak)
             else:
                 losses_count += 1
                 losses.append(pnl)  # Keep negative sign for consistency with property
+                losses_per_lot.append(pnl_per_lot)
                 total_loss_pnl += pnl  # Keep negative sign
                 loser_contracts += contracts
                 max_loss = max(max_loss, abs(pnl))
-                max_loss_per_lot = max(max_loss_per_lot, abs(pnl) / contracts)
+                max_loss_per_lot = max(max_loss_per_lot, abs(pnl_per_lot))
+                current_loss_streak += 1
+                current_win_streak = 0
+                max_loss_streak = max(max_loss_streak, current_loss_streak)
         
         # Calculate averages
         # avg_win and avg_loss are per-trade (simple mean)
@@ -463,31 +497,34 @@ class Strategy:
         avg_win_per_lot = total_win_pnl / winner_contracts if winner_contracts > 0 else 0
         avg_loss_per_lot = abs(total_loss_pnl) / loser_contracts if loser_contracts > 0 else 0
         avg_commissions_per_lot = total_commissions / total_contracts if total_contracts > 0 else 0
-        win_rate = (wins_count / len(self.trades)) * 100 if self.trades else 0
+        win_rate = (wins_count / len(sorted_trades)) * 100
         profit_factor = avg_win / abs(avg_loss) if avg_loss != 0 else 0
         
-        # Calculate expectancy per lot - use the same calculation as the Strategy property
-        # Use the Strategy's expectancy_per_lot property to ensure consistency
-        expectancy_per_lot = self.expectancy_per_lot
+        # Median per-lot values — computed from already-collected lists, no extra pass needed
+        median_win_per_lot = float(np.median(wins_per_lot)) if wins_per_lot else 0.0
+        median_loss_per_lot = float(np.median(losses_per_lot)) if losses_per_lot else 0.0
+        
+        # Expectancy per lot — inlined formula, no extra trade iteration
+        win_rate_decimal = win_rate / 100
+        expectancy_per_lot = (win_rate_decimal * avg_win_per_lot) - ((1.0 - win_rate_decimal) * avg_loss_per_lot)
         
         # Calculate margin percentage and efficiency from trades
         margin_percentage = 0.0
         efficiency = 0.0
-        if self.trades:
+        if sorted_trades:
             # Calculate average margin per contract for efficiency calculation
             margin_values = []
             recent_margins = []  # For 90-day calculation
             
             # Find the most recent trade date to calculate 90-day window
-            from datetime import datetime, timedelta
-            all_trade_dates = [trade.date_opened for trade in self.trades if trade.date_opened]
+            all_trade_dates = [trade.date_opened for trade in sorted_trades if trade.date_opened]
             if all_trade_dates:
                 most_recent_date = max(all_trade_dates)
                 cutoff_date = most_recent_date - timedelta(days=90)
             else:
                 cutoff_date = None
             
-            for trade in self.trades:
+            for trade in sorted_trades:
                 margin_req = getattr(trade, 'margin_req', 0)
                 contracts = getattr(trade, 'contracts', 1)
                 if margin_req > 0 and contracts > 0:
@@ -505,7 +542,7 @@ class Strategy:
                 avg_90_days = sum(recent_margins) / len(recent_margins) if recent_margins else 0
                 
                 # Calculate margin percentage using first trade: Margin Req. / (Funds at Close - P/L)
-                first_trade = self.trades[0]
+                first_trade = sorted_trades[0]
                 first_trade_margin_req = getattr(first_trade, 'margin_req', 0)
                 funds_at_close = getattr(first_trade, 'funds_at_close', 0)
                 first_trade_pnl = first_trade.pnl
@@ -518,9 +555,10 @@ class Strategy:
                 # Use 90-day average margin if available, otherwise use overall average (same as Margin Analysis)
                 margin_for_efficiency = avg_90_days if avg_90_days > 0 else avg_margin_per_contract
                 if margin_for_efficiency > 0:
-                    efficiency = (expectancy_per_lot / margin_for_efficiency) * (self.win_rate / 100)
+                    efficiency = (expectancy_per_lot / margin_for_efficiency) * win_rate_decimal
 
         # Calculate Kelly Criterion
+        raw_kelly = 0.0
         kelly_percentage = 0.0
         if wins_count > 0 and losses_count > 0 and avg_win_per_lot > 0 and avg_loss_per_lot > 0:
             # Kelly formula: f* = (bp - q) / b
@@ -531,7 +569,7 @@ class Strategy:
             q = 1 - p  # Loss probability
             raw_kelly = (b * p - q) / b
             # Ensure Kelly is between 0 and 1 (0% to 100%)
-            raw_kelly = max(0, min(1, raw_kelly))
+            raw_kelly = max(0.0, min(1.0, raw_kelly))
             
             # Convert to relative portfolio sizing (fractional Kelly for safety)
             # Use 25% of full Kelly for more conservative position sizing
@@ -541,7 +579,7 @@ class Strategy:
             'name': self.name,
             'strategy_type': self.strategy_type,
             'total_pnl': round(total_pnl, 2),
-            'trade_count': len(self.trades),
+            'trade_count': len(sorted_trades),
             'wins_count': wins_count,
             'losses_count': losses_count,
             'total_contracts': total_contracts,
@@ -553,19 +591,19 @@ class Strategy:
             'max_loss': round(max_loss, 2),
             'avg_win_per_lot': round(avg_win_per_lot, 2),
             'avg_loss_per_lot': round(avg_loss_per_lot, 2),
-            'median_win_per_lot': round(self.median_win_per_lot, 2),
-            'median_loss_per_lot': round(self.median_loss_per_lot, 2),
+            'median_win_per_lot': round(median_win_per_lot, 2),
+            'median_loss_per_lot': round(median_loss_per_lot, 2),
             'max_win_per_lot': round(max_win_per_lot, 2),
             'max_loss_per_lot': round(max_loss_per_lot, 2),
             'avg_commissions_per_lot': round(avg_commissions_per_lot, 2),
             'expectancy_per_lot': round(expectancy_per_lot, 2),
             'profit_factor': round(profit_factor, 2),
-            'max_loss_streak': self.max_loss_streak,
-            'max_win_streak': self.max_win_streak,
+            'max_loss_streak': max_loss_streak,
+            'max_win_streak': max_win_streak,
             'margin_percentage': round(margin_percentage, 2),
             'efficiency': round(efficiency, 4),
             'kelly_percentage': round(kelly_percentage * 100, 2),  # Convert to percentage
-            'raw_kelly': round(raw_kelly * 100, 2) if 'raw_kelly' in locals() else 0.0  # Store raw Kelly for normalization
+            'raw_kelly': round(raw_kelly * 100, 2)  # Store raw Kelly for normalization
         }
         
         # Cache the result and mark as clean

@@ -2,7 +2,10 @@
 Configuration file for Flask application with OAuth support.
 """
 import os
+import logging
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -48,8 +51,8 @@ class Config:
     DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI')
     
     # Debug logging for environment variables
-    print(f"DEBUG CONFIG: GOOGLE_REDIRECT_URI = {GOOGLE_REDIRECT_URI}")
-    print(f"DEBUG CONFIG: DISCORD_REDIRECT_URI = {DISCORD_REDIRECT_URI}")
+    logger.debug("CONFIG: GOOGLE_REDIRECT_URI = %s", GOOGLE_REDIRECT_URI)
+    logger.debug("CONFIG: DISCORD_REDIRECT_URI = %s", DISCORD_REDIRECT_URI)
     
     # Admin Configuration
     ADMIN_EMAILS = os.environ.get('ADMIN_EMAILS', '').split(',') if os.environ.get('ADMIN_EMAILS') else []

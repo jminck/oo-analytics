@@ -53,7 +53,7 @@ class CacheManager:
         """Generate a cache key from arguments."""
         # Create a hash of the arguments
         key_data = str(args) + str(sorted(kwargs.items()))
-        key_hash = hashlib.md5(key_data.encode()).hexdigest()
+        key_hash = hashlib.sha256(key_data.encode()).hexdigest()
         return f"{prefix}:{key_hash}"
     
     def get(self, key: str) -> Optional[Any]:
@@ -109,11 +109,17 @@ class CacheManager:
         """Clear all cache entries for a specific portfolio."""
         try:
             if self.redis_available:
-                # Get all keys matching the portfolio pattern
+                # Use SCAN instead of KEYS to avoid blocking Redis on large key sets
                 pattern = f"portfolio:{portfolio_id}:*"
-                keys = self.redis_client.keys(pattern)
-                if keys:
-                    self.redis_client.delete(*keys)
+                cursor = 0
+                keys_to_delete = []
+                while True:
+                    cursor, keys = self.redis_client.scan(cursor, match=pattern, count=1000)
+                    keys_to_delete.extend(keys)
+                    if cursor == 0:
+                        break
+                if keys_to_delete:
+                    self.redis_client.delete(*keys_to_delete)
             else:
                 # Clear from all memory caches
                 keys_to_delete = [k for k in self._memory_cache.keys() if k.startswith(f"portfolio:{portfolio_id}:")]
@@ -130,12 +136,17 @@ class CacheManager:
         """Get cached chart data."""
         val = self._chart_cache.get(key)
         if val is not None:
-            self._chart_cache.move_to_end(key)
-        return val
+            data, timestamp = val
+            if time.time() - timestamp < self.cache_ttl:
+                self._chart_cache.move_to_end(key)
+                return data
+            else:
+                del self._chart_cache[key]
+        return None
     
     def set_chart_cache(self, key: str, data: Any):
         """Set cached chart data."""
-        self._chart_cache[key] = data
+        self._chart_cache[key] = (data, time.time())
         if len(self._chart_cache) > self.MAX_CACHE_SIZE:
             self._chart_cache.popitem(last=False)
     
@@ -143,12 +154,17 @@ class CacheManager:
         """Get cached analytics data."""
         val = self._analytics_cache.get(key)
         if val is not None:
-            self._analytics_cache.move_to_end(key)
-        return val
+            data, timestamp = val
+            if time.time() - timestamp < self.cache_ttl:
+                self._analytics_cache.move_to_end(key)
+                return data
+            else:
+                del self._analytics_cache[key]
+        return None
     
     def set_analytics_cache(self, key: str, data: Any):
         """Set cached analytics data."""
-        self._analytics_cache[key] = data
+        self._analytics_cache[key] = (data, time.time())
         if len(self._analytics_cache) > self.MAX_CACHE_SIZE:
             self._analytics_cache.popitem(last=False)
 
