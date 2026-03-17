@@ -2,6 +2,7 @@
 Configuration file for Flask application with OAuth support.
 """
 import os
+import secrets
 import logging
 from dotenv import load_dotenv
 
@@ -10,12 +11,36 @@ logger = logging.getLogger(__name__)
 # Load environment variables from .env file
 load_dotenv()
 
+def _is_production():
+    """Return True when running on Azure App Service (production environment)."""
+    return bool(os.environ.get('WEBSITES_PORT') or os.environ.get('WEBSITE_SITE_NAME'))
+
+
+def _get_secret_key():
+    """Return SECRET_KEY from environment, raising an error in production if not set."""
+    key = os.environ.get('SECRET_KEY')
+    if key:
+        return key
+    # In production a SECRET_KEY must be set explicitly.
+    if _is_production():
+        raise RuntimeError(
+            "SECRET_KEY environment variable must be set in production. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+    # Local development only: generate a random key per process start.
+    # This means sessions are invalidated on restart, which is acceptable for local dev.
+    logger.warning(
+        "SECRET_KEY not set – using a randomly generated key. "
+        "Sessions will be lost on restart. Set SECRET_KEY in .env for persistence."
+    )
+    return secrets.token_hex(32)
+
 class Config:
     # Base directory - define first so it can be used by other settings
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     
     # Flask Configuration
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-change-in-production'
+    SECRET_KEY = _get_secret_key()
     
     # Database Configuration
     # For production, use Azure SQL Database or PostgreSQL
