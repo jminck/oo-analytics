@@ -399,14 +399,11 @@ class ChartGenerator:
         
         # Calculate dynamic size based on number of strategies
         num_strategies = len(correlations.columns)
-        min_size = 1200  # Increased minimum size
-        size_per_strategy = 60  # Much larger size per strategy to accommodate text
-        matrix_size = max(min_size, num_strategies * size_per_strategy)
+        size_per_strategy = 60
+        min_size = max(400, num_strategies * size_per_strategy)
+        tick_font_size = max(10, 14 - num_strategies // 25)
         
-        # Add extra width for the colorbar/legend
-        total_width = matrix_size + 200  # Add 200px for colorbar and spacing
-        
-        logger.debug("Correlation matrix - %d strategies, %dx%dpx, total width: %dpx", num_strategies, matrix_size, matrix_size, total_width)
+        logger.debug("Correlation matrix - %d strategies, %dx%dpx", num_strategies, min_size, min_size)
         
         fig = go.Figure(data=go.Heatmap(
             z=correlations.values,
@@ -420,9 +417,7 @@ class ChartGenerator:
             hovertemplate='<b>%{y}</b><br>vs<br><b>%{x}</b><br><br>Correlation: %{z:.3f}<extra></extra>',
             customdata=np.abs(1 - correlations.values),
             colorbar={
-                'lenmode': 'pixels',
-                'len': 100,
-                'thickness': 30,
+                'thickness': 20,
                 'y': 0.5,
                 'yanchor': 'middle'
             }
@@ -431,29 +426,24 @@ class ChartGenerator:
         fig.update_layout(
             title='Strategy Correlation Matrix',
             template='plotly_white',
-            height=matrix_size,
-            width=total_width,
+            height=min_size,
+            autosize=True,
             hovermode='closest',
             hoverlabel=dict(
                 align='left',
                 font=dict(size=11)
             ),
             xaxis=dict(
-                scaleanchor="y", 
-                scaleratio=1,
-                tickangle=45,
-                tickfont=dict(size=max(10, 14 - num_strategies // 25)),  # Smaller font to fit more strategies
+                tickangle=-45,
+                tickfont=dict(size=tick_font_size),
                 side='bottom',
-                automargin=True  # Enable auto-margin for x-axis labels
+                automargin=True
             ),
             yaxis=dict(
-                scaleanchor="x", 
-                scaleratio=1,
-                tickfont=dict(size=max(10, 14 - num_strategies // 25)),  # Smaller font to fit more strategies
-                automargin=True,
-                showticklabels=False  # Hide y-axis tick labels (strategy names)
+                tickfont=dict(size=tick_font_size),
+                automargin=True
             ),
-            margin=dict(l=300, r=120, t=180, b=300)  # Even larger margins for better label visibility
+            margin=dict(l=20, r=20, t=60, b=20)
         )
         
         return {
