@@ -1969,6 +1969,15 @@
         </div>
     </div>
 
+    <!-- File Loading Overlay -->
+    <div id="fileLoadingOverlay" class="login-loading" style="display: none;">
+        <div class="login-loading-content">
+            <div class="login-loading-spinner"></div>
+            <div class="login-loading-text" id="fileLoadingText">Processing file...</div>
+            <div class="login-loading-subtext">Please wait while we analyze your data</div>
+        </div>
+    </div>
+
     <div class="container mt-4">
         <!-- Alerts -->
         <div id="alertContainer"></div>
@@ -2562,7 +2571,7 @@
             setupFileUpload();
             setupSavedFiles();
             loadDataStats();
-            loadFilesOverview();
+            loadFilesOverview(true);  // Background refresh - page will navigate to overview
             loadAvailableCharts();
             loadPortfolioData();
             
@@ -2765,6 +2774,14 @@
             uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
             uploadBtn.disabled = true;
             
+            // Show full-page loading overlay
+            const fileLoadingOverlay = document.getElementById('fileLoadingOverlay');
+            const fileLoadingText = document.getElementById('fileLoadingText');
+            if (fileLoadingOverlay) {
+                if (fileLoadingText) fileLoadingText.textContent = 'Uploading and processing file...';
+                fileLoadingOverlay.style.display = 'flex';
+            }
+            
             showAlert('Uploading and processing file...', 'info');
             fetch('/api/upload', {
                 method: 'POST',
@@ -2837,9 +2854,9 @@
                         document.getElementById('selectedFileName').textContent = '';
                         console.log('🔄 Upload area reset complete');
                         
-                        // Refresh the files overview to show the newly uploaded file
-                        console.log('🔄 Refreshing files overview after upload');
-                        loadFilesOverview();
+                        // Refresh the files overview to show the newly uploaded file (background only - don't navigate away)
+                        console.log('🔄 Refreshing files overview after upload (background)');
+                        loadFilesOverview(true);
                         
                         // Refresh portfolio data and stats without changing the current page
                         console.log('🔄 Refreshing portfolio data and stats');
@@ -2904,6 +2921,7 @@
                         console.log('🔄 Second timeout reset complete');
                     }, 200);
                     // Clear all application state before loading new data
+                    window.skipAutoLoadCumulativePnl = true;
                     clearAllAppState();
                     
                     // Force complete UI refresh with cache busting
@@ -2911,11 +2929,22 @@
                         loadPortfolioData();
                         loadDataStats();
                         loadSavedFilesList();
-                        loadFilesOverview();
+                        loadFilesOverview(true);  // Background refresh only - don't navigate away
                         
                         // Force refresh of all cached components
                         refreshAllUIComponents();
+                        
+                        // Navigate to Overview page after successful upload
+                        loadChart('overview');
+                        
+                        // Reset the skip flag after navigation is established
+                        setTimeout(() => {
+                            window.skipAutoLoadCumulativePnl = false;
+                        }, 3000);
                     }, 100);
+                    
+                    // Hide loading overlay after navigation is triggered
+                    if (fileLoadingOverlay) fileLoadingOverlay.style.display = 'none';
                 } else {
                     // Track upload failure
                     if (window.appInsights) {
@@ -2925,6 +2954,9 @@
                         });
                     }
                     showAlert(`Upload failed: ${data.error}`, 'danger');
+                    
+                    // Hide loading overlay on failure
+                    if (fileLoadingOverlay) fileLoadingOverlay.style.display = 'none';
                     
                     // Restore button state only on failure
                     uploadBtn.innerHTML = originalBtnText;
@@ -2941,6 +2973,9 @@
                 }
                 showAlert(`Upload error: ${error.message}`, 'danger');
                 
+                // Hide loading overlay on error
+                if (fileLoadingOverlay) fileLoadingOverlay.style.display = 'none';
+                
                 // Restore button state
                 uploadBtn.innerHTML = originalBtnText;
                 uploadBtn.disabled = false;
@@ -2954,6 +2989,14 @@
             }
             
             showAlert('Loading sample portfolio data...', 'info');
+            
+            // Show full-page loading overlay
+            const fileLoadingOverlay = document.getElementById('fileLoadingOverlay');
+            const fileLoadingText = document.getElementById('fileLoadingText');
+            if (fileLoadingOverlay) {
+                if (fileLoadingText) fileLoadingText.textContent = 'Loading sample portfolio data...';
+                fileLoadingOverlay.style.display = 'flex';
+            }
             
             fetch('/api/load-sample-data', {
                 method: 'POST'
@@ -2976,12 +3019,21 @@
                     updateFilenameDisplay(data.data.filename || 'Example-Portfolio.csv');
                     
                     // Clear all application state before loading new data
+                    window.skipAutoLoadCumulativePnl = true;
                     clearAllAppState();
                     
-                    // Reload portfolio data and charts
+                    // Reload portfolio data and charts (background refresh - don't navigate away)
                     loadPortfolioData();
                     loadSavedFilesList();
-                    loadFilesOverview();
+                    loadFilesOverview(true);  // Background refresh only
+                    
+                    // Navigate to Overview page
+                    loadChart('overview');
+                    
+                    // Reset skip flag after navigation is established
+                    setTimeout(() => {
+                        window.skipAutoLoadCumulativePnl = false;
+                    }, 3000);
                 } else {
                     // Track sample data load failure
                     if (window.appInsights) {
@@ -2991,6 +3043,8 @@
                     }
                     showAlert(`Failed to load sample data: ${data.error}`, 'danger');
                 }
+                // Hide loading overlay
+                if (fileLoadingOverlay) fileLoadingOverlay.style.display = 'none';
             })
             .catch(error => {
                 // Track sample data load error
@@ -3000,6 +3054,8 @@
                     });
                 }
                 showAlert(`Error loading sample data: ${error.message}`, 'danger');
+                // Hide loading overlay on error
+                if (fileLoadingOverlay) fileLoadingOverlay.style.display = 'none';
             });
         }
         
@@ -3204,7 +3260,7 @@
 
                     loadDataStats();
                     loadPortfolioData();
-                    loadFilesOverview();
+                    loadFilesOverview(true);  // Background refresh only - don't navigate away
 
                     if (data.data && data.data.initial_capital != null) {
                         window.lastInitialCapital = data.data.initial_capital;
@@ -3213,6 +3269,9 @@
                             initialCapitalInput.value = data.data.initial_capital;
                         }
                     }
+
+                    // Navigate to Overview page after loading
+                    loadChart('overview');
 
                     setTimeout(() => {
                         window.skipAutoLoadCumulativePnl = false;
@@ -3247,7 +3306,7 @@
                 if (data.success) {
                     statusDiv.innerHTML = `<small class="text-success">✅ ${data.message}</small>`;
                     loadSavedFilesList(); // Refresh the list to show new name
-                    loadFilesOverview(); // Refresh the files overview table
+                    loadFilesOverview(true); // Background refresh - don't navigate away
                     
                     setTimeout(() => {
                         statusDiv.innerHTML = '';
@@ -3282,7 +3341,7 @@
                     
                     // Refresh the saved files list
                     loadSavedFilesList();
-                    loadFilesOverview(); // Refresh the files overview table
+                    loadFilesOverview(true); // Background refresh - don't navigate away
                     
                     // Clear the chart and stats if the deleted file was currently loaded
                     document.getElementById('chartContainer').innerHTML = 
@@ -3359,10 +3418,12 @@
         let filesOverviewSortAsc = false;
         let filesOverviewData = [];
 
-        function loadFilesOverview() {
-            console.log('🔄 loadFilesOverview called - v20241213_4');
+        function loadFilesOverview(backgroundRefresh = false) {
+            console.log('🔄 loadFilesOverview called - v20241213_4, backgroundRefresh:', backgroundRefresh);
             const container = document.getElementById('chartContainer');
-            container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading files overview...</div>';
+            if (!backgroundRefresh) {
+                container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading files overview...</div>';
+            }
             
             // Always fetch fresh data from API to ensure we have the latest calculations
             // Add cache-busting parameter to force fresh data
@@ -3379,15 +3440,21 @@
             .then(data => {
                 if (data.success) {
                     filesOverviewData = data.data;
-                    renderFilesOverviewInContainer(filesOverviewData);
+                    if (!backgroundRefresh) {
+                        renderFilesOverviewInContainer(filesOverviewData);
+                    }
                 } else {
                     console.error('Failed to load files overview:', data.error);
-                    container.innerHTML = '<div class="text-center text-danger">Error loading files overview: ' + data.error + '</div>';
+                    if (!backgroundRefresh) {
+                        container.innerHTML = '<div class="text-center text-danger">Error loading files overview: ' + data.error + '</div>';
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error loading files overview:', error);
-                container.innerHTML = '<div class="text-center text-danger">Error loading files overview</div>';
+                if (!backgroundRefresh) {
+                    container.innerHTML = '<div class="text-center text-danger">Error loading files overview</div>';
+                }
             });
         }
 
