@@ -397,13 +397,15 @@ class ChartGenerator:
         if correlations.empty:
             return self._empty_chart("Insufficient data for correlation analysis")
         
-        # Calculate dynamic size based on number of strategies
+        # Calculate dynamic size based on number of strategies.
+        # Cell size shrinks as strategy count grows so axis labels stay readable.
         num_strategies = len(correlations.columns)
-        size_per_strategy = 60
-        min_size = max(400, num_strategies * size_per_strategy)
-        tick_font_size = max(10, 14 - num_strategies // 25)
+        cell_size = max(30, min(60, 500 // max(1, num_strategies)))
+        chart_size = max(400, min(1000, num_strategies * cell_size + 200))
+        tick_font_size = max(8, min(12, 150 // max(1, num_strategies)))
         
-        logger.debug("Correlation matrix - %d strategies, %dx%dpx", num_strategies, min_size, min_size)
+        logger.debug("Correlation matrix - %d strategies, cell=%dpx, chart=%dx%dpx",
+                     num_strategies, cell_size, chart_size, chart_size)
         
         fig = go.Figure(data=go.Heatmap(
             z=correlations.values,
@@ -426,8 +428,8 @@ class ChartGenerator:
         fig.update_layout(
             title='Strategy Correlation Matrix',
             template='plotly_white',
-            height=min_size,
-            width=min_size,
+            height=chart_size,
+            width=chart_size,
             hovermode='closest',
             hoverlabel=dict(
                 align='left',
