@@ -95,7 +95,7 @@ This document outlines the performance optimizations implemented to improve the 
 
 ### Redis Setup (Optional)
 ```bash
-# Install Redis
+# Install Redis locally
 sudo apt-get install redis-server
 
 # Or use Docker
@@ -105,7 +105,12 @@ docker run -d -p 6379:6379 redis:alpine
 export REDIS_URL=redis://localhost:6379/0
 ```
 
-### Azure Redis Cache
+### Azure App Service (local Redis, no extra service required)
+On Azure App Service Linux, the startup script (`startup.sh`) automatically installs and starts
+a Redis server inside the container when `REDIS_URL` is not configured. No extra services or
+environment variables are needed for this mode.
+
+### Azure Cache for Redis (external, for multi-instance or persistent cache)
 ```bash
 # Set Azure Redis connection string (use rediss:// scheme for SSL on port 6380)
 export REDIS_URL=rediss://:your-access-key@your-cache-name.redis.cache.windows.net:6380/0

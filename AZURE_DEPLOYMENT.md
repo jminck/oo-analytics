@@ -174,15 +174,35 @@ az webapp log download --name portfolio-analysis-app --resource-group portfolio-
 6. **Scaling**: Configure auto-scaling rules as needed
 7. **Monitoring**: Set up Application Insights for monitoring
 
-## Redis Cache Setup (Recommended)
+## Redis Cache Setup
 
 The application uses Redis for caching chart results and expensive calculations. Without Redis it
-falls back to an in-memory cache, but Azure Cache for Redis is recommended for production to
-improve performance and share cache across multiple instances.
+falls back to an in-memory cache, but Redis is recommended for better performance.
 
-### Step 1: Create Azure Cache for Redis
+**You do not need an external Redis service.** The startup script automatically installs and
+starts a Redis server *inside* the App Service container when `REDIS_URL` is not set. The cache
+is ephemeral (cleared on each restart or re-deployment), which is acceptable for a caching layer.
+If you need the cache to survive restarts or to be shared across multiple App Service instances,
+use Azure Cache for Redis instead.
 
-#### Option A: Using Azure Portal
+### Option A: Local Redis (default, no extra cost)
+
+No configuration is needed. When `REDIS_URL` is not set, `startup.sh` installs `redis-server`
+from the container's package manager and starts it on `127.0.0.1:6379`. The application
+connects automatically using its built-in default (`redis://localhost:6379/0`).
+
+> **Limitation**: Cache is lost whenever the App Service container restarts or a new deployment
+> is applied. For a read-through performance cache this is fine; sessions and user data are not
+> stored in Redis.
+
+### Option B: Azure Cache for Redis (recommended for production / multi-instance)
+
+Use this option if you need the cache to persist across restarts or to be shared across scaled-out
+App Service instances.
+
+#### Step 1: Create Azure Cache for Redis
+
+**Using Azure Portal:**
 
 1. In the Azure Portal, click **Create a resource**
 2. Search for **Azure Cache for Redis** and select it
@@ -195,7 +215,7 @@ improve performance and share cache across multiple instances.
 5. Once deployed, go to the resource and navigate to **Access keys**
 6. Copy the **Primary connection string** or note the **Host name** and **Primary access key**
 
-#### Option B: Using Azure CLI
+**Using Azure CLI:**
 
 ```bash
 # Create Redis cache (Basic C0 SKU - cheapest option for testing)
@@ -214,12 +234,12 @@ az redis list-keys \
   --output tsv
 ```
 
-### Step 2: Configure REDIS_URL in Azure App Service
+#### Step 2: Configure REDIS_URL in Azure App Service
 
 Use the `rediss://` scheme (with double **s**) to enable SSL. Azure Cache for Redis requires SSL
 on port **6380**.
 
-#### Option A: Using Azure Portal
+**Using Azure Portal:**
 
 1. Go to your App Service in the Azure Portal
 2. Navigate to **Configuration** → **Application settings**
@@ -229,7 +249,7 @@ on port **6380**.
 4. Replace `YOUR_ACCESS_KEY` and `YOUR_CACHE_NAME` with your actual values
 5. Click **Save** and confirm the restart
 
-#### Option B: Using Azure CLI
+**Using Azure CLI:**
 
 ```bash
 # Replace <access-key> and <cache-name> with your actual values
@@ -241,16 +261,17 @@ az webapp config appsettings set \
 
 ### Verify Redis Connection
 
-After deploying, check the application logs to confirm Redis connected successfully:
+After deploying, check the application logs to confirm Redis is running:
 
 ```bash
 az webapp log tail --name portfolio-analysis-app --resource-group portfolio-analysis-rg
 ```
 
 Look for one of these log messages:
-- ✅ `Redis cache initialized successfully` — Redis is connected and caching is active
-- ⚠️ `Redis connection failed: ... Using in-memory cache.` — Redis URL may be wrong; the app
-  still works but uses in-memory cache
+- ✅ `Local Redis server started successfully` — local in-container Redis is running
+- ✅ `Redis connection successful` — connected to an external Redis URL
+- ⚠️ `Redis connection failed: ... Using in-memory cache.` — check your `REDIS_URL` value; the
+  app still works but caching is disabled
 
 ## Cost Optimization
 
