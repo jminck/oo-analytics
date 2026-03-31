@@ -3693,8 +3693,6 @@ class VIXAnalyzer:
             return { 'success': False, 'error': f'Failed to get VIX trades: {str(e)}' }
 
 class MEICAnalyzer:
-    """Analyzes Multiple Entry Iron Condor (MEIC) trades."""
-    
     def __init__(self, portfolio: Portfolio, filename: str = None):
         self.portfolio = portfolio
         self.filename = filename
@@ -3702,76 +3700,99 @@ class MEICAnalyzer:
         self._leg_groups_cache = None
         self.meic_trades = self._get_meic_trades()
         self.leg_groups = self._group_trades_by_entry_time()
-    
+
     def _get_meic_trades(self) -> List[Trade]:
         """Get all MEIC trades from the portfolio (optimized with caching)."""
         # Return cached result if available
         if self._meic_trades_cache is not None:
             return self._meic_trades_cache
-        
+
         meic_trades = []
-        
+
         # Pre-check filename to avoid repeated string operations
         filename_has_meic = self.filename and 'meic' in self.filename.lower()
-        
+
+        print("[DEBUG] Portfolio strategies loaded:")
         for strategy_name, strategy in self.portfolio.strategies.items():
+            print(f"[DEBUG] Strategy: '{strategy_name}' with {len(strategy.trades)} trades")
             # Check strategy name once per strategy
             strategy_has_meic = 'meic' in strategy_name.lower()
-            
             # If strategy name contains 'meic', add all trades
             if strategy_has_meic:
+                print(f"[DEBUG] Detected MEIC strategy: '{strategy_name}' - adding {len(strategy.trades)} trades")
                 meic_trades.extend(strategy.trades)
             elif filename_has_meic:
                 # Only check individual trades if filename has 'meic' but strategy doesn't
                 for trade in strategy.trades:
                     if trade.is_meic_trade(self.filename):
                         meic_trades.append(trade)
-        
+        print(f"[DEBUG] Total MEIC trades found: {len(meic_trades)}")
+
         # Cache the result
         self._meic_trades_cache = meic_trades
         return meic_trades
+
+    def _meic_trades_df(self) -> pd.DataFrame:
+        """Build a DataFrame of MEIC trades with precomputed attributes for vectorized analysis."""
+        # If already built, return cached version
+        if hasattr(self, '_meic_trades_df_cache') and self._meic_trades_df_cache is not None:
+            return self._meic_trades_df_cache
+
+        trades = self.meic_trades
+        if not trades:
+            df = pd.DataFrame()
+            self._meic_trades_df_cache = df
+            return df
+
+        # Build DataFrame with relevant fields and precomputed attributes
+        data = []
+        for t in trades:
+            data.append({
+                'trade': t,
+                'entry_date': getattr(t, 'date_opened', None),
+                'entry_time': getattr(t, 'time_opened', None),
+                'is_put_spread': t.is_put_spread(),
+                'is_call_spread': t.is_call_spread(),
+                'was_stopped_out': t.was_stopped_out(),
+                'pnl': getattr(t, 'pnl', 0),
+                'legs': getattr(t, 'legs', ''),
+                'contracts': getattr(t, 'contracts', 1),
+                'total_commissions': getattr(t, 'total_commissions', 0),
+            })
+        df = pd.DataFrame(data)
+        self._meic_trades_df_cache = df
+        return df
     
     def _group_trades_by_entry_time(self) -> Dict[str, Dict]:
-        """Group MEIC trades by entry time to identify put/call spread pairs (optimized with caching)."""
-        # Return cached result if available
+        """Group MEIC trades by entry time to identify put/call spread pairs (vectorized with pandas)."""
         if self._leg_groups_cache is not None:
             return self._leg_groups_cache
-        
+
+        df = self._meic_trades_df()
+        if df.empty:
+            self._leg_groups_cache = {}
+            return {}
+
+        # Group by entry_date and entry_time
+        grouped = df.groupby(['entry_date', 'entry_time'])
         leg_groups = {}
-        
-        # Pre-allocate the groups structure for better performance
-        for trade in self.meic_trades:
-            # Create a key based on entry date and time (optimized string formatting)
-            entry_key = f"{trade.date_opened}_{trade.time_opened}"
-            
-            # Use setdefault for cleaner code and better performance
-            if entry_key not in leg_groups:
-                leg_groups[entry_key] = {
-                    'put_spread': None,
-                    'call_spread': None,
-                    'entry_date': trade.date_opened,
-                    'entry_time': trade.time_opened
-                }
-            
-            # Classify the trade as put or call spread (optimized)
-            if trade.is_put_spread():
-                leg_groups[entry_key]['put_spread'] = trade
-            elif trade.is_call_spread():
-                leg_groups[entry_key]['call_spread'] = trade
-        
-        # Cache the result
+        for (entry_date, entry_time), group in grouped:
+            put_spread_row = group[group['is_put_spread']]
+            call_spread_row = group[group['is_call_spread']]
+            entry_key = f"{entry_date}_{entry_time}"
+            leg_groups[entry_key] = {
+                'put_spread': put_spread_row['trade'].iloc[0] if not put_spread_row.empty else None,
+                'call_spread': call_spread_row['trade'].iloc[0] if not call_spread_row.empty else None,
+                'entry_date': entry_date,
+                'entry_time': entry_time
+            }
         self._leg_groups_cache = leg_groups
         return leg_groups
     
     def get_stopout_statistics(self) -> Dict:
-        """Calculate stopout statistics for MEIC leg groups."""
-        # Filter leg groups to only include valid MEIC pairs (both put and call spreads)
-        valid_leg_groups = {}
-        for entry_key, group in self.leg_groups.items():
-            if group['put_spread'] and group['call_spread']:
-                valid_leg_groups[entry_key] = group
-        
-        if not valid_leg_groups:
+        """Calculate stopout statistics for MEIC leg groups, but headline stats use all MEIC trades (matching overview)."""
+        df = self._meic_trades_df()
+        if df.empty:
             return {
                 'success': False,
                 'error': 'No valid MEIC trades found',
@@ -3785,17 +3806,32 @@ class MEICAnalyzer:
                     'both_stopped': {'count': 0, 'percentage': 0}
                 }
             }
-        
+
+        # Headline stats: use all MEIC trades (not just valid pairs)
+        calc = _get_commission_calculator()
+        def get_contracts(row):
+            legs = row['legs']
+            if legs and str(legs).strip():
+                return calc.calculate_actual_contracts_from_legs(legs)
+            else:
+                return row['contracts']
+        total_contracts = int(df.apply(get_contracts, axis=1).sum())
+        total_commissions = float(df['total_commissions'].sum())
+
+        # Stopout stats: only for valid pairs
+        grouped = df.groupby(['entry_date', 'entry_time'])
+        valid_leg_groups = []
+        for (entry_date, entry_time), group in grouped:
+            has_put = group['is_put_spread'].any()
+            has_call = group['is_call_spread'].any()
+            if has_put and has_call:
+                valid_leg_groups.append(group)
+
         total_groups = len(valid_leg_groups)
-        no_stopouts = 0
-        puts_stopped = 0
-        calls_stopped = 0
-        both_stopped = 0
-        
-        for group in valid_leg_groups.values():
-            put_stopped = group['put_spread'] and group['put_spread'].was_stopped_out()
-            call_stopped = group['call_spread'] and group['call_spread'].was_stopped_out()
-            
+        no_stopouts = puts_stopped = calls_stopped = both_stopped = 0
+        for group in valid_leg_groups:
+            put_stopped = group[group['is_put_spread']]['was_stopped_out'].any() if not group[group['is_put_spread']].empty else False
+            call_stopped = group[group['is_call_spread']]['was_stopped_out'].any() if not group[group['is_call_spread']].empty else False
             if not put_stopped and not call_stopped:
                 no_stopouts += 1
             elif put_stopped and not call_stopped:
@@ -3804,21 +3840,7 @@ class MEICAnalyzer:
                 calls_stopped += 1
             elif put_stopped and call_stopped:
                 both_stopped += 1
-        
-        # Calculate additional statistics
-        calc = _get_commission_calculator()
-        
-        total_contracts = 0
-        for trade in self.meic_trades:
-            legs = getattr(trade, 'legs', '')
-            if legs and legs.strip():
-                contracts = calc.calculate_actual_contracts_from_legs(legs)
-            else:
-                contracts = getattr(trade, 'contracts', 1)
-            total_contracts += contracts
-            
-        total_commissions = sum(trade.total_commissions for trade in self.meic_trades)
-        
+
         return {
             'success': True,
             'data': {
@@ -3845,14 +3867,9 @@ class MEICAnalyzer:
         }
     
     def get_time_heatmap_data(self, start_date: str = None, end_date: str = None) -> Dict:
-        """Generate heatmap data showing P&L by day of week and entry time with optional date filtering."""
-        # Filter leg groups to only include valid MEIC pairs (both put and call spreads)
-        valid_leg_groups = {}
-        for entry_key, group in self.leg_groups.items():
-            if group['put_spread'] and group['call_spread']:
-                valid_leg_groups[entry_key] = group
-        
-        if not valid_leg_groups:
+        """Generate heatmap data showing P&L by day of week and entry time with optional date filtering, using vectorized DataFrame operations."""
+        df = self._meic_trades_df()
+        if df.empty:
             return {
                 'success': False,
                 'error': 'No valid MEIC trades found',
@@ -3869,39 +3886,22 @@ class MEICAnalyzer:
                     }
                 }
             }
-        
-        # Parse date filters if provided
-        start_date_parsed = None
-        end_date_parsed = None
-        
-        if start_date:
-            try:
-                start_date_parsed = pd.to_datetime(start_date)
-            except:
-                pass
-        
-        if end_date:
-            try:
-                end_date_parsed = pd.to_datetime(end_date)
-            except:
-                pass
-        
-        # Build lists for vectorized DataFrame creation
-        days, times, pnls, dates = [], [], [], []
-        for group in valid_leg_groups.values():
-            entry_date = pd.to_datetime(group['entry_date'])
-            if start_date_parsed and entry_date < start_date_parsed:
-                continue
-            if end_date_parsed and entry_date > end_date_parsed:
-                continue
-            total_pnl = (group['put_spread'].pnl if group['put_spread'] else 0) + (group['call_spread'].pnl if group['call_spread'] else 0)
-            days.append(entry_date.strftime('%A'))
-            times.append(group['entry_time'])
-            pnls.append(total_pnl)
-            dates.append(entry_date)
-        df = pd.DataFrame({'day_of_week': days, 'entry_time': times, 'total_pnl': pnls, 'entry_date': dates})
-        
-        if df.empty:
+
+        # Group by entry_date and entry_time, find valid pairs
+        grouped = df.groupby(['entry_date', 'entry_time'])
+        records = []
+        for (entry_date, entry_time), group in grouped:
+            has_put = group['is_put_spread'].any()
+            has_call = group['is_call_spread'].any()
+            if has_put and has_call:
+                # Calculate total pnl for the group (sum of put and call spread pnls)
+                total_pnl = group[group['is_put_spread']]['pnl'].sum() + group[group['is_call_spread']]['pnl'].sum()
+                records.append({
+                    'entry_date': entry_date,
+                    'entry_time': entry_time,
+                    'total_pnl': total_pnl
+                })
+        if not records:
             return {
                 'success': False,
                 'error': 'No valid MEIC trades in date range',
@@ -3913,33 +3913,65 @@ class MEICAnalyzer:
                     'date_range': None
                 }
             }
-        
-        heatmap_summary = df.groupby(['day_of_week', 'entry_time']).agg(total_pnl=('total_pnl', 'sum'), trade_count=('total_pnl', 'count'), avg_pnl=('total_pnl', 'mean')).round(2).reset_index()
-        
+        heatmap_df = pd.DataFrame(records)
+
+        # Apply date filters if provided
+        if start_date:
+            try:
+                start_date_parsed = pd.to_datetime(start_date)
+                heatmap_df = heatmap_df[pd.to_datetime(heatmap_df['entry_date']) >= start_date_parsed]
+            except:
+                pass
+        if end_date:
+            try:
+                end_date_parsed = pd.to_datetime(end_date)
+                heatmap_df = heatmap_df[pd.to_datetime(heatmap_df['entry_date']) <= end_date_parsed]
+            except:
+                pass
+
+        if heatmap_df.empty:
+            return {
+                'success': False,
+                'error': 'No valid MEIC trades in date range',
+                'data': {
+                    'pnl_heatmap': {},
+                    'count_heatmap': {},
+                    'daily_pnl_totals': {},
+                    'summary_stats': {'total_leg_groups': 0, 'total_pnl': 0, 'avg_pnl_per_group': 0, 'best_day': None, 'worst_day': None},
+                    'date_range': None
+                }
+            }
+
+        # Add day_of_week column
+        heatmap_df['day_of_week'] = pd.to_datetime(heatmap_df['entry_date']).dt.strftime('%A')
+
+        # Group for heatmap
+        heatmap_summary = heatmap_df.groupby(['day_of_week', 'entry_time']).agg(total_pnl=('total_pnl', 'sum'), trade_count=('total_pnl', 'count'), avg_pnl=('total_pnl', 'mean')).round(2).reset_index()
+
         pivot_pnl = heatmap_summary.pivot(index='day_of_week', columns='entry_time', values='total_pnl').fillna(0)
         pivot_count = heatmap_summary.pivot(index='day_of_week', columns='entry_time', values='trade_count').fillna(0)
-        
+
         day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         pivot_pnl = pivot_pnl.reindex([d for d in day_order if d in pivot_pnl.index])
         pivot_count = pivot_count.reindex([d for d in day_order if d in pivot_count.index])
-        
+
         ordered_pnl_heatmap = pivot_pnl.to_dict('index')
         ordered_count_heatmap = pivot_count.to_dict('index')
         daily_pnl_totals = {day: round(pivot_pnl.loc[day].sum(), 2) for day in pivot_pnl.index}
-        
+
         # Calculate date range for sliders
         date_range = None
-        if not df.empty:
-            min_date = df['entry_date'].min()
-            max_date = df['entry_date'].max()
+        if not heatmap_df.empty:
+            min_date = pd.to_datetime(heatmap_df['entry_date']).min()
+            max_date = pd.to_datetime(heatmap_df['entry_date']).max()
             date_range = {
                 'min_date': min_date.strftime('%Y-%m-%d'),
                 'max_date': max_date.strftime('%Y-%m-%d'),
-                'total_trades': len(df)
+                'total_trades': len(heatmap_df)
             }
 
-        total_pnl_filtered = df['total_pnl'].sum()
-        day_totals = df.groupby('day_of_week')['total_pnl'].sum()
+        total_pnl_filtered = heatmap_df['total_pnl'].sum()
+        day_totals = heatmap_df.groupby('day_of_week')['total_pnl'].sum()
         return {
             'success': True,
             'data': {
@@ -3947,9 +3979,9 @@ class MEICAnalyzer:
                 'count_heatmap': ordered_count_heatmap,
                 'daily_pnl_totals': daily_pnl_totals,
                 'summary_stats': {
-                    'total_leg_groups': len(df),
+                    'total_leg_groups': len(heatmap_df),
                     'total_pnl': round(total_pnl_filtered, 2),
-                    'avg_pnl_per_group': round(df['total_pnl'].mean(), 2),
+                    'avg_pnl_per_group': round(heatmap_df['total_pnl'].mean(), 2),
                     'best_day': day_totals.idxmax() if len(day_totals) > 0 else None,
                     'worst_day': day_totals.idxmin() if len(day_totals) > 0 else None
                 },
