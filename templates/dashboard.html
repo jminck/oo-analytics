@@ -4764,10 +4764,18 @@
                         // Special rendering for portfolio balance with explanation pane
                         renderPortfolioBalanceChart(chartData);
                     } else if (data.type === 'correlation_heatmap') {
-                        // Correlation matrix: use container width for both dimensions to keep it square
+                        // Correlation matrix: scale size by strategy count so cells stay readable.
+                        // Fewer strategies → bigger cells; more strategies → smaller cells.
                         const chartContainer = document.getElementById('chartContainer');
                         if (chartContainer) {
-                            const squareSize = chartContainer.clientWidth - 60;
+                            const numStrategies = (chartData.data[0] && chartData.data[0].z)
+                                ? chartData.data[0].z.length : 10;
+                            // Cell size: 60px for few strategies, shrinks to 30px for many
+                            const cellSize = Math.max(30, Math.min(60, Math.floor(500 / numStrategies)));
+                            // Add ~200px for axis labels, colorbar and margins
+                            const calculatedSize = Math.max(400, numStrategies * cellSize + 200);
+                            // Never exceed the available container width
+                            const squareSize = Math.min(chartContainer.clientWidth - 60, calculatedSize);
                             chartData.layout.width = squareSize;
                             chartData.layout.height = squareSize;
                         }
